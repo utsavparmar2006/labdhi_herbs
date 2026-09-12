@@ -1,0 +1,604 @@
+{
+  "info": {
+    "_postman_id": "605ad590-29bb-43b6-a790-b91e9154a7ff",
+    "name": "Labdhi Herbs E-Commerce API",
+    "description": "Comprehensive Postman Collection for Labdhi Herbs Ayurvedic E-Commerce Store & Admin Dashboard.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "57940955",
+    "_collection_link": "https://go.postman.co/collection/57940955-605ad590-29bb-43b6-a790-b91e9154a7ff?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "1. Products",
+      "item": [
+        {
+          "name": "Get All Products (Paginated & Filterable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&limit=20&sort=popular",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of products per page"
+                },
+                {
+                  "key": "sort",
+                  "value": "popular",
+                  "description": "Options: popular, newest, price-asc, price-desc, rating"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search keyword",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "",
+                  "description": "Filter by category name or id",
+                  "disabled": true
+                },
+                {
+                  "key": "subCategory",
+                  "value": "",
+                  "description": "Filter by sub-category name",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Fetches all active herbal formulations from MongoDB."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Products by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?category=Skin %26 Face Care",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Skin & Face Care"
+                }
+              ]
+            },
+            "description": "Fetch products filtered by Main Category (e.g. Skin & Face Care, Hair Care, Muscle & Joint Care, Weight Loss)."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Products by Sub-Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?subCategory=Face Packs %26 Ubtan",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "subCategory",
+                  "value": "Face Packs & Ubtan"
+                }
+              ]
+            },
+            "description": "Fetch products filtered by Sub-Category (e.g. Face Packs & Ubtan, Skincare Ointments, Ayurvedic Hair Oils)."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Products by Keyword",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?search=turmeric",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "turmeric"
+                }
+              ]
+            },
+            "description": "Search in product title, description, benefits, and ingredients."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Product by Slug or ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/beautiction-face-pack",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "beautiction-face-pack"
+              ]
+            },
+            "description": "Fetches full details for a product including ingredients, benefits, usage instructions, and price."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kumkumadi Radiance Glow Serum\",\n  \"category\": \"Skin Care\",\n  \"categoryId\": \"skin-care\",\n  \"mainCategory\": \"Skin & Face Care\",\n  \"subCategory\": \"Skincare Ointments\",\n  \"price\": 599,\n  \"originalPrice\": 799,\n  \"rating\": 5.0,\n  \"reviewsCount\": 15,\n  \"image\": \"https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800\",\n  \"tag\": \"New Launch\",\n  \"description\": \"Precious saffron and 24 classical herbs infused to illuminate complexion and repair pigmentation.\",\n  \"benefits\": [\"Brightens skin tone naturally\", \"Fades acne spots\", \"Nourishes skin overnight\"],\n  \"ingredients\": [\"Kashmiri Saffron (Kumkuma)\", \"Sandalwood (Chandana)\", \"Manjistha\", \"Sesame Oil\"],\n  \"usage\": \"Apply 3-4 drops at bedtime on clean face and gently massage in upward strokes.\",\n  \"inStock\": true,\n  \"featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 329,\n  \"originalPrice\": 499,\n  \"inStock\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/beautiction-face-pack",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "beautiction-face-pack"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/kumkumadi-radiance-glow-serum",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "kumkumadi-radiance-glow-serum"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Categories & Sub-Categories",
+      "item": [
+        {
+          "name": "Get All Active Categories (Public Store)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Sub-Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/subcategories/all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "subcategories",
+                "all"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Category by Slug / ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/skin-face-care",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "skin-face-care"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Categories with KPI Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/admin/list?status=all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "admin",
+                "list"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Options: all, active, inactive"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Main Category (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Immunity & Vitality\",\n  \"slug\": \"immunity-vitality\",\n  \"description\": \"Chyawanprash, herbal tonics, and rejuvenating Rasayanas.\",\n  \"image\": \"https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800\",\n  \"status\": \"active\",\n  \"order\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Sub-Category under Main Category (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Herbal Rasayana & Tonics\",\n  \"slug\": \"herbal-tonics\",\n  \"image\": \"https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=800\",\n  \"description\": \"Traditional herbal tonics for daily strength and vigor.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories/skin-face-care/subcategories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "categories",
+                "skin-face-care",
+                "subcategories"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Home Page CMS & Hero Line",
+      "item": [
+        {
+          "name": "Get Home Page Config (Hero Line & Banner)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/homepage-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "homepage-config"
+              ]
+            },
+            "description": "Fetch phone, email, location, ticker messages, and hero section settings."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Home Page Config (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"announcementBar\": {\n    \"enabled\": true,\n    \"phone\": \"+91 93283 49328\",\n    \"email\": \"support@labdhiherbs.com\",\n    \"locationText\": \"Surat, Gujarat\",\n    \"badgeText\": \"100% Authentic\",\n    \"messages\": [\n      \"🌿 Pure Herbal Formulations • Free Shipping Across India\",\n      \"🚚 Express Fast Dispatch Direct from Surat Workshop\",\n      \"🎉 Festive Offer: 10% Extra Discount on First Order\"\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/homepage-config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "homepage-config"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Upload & Media Library",
+      "item": [
+        {
+          "name": "Upload Image File (from folder)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "value": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload/image",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "upload",
+                "image"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Media Library Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/upload/media-library",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "upload",
+                "media-library"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@labdhiherbs.com\",\n  \"password\": \"Admin@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "http://localhost:5000/api/v1/products?subCategory=Face%20Packs%20%26%20Ubtan",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/api/v1/products?subCategory=Face%20Packs%20%26%20Ubtan",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "5000",
+          "path": [
+            "api",
+            "v1",
+            "products"
+          ],
+          "query": [
+            {
+              "key": "subCategory",
+              "value": "Face%20Packs%20%26%20Ubtan"
+            }
+          ]
+        },
+        "description": "Generated from cURL: curl --location 'http://localhost:5000/api/v1/products?subCategory=Face%20Packs%20%26%20Ubtan'"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ]
+}

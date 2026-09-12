@@ -1,0 +1,794 @@
+{
+  "info": {
+    "_postman_id": "labdhi-herbs-api-v1",
+    "name": "Labdhi Herbs E-Commerce API",
+    "description": "Comprehensive Postman Collection for Labdhi Herbs Ayurvedic E-Commerce Store & Admin Dashboard.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Products",
+      "item": [
+        {
+          "name": "Get All Products (Paginated & Filterable)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&limit=20&sort=popular",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Number of products per page"
+                },
+                {
+                  "key": "sort",
+                  "value": "popular",
+                  "description": "Options: popular, newest, price-asc, price-desc, rating"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search keyword",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "",
+                  "description": "Filter by category name or id",
+                  "disabled": true
+                },
+                {
+                  "key": "subCategory",
+                  "value": "",
+                  "description": "Filter by sub-category name",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Fetches all active herbal formulations from MongoDB."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Products by Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?category=Skin & Face Care",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Skin & Face Care"
+                }
+              ]
+            },
+            "description": "Fetch products filtered by Main Category (e.g. Skin & Face Care, Hair Care, Muscle & Joint Care, Weight Loss)."
+          },
+          "response": []
+        },
+        {
+          "name": "Filter Products by Sub-Category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?subCategory=Face Packs & Ubtan",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "subCategory",
+                  "value": "Face Packs & Ubtan"
+                }
+              ]
+            },
+            "description": "Fetch products filtered by Sub-Category (e.g. Face Packs & Ubtan, Skincare Ointments, Ayurvedic Hair Oils)."
+          },
+          "response": []
+        },
+        {
+          "name": "Search Products by Keyword",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?search=turmeric",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "turmeric"
+                }
+              ]
+            },
+            "description": "Search in product title, description, benefits, and ingredients."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Product by Slug or ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/beautiction-face-pack",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "beautiction-face-pack"]
+            },
+            "description": "Fetches full details for a product including ingredients, benefits, usage instructions, and price."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Product (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Kumkumadi Radiance Glow Serum\",\n  \"category\": \"Skin Care\",\n  \"categoryId\": \"skin-care\",\n  \"mainCategory\": \"Skin & Face Care\",\n  \"subCategory\": \"Skincare Ointments\",\n  \"price\": 599,\n  \"originalPrice\": 799,\n  \"rating\": 5.0,\n  \"reviewsCount\": 15,\n  \"image\": \"https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800\",\n  \"images\": [\"https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800\"],\n  \"videoUrl\": \"/videos/Create_a_premium_cinematic_bra.mp4\",\n  \"tag\": \"New Launch\",\n  \"description\": \"Precious saffron and 24 classical herbs infused to illuminate complexion and repair pigmentation.\",\n  \"benefits\": [\"Brightens skin tone naturally\", \"Fades acne spots\", \"Nourishes skin overnight\"],\n  \"ingredients\": [\"Kashmiri Saffron (Kumkuma)\", \"Sandalwood (Chandana)\", \"Manjistha\", \"Sesame Oil\"],\n  \"usage\": \"Apply 3-4 drops at bedtime on clean face and gently massage in upward strokes.\",\n  \"inStock\": true,\n  \"featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 329,\n  \"originalPrice\": 499,\n  \"inStock\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/beautiction-face-pack",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "beautiction-face-pack"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Product Home Showcase (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/beautiction-face-pack/featured",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "beautiction-face-pack", "featured"]
+            },
+            "description": "Toggles whether this product appears in the 3-column auto-scrolling Handcrafted Herbal Remedies showcase on the homepage."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product (Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/products/kumkumadi-radiance-glow-serum",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "kumkumadi-radiance-glow-serum"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Categories & Sub-Categories",
+      "item": [
+        {
+          "name": "Get All Active Categories (Public Store)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Sub-Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/subcategories/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "subcategories", "all"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Category by Slug / ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/categories/skin-face-care",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "skin-face-care"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Categories with KPI Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/categories/admin/list?status=all",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "admin", "list"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "all",
+                  "description": "Options: all, active, inactive"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Main Category (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Immunity & Vitality\",\n  \"slug\": \"immunity-vitality\",\n  \"description\": \"Chyawanprash, herbal tonics, and rejuvenating Rasayanas.\",\n  \"image\": \"https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=800\",\n  \"status\": \"active\",\n  \"order\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Sub-Category under Main Category (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Herbal Rasayana & Tonics\",\n  \"slug\": \"herbal-tonics\",\n  \"image\": \"https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=800\",\n  \"description\": \"Traditional herbal tonics for daily strength and vigor.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/categories/skin-face-care/subcategories",
+              "host": ["{{baseUrl}}"],
+              "path": ["categories", "skin-face-care", "subcategories"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Home Page CMS & Hero Line",
+      "item": [
+        {
+          "name": "Get Home Page Config (Hero Line & Banner)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/homepage-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["homepage-config"]
+            },
+            "description": "Fetch phone, email, location, ticker messages, and hero section settings."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Home Page Config (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"announcementBar\": {\n    \"enabled\": true,\n    \"phone\": \"+91 93283 49328\",\n    \"email\": \"support@labdhiherbs.com\",\n    \"locationText\": \"Surat, Gujarat\",\n    \"badgeText\": \"100% Authentic\",\n    \"messages\": [\n      \"🌿 Pure Herbal Formulations • Free Shipping Across India\",\n      \"🚚 Express Fast Dispatch Direct from Surat Workshop\",\n      \"🎉 Festive Offer: 10% Extra Discount on First Order\"\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/homepage-config",
+              "host": ["{{baseUrl}}"],
+              "path": ["homepage-config"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Upload & Media Library",
+      "item": [
+        {
+          "name": "Upload Image File (from folder)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "image"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Media Library Files",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/upload/media-library",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "media-library"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Authentication",
+      "item": [
+        {
+          "name": "Admin Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@labdhiherbs.com\",\n  \"password\": \"Admin@123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Current User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Stories & Transformations",
+      "item": [
+        {
+          "name": "Get Public Stories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/stories",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Admin Stories with Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stories/admin/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "admin", "all"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Story",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer\": \"Pooja Mehta\",\n  \"location\": \"Rajkot, Gujarat\",\n  \"title\": \"Healthy Hair Thickness & Scalp Relief\",\n  \"formulation\": \"Herbal Kesh Sanjivani Hair Oil\",\n  \"duration\": \"5 Weeks Treatment\",\n  \"rating\": 5,\n  \"comment\": \"Amazing visible improvement in hair density!\",\n  \"beforeImage\": \"/uploads/before.jpg\",\n  \"afterImage\": \"/uploads/after.jpg\",\n  \"videoUrl\": \"/videos/video.mp4\",\n  \"featured\": true,\n  \"verified\": true,\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stories",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Story",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Story Title\",\n  \"rating\": 5,\n  \"featured\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/stories/{{storyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "{{storyId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Story Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stories/{{storyId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "{{storyId}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Story",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/stories/{{storyId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["stories", "{{storyId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "7. Blogs & Journal",
+      "item": [
+        {
+          "name": "Get Published Blogs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/blogs?category=&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["blogs"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "",
+                  "description": "Optional category filter (e.g., Hair Care, Skin Care)",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "description": "Search keyword in title or excerpt",
+                  "disabled": true
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Blog by ID or Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/blogs/{{blogId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["blogs", "{{blogId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Blogs (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/blogs/admin/all",
+              "host": ["{{baseUrl}}"],
+              "path": ["blogs", "admin", "all"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Blog Article",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Complete Guide to Triphala for Digestion & Vitality\",\n  \"category\": \"Ayurveda\",\n  \"author\": \"Dr. Labdhi Parmar\",\n  \"excerpt\": \"Discover how Triphala balances all three doshas and enhances gut microbiome naturally.\",\n  \"content\": \"Triphala, translating to 'three fruits', is one of the foundational formulas in Ayurvedic wellness...\",\n  \"image\": \"/images/herbal_oils.png\",\n  \"readTime\": \"6 min read\",\n  \"featured\": true,\n  \"status\": \"published\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/blogs",
+              "host": ["{{baseUrl}}"],
+              "path": ["blogs"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Blog Article",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Guide to Triphala for Digestion\",\n  \"readTime\": \"7 min read\",\n  \"featured\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/blogs/{{blogId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["blogs", "{{blogId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Blog Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/blogs/{{blogId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["blogs", "{{blogId}}", "status"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Blog Home Status (Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/blogs/{{blogId}}/home",
+              "host": ["{{baseUrl}}"],
+              "path": ["blogs", "{{blogId}}", "home"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Blog Article",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/blogs/{{blogId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["blogs", "{{blogId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
