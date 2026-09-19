@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminHeader from '../components/AdminHeader';
 import VideoFolderPicker from '../components/VideoFolderPicker';
-import ImageFolderPicker from '../components/ImageFolderPicker';
 import { getHomePageConfig, updateHomePageConfig } from '../../../services/api';
 import { HomePageConfigData } from '../../../types';
 import {
@@ -51,8 +50,7 @@ const DEFAULT_CONFIG: HomePageConfigData = {
     secondaryBtnText: 'Watch Stories',
     secondaryBtnLink: '/gallery',
     videoUrl: '/videos/Create_a_premium_cinematic_bra.mp4',
-    posterUrl:
-      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1920',
+    posterUrl: '',
   },
 };
 
@@ -100,14 +98,22 @@ export default function AdminHomePageClient() {
 
   const handleSave = async (sectionName = 'Settings') => {
     setIsSaving(true);
-    const res = await updateHomePageConfig(config);
+    const updatedConfig = {
+      ...config,
+      heroSection: {
+        ...config.heroSection,
+        posterUrl: '',
+      },
+    };
+    const res = await updateHomePageConfig(updatedConfig);
     setIsSaving(false);
 
     if (res.success) {
+      setConfig(updatedConfig);
       showToast(`${sectionName} updated and saved successfully!`);
       // Dispatch event for instant frontend live-update
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('homepageConfigUpdated', { detail: config }));
+        window.dispatchEvent(new CustomEvent('homepageConfigUpdated', { detail: updatedConfig }));
       }
     } else {
       showToast(res.message || 'Failed to update settings', 'error');
@@ -544,19 +550,6 @@ export default function AdminHomePageClient() {
                     }
                     label="Hero Section Video (.mp4, .webm, .mov)"
                     helperText="Select or drag & drop a video file from your computer folder (supports up to 150MB)."
-                  />
-
-                  {/* Fallback Poster Image */}
-                  <ImageFolderPicker
-                    value={config.heroSection.posterUrl || ''}
-                    onChange={(url) =>
-                      setConfig((prev) => ({
-                        ...prev,
-                        heroSection: { ...prev.heroSection, posterUrl: url },
-                      }))
-                    }
-                    label="Video Fallback Cover / Poster Image"
-                    helperText="Displayed while video loads or on power-saver mobile screens."
                   />
                 </div>
               </div>

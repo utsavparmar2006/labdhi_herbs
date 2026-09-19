@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import { 
   ChevronDown, 
-  Leaf, 
-  CheckCircle2, 
   Youtube, 
   ExternalLink, 
   Sparkles, 
@@ -28,28 +26,9 @@ export default function ProductTabs({
   category,
   howToUseVideoUrl,
   usage,
-  benefits = [],
-  ingredients = []
 }: ProductTabsProps) {
-  const [activeTab, setActiveTab] = useState<'desc' | 'ingredients' | 'benefits' | 'usage'>('desc');
+  const [activeTab, setActiveTab] = useState<'desc' | 'usage'>('desc');
   const [openMobileSection, setOpenMobileSection] = useState<string | null>('desc');
-
-  const defaultIngredients = [
-    'Pure Natural Herb Extracts',
-    'Cold-Pressed Botanical Essential Oils',
-    'Ayurvedic Herbs & Plant Root Bark',
-    'No Synthetic Fragrance or Artificial Dyes',
-  ];
-
-  const defaultBenefits = [
-    'Deeply nourishes and rejuvenates target tissues',
-    '100% Chemical-free and paraben-free formulation',
-    'Formulated following ancient Ayurvedic principles',
-    'Suitable for regular daily application',
-  ];
-
-  const ingredientsList = ingredients && ingredients.length > 0 ? ingredients : defaultIngredients;
-  const benefitsList = benefits && benefits.length > 0 ? benefits : defaultBenefits;
 
   const embedUrl = howToUseVideoUrl ? formatYouTubeEmbedUrl(howToUseVideoUrl) : null;
   const youtubeVideoId = howToUseVideoUrl ? extractYouTubeVideoId(howToUseVideoUrl) : null;
@@ -72,30 +51,6 @@ export default function ProductTabs({
         >
           Description
           {activeTab === 'desc' && (
-            <motion.div layoutId="activeTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F3A2E] rounded-full" />
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('ingredients')}
-          className={`font-serif text-base font-bold transition-all relative pb-2 cursor-pointer ${
-            activeTab === 'ingredients' ? 'text-[#1F3A2E]' : 'text-slate-400 hover:text-slate-700'
-          }`}
-        >
-          Key Ingredients
-          {activeTab === 'ingredients' && (
-            <motion.div layoutId="activeTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F3A2E] rounded-full" />
-          )}
-        </button>
-
-        <button
-          onClick={() => setActiveTab('benefits')}
-          className={`font-serif text-base font-bold transition-all relative pb-2 cursor-pointer ${
-            activeTab === 'benefits' ? 'text-[#1F3A2E]' : 'text-slate-400 hover:text-slate-700'
-          }`}
-        >
-          Health Benefits
-          {activeTab === 'benefits' && (
             <motion.div layoutId="activeTabIndicator" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#1F3A2E] rounded-full" />
           )}
         </button>
@@ -134,40 +89,6 @@ export default function ProductTabs({
               <p>
                 Handcrafted under the supervision of Ayurvedic experts in Surat, Gujarat. Each batch undergoes rigorous quality testing to preserve the natural potency of every herb.
               </p>
-            </motion.div>
-          )}
-
-          {activeTab === 'ingredients' && (
-            <motion.div
-              key="ingredients"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-            >
-              {ingredientsList.map((item, idx) => (
-                <div key={idx} className="flex items-start gap-3 p-4 rounded-2xl bg-[#F8F6F0] border border-[#EFE9DD]">
-                  <Leaf className="w-5 h-5 text-[#1F3A2E] shrink-0 mt-0.5" />
-                  <span className="text-xs font-semibold text-[#1A201C]">{item}</span>
-                </div>
-              ))}
-            </motion.div>
-          )}
-
-          {activeTab === 'benefits' && (
-            <motion.div
-              key="benefits"
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              className="space-y-3"
-            >
-              {benefitsList.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-3 p-3.5 rounded-xl bg-[#F8F6F0]">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span className="text-xs font-medium text-slate-700">{item}</span>
-                </div>
-              ))}
             </motion.div>
           )}
 
@@ -223,7 +144,7 @@ export default function ProductTabs({
                     />
                   </div>
 
-                  {/* Textual Usage Ritual Notes */}
+                  {/* Textual Usage Ritual Notes if present */}
                   {usage && (
                     <div className="p-5 rounded-2xl bg-[#F8F6F0] border border-[#EFE9DD] flex items-start gap-4">
                       <div className="w-10 h-10 rounded-xl bg-[#1F3A2E] text-[#D4A373] flex items-center justify-center shrink-0 shadow-xs">
@@ -296,49 +217,7 @@ export default function ProductTabs({
           )}
         </div>
 
-        {/* Section 2: Ingredients */}
-        <div className="border border-[#EFE9DD] rounded-2xl overflow-hidden">
-          <button
-            onClick={() => toggleMobile('ingredients')}
-            className="w-full p-4 bg-[#F8F6F0] font-serif font-bold text-sm text-[#1A201C] flex items-center justify-between"
-          >
-            <span>Key Ingredients</span>
-            <ChevronDown className={`w-4 h-4 transition-transform ${openMobileSection === 'ingredients' ? 'rotate-180' : ''}`} />
-          </button>
-          {openMobileSection === 'ingredients' && (
-            <div className="p-4 space-y-2 border-t border-[#EFE9DD]">
-              {ingredientsList.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
-                  <Leaf className="w-3.5 h-3.5 text-[#1F3A2E] shrink-0" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Section 3: Benefits */}
-        <div className="border border-[#EFE9DD] rounded-2xl overflow-hidden">
-          <button
-            onClick={() => toggleMobile('benefits')}
-            className="w-full p-4 bg-[#F8F6F0] font-serif font-bold text-sm text-[#1A201C] flex items-center justify-between"
-          >
-            <span>Health Benefits</span>
-            <ChevronDown className={`w-4 h-4 transition-transform ${openMobileSection === 'benefits' ? 'rotate-180' : ''}`} />
-          </button>
-          {openMobileSection === 'benefits' && (
-            <div className="p-4 space-y-2 border-t border-[#EFE9DD]">
-              {benefitsList.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-xs text-slate-700">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Section 4: How to Use */}
+        {/* Section 2: How to Use */}
         <div className="border border-[#EFE9DD] rounded-2xl overflow-hidden">
           <button
             onClick={() => toggleMobile('usage')}

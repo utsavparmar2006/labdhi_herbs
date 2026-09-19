@@ -150,7 +150,7 @@ export default function Footer() {
             <ul className="space-y-2 text-xs text-emerald-100/80">
               <li><Link href="/about" className="hover:text-[#D4A373] transition-colors">About Us</Link></li>
               <li><Link href="/faq" className="hover:text-[#D4A373] transition-colors">Help &amp; FAQ</Link></li>
-              <li><Link href="/orders" className="hover:text-[#D4A373] transition-colors">Track Your Order</Link></li>
+              <li><Link href="/track-order" className="hover:text-[#D4A373] transition-colors">Track Order</Link></li>
               <li><Link href="/terms" className="hover:text-[#D4A373] transition-colors">Terms &amp; Conditions</Link></li>
               <li><Link href="/privacy" className="hover:text-[#D4A373] transition-colors">Privacy Policy</Link></li>
               <li><Link href="/refund" className="hover:text-[#D4A373] transition-colors">Refund &amp; Return</Link></li>

@@ -193,6 +193,8 @@ export interface OrderPricing {
   discount: number;
   shipping: number;
   tax: number;
+  sgst?: number;
+  cgst?: number;
   total: number;
 }
 
@@ -200,8 +202,25 @@ export interface OrderPayment {
   method: 'cod' | 'online';
   status: 'pending' | 'completed' | 'failed';
   transactionId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
   paidAt?: string;
 }
+
+export type OrderStatusType =
+  | 'pending'
+  | 'accepted'
+  | 'dispatched'
+  | 'delivered'
+  | 'returned_by_customer'
+  | 'cancelled_by_seller'
+  | 'return_received'
+  | 'placed'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'cancelled';
 
 export interface Order {
   _id?: string;
@@ -216,7 +235,9 @@ export interface Order {
   pricing: OrderPricing;
   couponCode?: string;
   payment: OrderPayment;
-  orderStatus: 'placed' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  deliveryName?: string; // Delivery By (e.g. DTDC, Delhivery, Tirupati, Speed Post)
+  deliveryTrackId?: string; // Tracking Id
+  orderStatus: OrderStatusType;
   notes?: string;
   createdAt: string;
   updatedAt?: string;

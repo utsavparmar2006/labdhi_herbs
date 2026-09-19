@@ -7,8 +7,6 @@ import { HeroSectionConfig } from '../types';
 export default function VideoHero() {
   const [heroConfig, setHeroConfig] = useState<HeroSectionConfig>({
     videoUrl: '/videos/Create_a_premium_cinematic_bra.mp4',
-    posterUrl:
-      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1920',
   });
 
   useEffect(() => {
@@ -61,10 +59,6 @@ export default function VideoHero() {
         playsInline
         preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
-        poster={
-          heroConfig.posterUrl ||
-          'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1920'
-        }
       >
         <source
           src={heroConfig.videoUrl || '/videos/Create_a_premium_cinematic_bra.mp4'}

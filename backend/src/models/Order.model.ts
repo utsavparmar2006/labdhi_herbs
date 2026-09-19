@@ -29,6 +29,8 @@ export interface IPricing {
   discount: number;
   shipping: number;
   tax: number;
+  sgst?: number;
+  cgst?: number;
   total: number;
 }
 
@@ -36,11 +38,28 @@ export interface IPayment {
   method: 'cod' | 'online';
   status: 'pending' | 'completed' | 'failed';
   transactionId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
   paidAt?: Date;
 }
 
+export type OrderStatusType =
+  | 'pending'
+  | 'accepted'
+  | 'dispatched'
+  | 'delivered'
+  | 'returned_by_customer'
+  | 'cancelled_by_seller'
+  | 'return_received'
+  | 'placed'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'cancelled';
+
 export interface IOrder extends Document {
-  orderId: string; // e.g. "LH-2026-94821"
+  orderId: string; // e.g. "LH-2026-94821" or "1317"
   user?: mongoose.Types.ObjectId;
   customer: {
     fullName: string;
@@ -52,7 +71,9 @@ export interface IOrder extends Document {
   pricing: IPricing;
   couponCode?: string;
   payment: IPayment;
-  orderStatus: 'placed' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  deliveryName?: string; // Delivery By (e.g. DTDC, Delhivery, Tirupati, Speed Post)
+  deliveryTrackId?: string; // Tracking Id
+  orderStatus: OrderStatusType;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -94,6 +115,8 @@ const PricingSchema = new Schema<IPricing>(
     discount: { type: Number, default: 0, min: 0 },
     shipping: { type: Number, default: 0, min: 0 },
     tax: { type: Number, default: 0, min: 0 },
+    sgst: { type: Number, default: 0, min: 0 },
+    cgst: { type: Number, default: 0, min: 0 },
     total: { type: Number, required: true, min: 0 },
   },
   { _id: false }
@@ -104,6 +127,9 @@ const PaymentSchema = new Schema<IPayment>(
     method: { type: String, enum: ['cod', 'online'], default: 'cod' },
     status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
     transactionId: { type: String, default: '' },
+    razorpayOrderId: { type: String, default: '' },
+    razorpayPaymentId: { type: String, default: '' },
+    razorpaySignature: { type: String, default: '' },
     paidAt: { type: Date },
   },
   { _id: false }
@@ -123,10 +149,25 @@ const OrderSchema = new Schema<IOrder>(
     pricing: { type: PricingSchema, required: true },
     couponCode: { type: String, default: '', trim: true, uppercase: true },
     payment: { type: PaymentSchema, required: true },
+    deliveryName: { type: String, default: '', trim: true },
+    deliveryTrackId: { type: String, default: '', trim: true },
     orderStatus: {
       type: String,
-      enum: ['placed', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled'],
-      default: 'placed',
+      enum: [
+        'pending',
+        'accepted',
+        'dispatched',
+        'delivered',
+        'returned_by_customer',
+        'cancelled_by_seller',
+        'return_received',
+        'placed',
+        'confirmed',
+        'processing',
+        'shipped',
+        'cancelled',
+      ],
+      default: 'pending',
       index: true,
     },
     notes: { type: String, default: '' },

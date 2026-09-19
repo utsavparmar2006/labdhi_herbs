@@ -15,11 +15,13 @@ import SearchModal from '../../components/SearchModal';
 import Footer from '../../components/Footer';
 import { BLOG_POSTS } from '../../services/mockData';
 import { getBlogPosts } from '../../services/api';
-import { Product, CartItem, BlogPost } from '../../types';
+import { Product, BlogPost } from '../../types';
+import { useCart } from '../../context/CartContext';
 import { ChevronRight, ChevronDown, Leaf, Search, Mail, Calendar, Clock, X, ArrowRight, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BlogClient() {
+  const { cartCount, openCart, addToCart: handleAddToCart } = useCart();
   const [blogs, setBlogs] = useState<BlogPost[]>(BLOG_POSTS);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -29,9 +31,7 @@ export default function BlogClient() {
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -70,38 +70,10 @@ export default function BlogClient() {
     }
   }, [blogs]);
 
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-
   const defaultCategories = ['All', 'Hair Care', 'Skin Care', 'Joint Care', 'Ayurveda', 'Wellness'];
   const dynamicCats = Array.from(new Set(blogs.map((b) => b.category).filter(Boolean)));
   const categories = Array.from(new Set([...defaultCategories, ...dynamicCats]));
   const leadFeaturedPost = blogs.find((b) => b.featured) || blogs[0] || BLOG_POSTS[0];
-
-  const handleAddToCart = (product: Product, quantity = 1) => {
-    setCart((prevCart) => {
-      const existingIndex = prevCart.findIndex((item) => item.product.id === product.id);
-      if (existingIndex > -1) {
-        const updated = [...prevCart];
-        updated[existingIndex].quantity += quantity;
-        return updated;
-      }
-      return [...prevCart, { product, quantity }];
-    });
-  };
-
-  const handleUpdateCartQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setCart((prev) => prev.filter((item) => item.product.id !== productId));
-      return;
-    }
-    setCart((prev) =>
-      prev.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
-    );
-  };
-
-  const handleRemoveCartItem = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
-  };
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +90,7 @@ export default function BlogClient() {
         {/* Header Navigation */}
         <Header
           cartCount={cartCount}
-          onOpenCart={() => setIsCartOpen(true)}
+          onOpenCart={openCart}
           onOpenAuth={() => setIsAuthOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
         />
@@ -413,13 +385,7 @@ export default function BlogClient() {
           onAddToCart={handleAddToCart}
         />
 
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          items={cart}
-          onUpdateQuantity={handleUpdateCartQuantity}
-          onRemoveItem={handleRemoveCartItem}
-        />
+        <CartDrawer />
 
         <AuthModal
           isOpen={isAuthOpen}

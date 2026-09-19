@@ -12,8 +12,9 @@ import CartDrawer from '../../components/CartDrawer';
 import AuthModal from '../../components/AuthModal';
 import SearchModal from '../../components/SearchModal';
 import Footer from '../../components/Footer';
-import { Product, CartItem, SuccessStory } from '../../types';
+import { Product, SuccessStory } from '../../types';
 import { getSuccessStories } from '../../services/api';
+import { useCart } from '../../context/CartContext';
 import {
   ChevronRight,
   ShieldCheck,
@@ -24,9 +25,8 @@ import {
 } from 'lucide-react';
 
 export default function StoriesClient() {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const { cartCount, openCart, addToCart: handleAddToCart } = useCart();
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [stories, setStories] = useState<SuccessStory[]>([]);
@@ -58,10 +58,7 @@ export default function StoriesClient() {
   );
 
   const photoStories = stories.filter(
-    (s) =>
-      s.status === 'active' &&
-      (s.storyType === 'photo' ||
-        (!s.videoUrl && Boolean(s.beforeImage && s.afterImage)))
+    (s) => s.status === 'active' && s.storyType !== 'video' && (!s.videoUrl || s.videoUrl.trim().length === 0)
   );
 
   const activeVideoStory =
@@ -70,34 +67,6 @@ export default function StoriesClient() {
     videoStories[0] ||
     null;
 
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-
-  const handleAddToCart = (product: Product, quantity = 1) => {
-    setCart((prevCart) => {
-      const existingIndex = prevCart.findIndex((item) => item.product.id === product.id);
-      if (existingIndex > -1) {
-        const updated = [...prevCart];
-        updated[existingIndex].quantity += quantity;
-        return updated;
-      }
-      return [...prevCart, { product, quantity }];
-    });
-  };
-
-  const handleUpdateCartQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setCart((prev) => prev.filter((item) => item.product.id !== productId));
-      return;
-    }
-    setCart((prev) =>
-      prev.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
-    );
-  };
-
-  const handleRemoveCartItem = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
-  };
-
   return (
     <SmoothScroll>
       <div className="min-h-screen bg-[#F8F6F0] text-[#1A201C] selection:bg-[#1F3A2E] selection:text-[#EFE9DD] font-sans">
@@ -105,7 +74,7 @@ export default function StoriesClient() {
         {/* Header Navigation */}
         <Header
           cartCount={cartCount}
-          onOpenCart={() => setIsCartOpen(true)}
+          onOpenCart={openCart}
           onOpenAuth={() => setIsAuthOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
         />
@@ -235,13 +204,7 @@ export default function StoriesClient() {
           onAddToCart={handleAddToCart}
         />
 
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          items={cart}
-          onUpdateQuantity={handleUpdateCartQuantity}
-          onRemoveItem={handleRemoveCartItem}
-        />
+        <CartDrawer />
 
         <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 

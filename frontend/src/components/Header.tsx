@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import OriginalTransparentLogo from './OriginalTransparentLogo';
 import { 
   Search, 
@@ -20,16 +21,18 @@ import {
   ShieldCheck,
   LogOut,
   ChevronRight,
+  Truck,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { getHomePageConfig } from '../services/api';
 import { AnnouncementBarConfig } from '../types';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useCart } from '../context/CartContext';
 
 interface HeaderProps {
-  cartCount: number;
-  onOpenCart: () => void;
+  cartCount?: number;
+  onOpenCart?: () => void;
   onOpenAuth: () => void;
   onOpenSearch: () => void;
 }
@@ -40,8 +43,57 @@ const DEFAULT_ANNOUNCEMENTS = [
   '✨ Special Offer: 10% Extra Discount on First Order',
 ];
 
-export default function Header({ cartCount, onOpenCart, onOpenAuth, onOpenSearch }: HeaderProps) {
+const NAV_ITEMS = [
+  {
+    name: 'Home',
+    href: '/',
+    isActive: (pathname: string) => pathname === '/',
+  },
+  {
+    name: 'Shop',
+    href: '/shop',
+    isActive: (pathname: string) =>
+      pathname === '/shop' ||
+      pathname.startsWith('/shop/') ||
+      pathname.startsWith('/product/') ||
+      pathname.startsWith('/category/'),
+  },
+  {
+    name: 'Success Story',
+    href: '/gallery',
+    isActive: (pathname: string) =>
+      pathname === '/gallery' ||
+      pathname.startsWith('/gallery/') ||
+      pathname === '/stories' ||
+      pathname.startsWith('/stories/') ||
+      pathname === '/success-stories',
+  },
+  {
+    name: 'Blog',
+    href: '/blog',
+    isActive: (pathname: string) =>
+      pathname === '/blog' || pathname.startsWith('/blog/'),
+  },
+  {
+    name: 'About Us',
+    href: '/about',
+    isActive: (pathname: string) =>
+      pathname === '/about' || pathname.startsWith('/about/'),
+  },
+];
+
+export default function Header({
+  cartCount,
+  onOpenCart,
+  onOpenAuth,
+  onOpenSearch,
+}: HeaderProps) {
   const { settings, profile } = useSiteSettings();
+  const pathname = usePathname() || '';
+  const cartContext = useCart();
+  const effectiveCartCount = cartCount !== undefined ? cartCount : cartContext.cartCount;
+  const effectiveOnOpenCart = onOpenCart || cartContext.openCart;
+
   const lightLogo = settings.logoLight;
   const darkLogo = settings.logoDark;
   const [isScrolled, setIsScrolled] = useState(false);
@@ -263,41 +315,46 @@ export default function Header({ cartCount, onOpenCart, onOpenAuth, onOpenSearch
           </Link>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-            <Link
-              href="/"
-              className={`transition-colors hover:text-[#B58A5A] ${isScrolled ? 'text-[#1A201C]' : 'text-white'}`}
-            >
-              Home
-            </Link>
+          <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-sm font-medium">
+            {NAV_ITEMS.map((item) => {
+              const active = item.isActive(pathname);
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`relative py-2 transition-all duration-200 group flex flex-col items-center ${
+                    active
+                      ? isScrolled
+                        ? 'text-[#1F3A2E] font-bold'
+                        : 'text-[#F4BA44] font-bold'
+                      : isScrolled
+                        ? 'text-[#1A201C]/75 hover:text-[#1F3A2E] font-medium'
+                        : 'text-white/80 hover:text-white font-medium'
+                  }`}
+                >
+                  <span className="flex items-center gap-1.5">
+                    <span>{item.name}</span>
+                  </span>
 
-            <Link
-              href="/shop"
-              className={`transition-colors hover:text-[#B58A5A] ${isScrolled ? 'text-[#1A201C]' : 'text-white'}`}
-            >
-              Shop
-            </Link>
-
-            <Link
-              href="/gallery"
-              className={`transition-colors hover:text-[#B58A5A] ${isScrolled ? 'text-[#1A201C]' : 'text-white'}`}
-            >
-              Success Story
-            </Link>
-
-            <Link
-              href="/blog"
-              className={`transition-colors hover:text-[#B58A5A] ${isScrolled ? 'text-[#1A201C]' : 'text-white'}`}
-            >
-              Blog
-            </Link>
-
-            <Link
-              href="/about"
-              className={`transition-colors hover:text-[#B58A5A] ${isScrolled ? 'text-[#1A201C]' : 'text-white'}`}
-            >
-              About Us
-            </Link>
+                  {/* Active Indicator Mark */}
+                  {active ? (
+                    <motion.div
+                      layoutId="activeDesktopNavMark"
+                      className={`absolute -bottom-0.5 left-0 right-0 h-[2.5px] rounded-full ${
+                        isScrolled ? 'bg-[#1F3A2E]' : 'bg-[#F4BA44]'
+                      }`}
+                      transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                    />
+                  ) : (
+                    <span
+                      className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] rounded-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-70 ${
+                        isScrolled ? 'bg-[#1F3A2E]' : 'bg-[#F4BA44]'
+                      }`}
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Action Icons (Search, Account, Cart) */}
@@ -364,6 +421,15 @@ export default function Header({ cartCount, onOpenCart, onOpenAuth, onOpenSearch
                           <span>My Orders</span>
                         </Link>
 
+                        <Link
+                          href="/track-order"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="w-full text-left px-4 py-2 text-xs font-semibold text-[#1F3A2E] hover:bg-[#F8F6F0] hover:text-[#D4A373] transition-colors flex items-center gap-2.5"
+                        >
+                          <Truck className="w-3.5 h-3.5 text-[#71846C]" />
+                          <span>Track Order</span>
+                        </Link>
+
                         {user.role === 'admin' && (
                           <Link
                             href="/admin/dashboard"
@@ -410,14 +476,14 @@ export default function Header({ cartCount, onOpenCart, onOpenAuth, onOpenSearch
 
             {/* Cart Trigger */}
             <button
-              onClick={onOpenCart}
+              onClick={effectiveOnOpenCart}
               aria-label="Shopping Cart"
-              className="relative p-2 rounded-full bg-[#1F3A2E] text-[#EFE9DD] hover:bg-[#15271F] transition-all shadow-sm"
+              className="relative p-2 rounded-full bg-[#1F3A2E] text-[#EFE9DD] hover:bg-[#15271F] transition-all shadow-sm cursor-pointer"
             >
               <ShoppingBag className="w-5 h-5 text-[#D4A373]" />
-              {cartCount > 0 && (
+              {effectiveCartCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#D4A373] text-[#1F3A2E] font-bold text-[10px] rounded-full flex items-center justify-center shadow-md animate-bounce">
-                  {cartCount}
+                  {effectiveCartCount}
                 </span>
               )}
             </button>
@@ -473,47 +539,65 @@ export default function Header({ cartCount, onOpenCart, onOpenAuth, onOpenSearch
                 </div>
 
                 {/* Main Navigation Links */}
-                <div className="p-4 flex flex-col divide-y divide-[#EFE9DD]/70">
-                  <Link
-                    href="/"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="py-3 text-sm font-semibold text-[#1F3A2E] hover:text-[#D4A373] transition-colors flex items-center justify-between"
-                  >
-                    <span>Home</span>
-                    <ChevronRight className="w-4 h-4 text-[#D4A373]" />
-                  </Link>
-                  <Link
-                    href="/shop"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="py-3 text-sm font-semibold text-[#1F3A2E] hover:text-[#D4A373] transition-colors flex items-center justify-between"
-                  >
-                    <span>Shop All Formulations</span>
-                    <ChevronRight className="w-4 h-4 text-[#D4A373]" />
-                  </Link>
-                  <Link
-                    href="/gallery"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="py-3 text-sm font-semibold text-[#1F3A2E] hover:text-[#D4A373] transition-colors flex items-center justify-between"
-                  >
-                    <span>Success Stories & Gallery</span>
-                    <ChevronRight className="w-4 h-4 text-[#D4A373]" />
-                  </Link>
-                  <Link
-                    href="/blog"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="py-3 text-sm font-semibold text-[#1F3A2E] hover:text-[#D4A373] transition-colors flex items-center justify-between"
-                  >
-                    <span>Herbal Wellness Blog</span>
-                    <ChevronRight className="w-4 h-4 text-[#D4A373]" />
-                  </Link>
-                  <Link
-                    href="/about"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="py-3 text-sm font-semibold text-[#1F3A2E] hover:text-[#D4A373] transition-colors flex items-center justify-between"
-                  >
-                    <span>About Labdhi Herbs</span>
-                    <ChevronRight className="w-4 h-4 text-[#D4A373]" />
-                  </Link>
+                <div className="p-4 flex flex-col gap-1.5">
+                  {NAV_ITEMS.map((item) => {
+                    const active = item.isActive(pathname);
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`py-3 px-3.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-between ${
+                          active
+                            ? 'bg-[#1F3A2E] text-white shadow-xs font-bold'
+                            : 'text-[#1F3A2E] hover:bg-[#EFE9DD]/60 hover:text-[#D4A373]'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2.5">
+                          {active && (
+                            <span className="w-2 h-2 rounded-full bg-[#F4BA44] animate-pulse" />
+                          )}
+                          <span>
+                            {item.name === 'Shop'
+                              ? 'Shop All Formulations'
+                              : item.name === 'Success Story'
+                              ? 'Success Stories & Gallery'
+                              : item.name === 'Blog'
+                              ? 'Herbal Wellness Blog'
+                              : item.name === 'About Us'
+                              ? 'About Labdhi Herbs'
+                              : item.name}
+                          </span>
+                        </span>
+                        <ChevronRight
+                          className={`w-4 h-4 ${active ? 'text-[#F4BA44]' : 'text-slate-400'}`}
+                        />
+                      </Link>
+                    );
+                  })}
+
+                  <div className="pt-1.5 border-t border-[#EFE9DD]/70">
+                    <Link
+                      href="/track-order"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`py-3 px-3.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-between ${
+                        pathname === '/track-order' || pathname.startsWith('/track-order/')
+                          ? 'bg-[#1F3A2E] text-white shadow-xs font-bold'
+                          : 'text-[#1F3A2E] hover:bg-[#EFE9DD]/60 hover:text-[#F4BA44]'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2.5">
+                        {(pathname === '/track-order' || pathname.startsWith('/track-order/')) && (
+                          <span className="w-2 h-2 rounded-full bg-[#F4BA44] animate-pulse" />
+                        )}
+                        <Truck className={`w-4 h-4 ${(pathname === '/track-order' || pathname.startsWith('/track-order/')) ? 'text-[#F4BA44]' : 'text-[#B58A5A]'}`} />
+                        <span>Track Order</span>
+                      </span>
+                      <ChevronRight
+                        className={`w-4 h-4 ${(pathname === '/track-order' || pathname.startsWith('/track-order/')) ? 'text-[#F4BA44]' : 'text-slate-400'}`}
+                      />
+                    </Link>
+                  </div>
                 </div>
               </div>
 

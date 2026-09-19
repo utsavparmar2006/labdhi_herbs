@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Order, IOrderItem } from '../models/Order.model.js';
 import { Coupon } from '../models/Coupon.model.js';
 import { AuthRequest } from '../middlewares/auth.middleware.js';
+import { getRazorpayConfig, getRazorpayInstance } from '../config/razorpay.js';
 
 // Supported Promotional Coupons
 const VALID_COUPONS: Record<string, { type: 'percent' | 'flat'; value: number; minSubtotal: number }> = {
@@ -129,9 +130,9 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     const isOnline = paymentMethod === 'online';
     const payment = {
       method: isOnline ? ('online' as const) : ('cod' as const),
-      status: isOnline ? ('completed' as const) : ('pending' as const),
-      transactionId: isOnline ? `TXN_${Date.now()}_${Math.floor(100 + Math.random() * 900)}` : '',
-      paidAt: isOnline ? new Date() : undefined,
+      status: 'pending' as const,
+      transactionId: '',
+      paidAt: undefined,
     };
 
     const userId = (req as any).user?._id || req.body.userId;
@@ -160,13 +161,49 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         discount,
         shipping,
         tax,
+        sgst: Math.round((tax / 2) * 100) / 100,
+        cgst: Math.round((tax / 2) * 100) / 100,
         total,
       },
       couponCode: discount > 0 ? normalizedCoupon : '',
       payment,
-      orderStatus: 'placed',
+      deliveryName: '',
+      deliveryTrackId: '',
+      orderStatus: 'pending',
       notes: (notes || '').trim(),
     });
+
+    // Handle Razorpay Order Generation for Online Payment
+    let razorpayData = null;
+    if (isOnline) {
+      const config = getRazorpayConfig();
+      if (config.isConfigured) {
+        try {
+          const razorpay = getRazorpayInstance();
+          const rzpOrder = await razorpay.orders.create({
+            amount: Math.round(total * 100),
+            currency: 'INR',
+            receipt: `rcpt_${orderId}`.slice(0, 40),
+            notes: {
+              orderId,
+              customerName: customer.fullName.trim(),
+            },
+          });
+
+          newOrder.payment.razorpayOrderId = rzpOrder.id;
+          await newOrder.save();
+
+          razorpayData = {
+            id: rzpOrder.id,
+            amount: rzpOrder.amount,
+            currency: rzpOrder.currency,
+            keyId: config.keyId,
+          };
+        } catch (rzpErr: any) {
+          console.warn('Razorpay order creation warning:', rzpErr.message || rzpErr);
+        }
+      }
+    }
 
     // Increment coupon usage count and record customer
     if (couponRecord && discount > 0) {
@@ -185,6 +222,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       success: true,
       message: 'Order placed successfully!',
       data: newOrder,
+      razorpay: razorpayData,
     });
   } catch (error: any) {
     res.status(500).json({
@@ -243,13 +281,32 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
 
     const filter: any = {};
     if (status && status !== 'all') {
-      filter.orderStatus = status;
+      const s = String(status).toLowerCase();
+      if (s === 'pending' || s === '0' || s === 'placed') {
+        filter.orderStatus = { $in: ['pending', 'placed', '0'] };
+      } else if (s === 'accepted' || s === '1' || s === 'confirmed') {
+        filter.orderStatus = { $in: ['accepted', 'confirmed', '1'] };
+      } else if (s === 'dispatched' || s === '2' || s === 'shipped' || s === 'processing') {
+        filter.orderStatus = { $in: ['dispatched', 'shipped', 'processing', '2'] };
+      } else if (s === 'returned_by_customer' || s === '3') {
+        filter.orderStatus = { $in: ['returned_by_customer', '3'] };
+      } else if (s === 'cancelled_by_seller' || s === '4' || s === 'cancelled') {
+        filter.orderStatus = { $in: ['cancelled_by_seller', 'cancelled', '4'] };
+      } else if (s === 'return_received' || s === '5') {
+        filter.orderStatus = { $in: ['return_received', '5'] };
+      } else if (s === 'delivered') {
+        filter.orderStatus = 'delivered';
+      } else {
+        filter.orderStatus = status;
+      }
     }
 
     if (search) {
       const searchRegex = { $regex: String(search), $options: 'i' };
       filter.$or = [
         { orderId: searchRegex },
+        { deliveryTrackId: searchRegex },
+        { deliveryName: searchRegex },
         { 'customer.fullName': searchRegex },
         { 'customer.email': searchRegex },
         { 'customer.phone': searchRegex },
@@ -272,7 +329,7 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
             totalOrders: { $sum: 1 },
             pendingOrders: {
               $sum: {
-                $cond: [{ $in: ['$orderStatus', ['placed', 'confirmed', 'processing']] }, 1, 0],
+                $cond: [{ $in: ['$orderStatus', ['pending', 'placed', '0', 'processing']] }, 1, 0],
               },
             },
             deliveredOrders: {
@@ -313,14 +370,14 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
 };
 
 /**
- * @desc Update Order Status
+ * @desc Update Order Status, Delivery Courier & Tracking Info
  * @route PATCH /api/v1/orders/:id/status
  * @access Private (Admin only)
  */
 export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { status, paymentStatus } = req.body;
+    const { status, paymentStatus, deliveryName, deliveryTrackId } = req.body;
 
     const order = await Order.findOne({
       $or: [
@@ -341,6 +398,14 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
       order.orderStatus = status;
     }
 
+    if (deliveryName !== undefined) {
+      order.deliveryName = String(deliveryName).trim();
+    }
+
+    if (deliveryTrackId !== undefined) {
+      order.deliveryTrackId = String(deliveryTrackId).trim();
+    }
+
     if (paymentStatus) {
       order.payment.status = paymentStatus;
       if (paymentStatus === 'completed' && !order.payment.paidAt) {
@@ -355,13 +420,59 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
 
     res.status(200).json({
       success: true,
-      message: `Order ${order.orderId} status updated to ${order.orderStatus}`,
+      message: `Order ${order.orderId} updated successfully`,
       data: order,
     });
   } catch (error: any) {
     res.status(500).json({
       success: false,
       message: 'Failed to update order status',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * @desc Track Order by Order ID (Public Customer Tracking Portal)
+ * @route GET /api/v1/orders/track/:orderId
+ * @access Public
+ */
+export const trackOrderByNumber = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { orderId } = req.params;
+    if (!orderId) {
+      res.status(400).json({
+        success: false,
+        message: 'Order ID is required',
+      });
+      return;
+    }
+
+    const cleanId = String(orderId).trim();
+    const order = await Order.findOne({
+      $or: [
+        { orderId: cleanId },
+        { orderId: new RegExp(`^${cleanId}$`, 'i') },
+        { _id: cleanId.match(/^[0-9a-fA-F]{24}$/) ? cleanId : null },
+      ],
+    });
+
+    if (!order) {
+      res.status(404).json({
+        success: false,
+        message: `No order found for ID "${cleanId}". Please check your order confirmation details.`,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: order,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to track order',
       error: error.message,
     });
   }

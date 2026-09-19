@@ -124,10 +124,6 @@ export default function AdminProductsClient() {
   const [formData, setFormData] = useState<ProductFormData>(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Benefit and Ingredient chip inputs
-  const [newBenefitInput, setNewBenefitInput] = useState('');
-  const [newIngredientInput, setNewIngredientInput] = useState('');
-
   // Delete modal state
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -237,8 +233,6 @@ export default function AdminProductsClient() {
       categoryId: generateSlug(defaultCat),
       subCategory: defaultSub,
     });
-    setNewBenefitInput('');
-    setNewIngredientInput('');
     setIsModalOpen(true);
   };
 
@@ -268,51 +262,13 @@ export default function AdminProductsClient() {
       howToUseVideoUrl: prod.howToUseVideoUrl || '',
       tag: prod.tag || '',
       description: prod.description || '',
-      benefits: prod.benefits || [],
-      ingredients: prod.ingredients || [],
-      usage: prod.usage || '',
+      benefits: [],
+      ingredients: [],
+      usage: '',
       inStock: prod.inStock !== false,
       featured: (prod as any).featured || false,
     });
-    setNewBenefitInput('');
-    setNewIngredientInput('');
     setIsModalOpen(true);
-  };
-
-  // Benefit List Management
-  const handleAddBenefit = () => {
-    if (newBenefitInput.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        benefits: [...prev.benefits, newBenefitInput.trim()],
-      }));
-      setNewBenefitInput('');
-    }
-  };
-
-  const handleRemoveBenefit = (idx: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      benefits: prev.benefits.filter((_, i) => i !== idx),
-    }));
-  };
-
-  // Ingredient List Management
-  const handleAddIngredient = () => {
-    if (newIngredientInput.trim()) {
-      setFormData((prev) => ({
-        ...prev,
-        ingredients: [...prev.ingredients, newIngredientInput.trim()],
-      }));
-      setNewIngredientInput('');
-    }
-  };
-
-  const handleRemoveIngredient = (idx: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      ingredients: prev.ingredients.filter((_, i) => i !== idx),
-    }));
   };
 
   // Submit Product Form (Create / Update)
@@ -1122,7 +1078,7 @@ export default function AdminProductsClient() {
                       <div className="space-y-1.5">
                         <label className="text-xs font-bold text-slate-700">Product Description</label>
                         <textarea
-                          rows={3}
+                          rows={4}
                           value={formData.description}
                           onChange={(e) =>
                             setFormData((prev) => ({ ...prev, description: e.target.value }))
@@ -1130,106 +1086,6 @@ export default function AdminProductsClient() {
                           placeholder="Authentic botanical formulation handcrafted with 100% natural herbs..."
                           className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
                         />
-                      </div>
-
-                      {/* Key Benefits (Tag list) */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <ListPlus className="w-3.5 h-3.5 text-[#B58A5A]" />
-                          <span>Key Benefits Bullet Points</span>
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={newBenefitInput}
-                            onChange={(e) => setNewBenefitInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleAddBenefit();
-                              }
-                            }}
-                            placeholder="e.g. Removes excess oil and unclogs deep pores"
-                            className="flex-1 px-3.5 py-2 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddBenefit}
-                            className="px-4 py-2 rounded-xl bg-[#1F3A2E] text-white text-xs font-bold hover:bg-[#15271F] cursor-pointer"
-                          >
-                            Add
-                          </button>
-                        </div>
-
-                        {formData.benefits.length > 0 && (
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            {formData.benefits.map((benefit, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-[#F8F6F0] border border-[#EFE9DD] text-slate-700"
-                              >
-                                <span>{benefit}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveBenefit(idx)}
-                                  className="text-slate-400 hover:text-red-600 cursor-pointer"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Botanical Ingredients (Tag list) */}
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-[#B58A5A]" />
-                          <span>Botanical Ingredients</span>
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={newIngredientInput}
-                            onChange={(e) => setNewIngredientInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                handleAddIngredient();
-                              }
-                            }}
-                            placeholder="e.g. Wild Turmeric (Kasturi Manjal)"
-                            className="flex-1 px-3.5 py-2 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleAddIngredient}
-                            className="px-4 py-2 rounded-xl bg-[#1F3A2E] text-white text-xs font-bold hover:bg-[#15271F] cursor-pointer"
-                          >
-                            Add
-                          </button>
-                        </div>
-
-                        {formData.ingredients.length > 0 && (
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            {formData.ingredients.map((ing, idx) => (
-                              <span
-                                key={idx}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-emerald-50 border border-emerald-200 text-emerald-800"
-                              >
-                                <span>{ing}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleRemoveIngredient(idx)}
-                                  className="text-emerald-500 hover:text-red-600 cursor-pointer"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
 
                       {/* How to Use - YouTube Video Embed Link */}
@@ -1305,22 +1161,6 @@ export default function AdminProductsClient() {
                               </div>
                             </div>
                           )}
-                      </div>
-
-                      {/* Usage Instructions */}
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          Usage Instructions (Application Ritual Notes)
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={formData.usage}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, usage: e.target.value }))
-                          }
-                          placeholder="e.g. Mix 1-2 tbsp with rose water. Apply evenly on face and neck. Wash off after 15 minutes."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                        />
                       </div>
                     </div>
 

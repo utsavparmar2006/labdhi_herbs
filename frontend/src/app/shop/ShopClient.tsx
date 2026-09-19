@@ -1,8 +1,8 @@
-'use me';
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import SmoothScroll from '../../components/SmoothScroll';
 import Header from '../../components/Header';
 import ShopHero from '../../components/ShopHero';
@@ -10,16 +10,16 @@ import CartDrawer from '../../components/CartDrawer';
 import AuthModal from '../../components/AuthModal';
 import SearchModal from '../../components/SearchModal';
 import Footer from '../../components/Footer';
-import { useEffect } from 'react';
 import { MAIN_CATEGORIES } from '../../services/mockData';
 import { getCategories } from '../../services/api';
-import { CartItem, MainCategory } from '../../types';
+import { MainCategory } from '../../types';
+import { useCart } from '../../context/CartContext';
 import { ArrowRight, CheckCircle2, Layers } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function ShopClient() {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const router = useRouter();
+  const { cartCount, openCart, isCartOpen, closeCart } = useCart();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -45,8 +45,6 @@ export default function ShopClient() {
     };
   }, []);
 
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-
   const visibleCategories = categories;
 
   return (
@@ -55,7 +53,7 @@ export default function ShopClient() {
 
         <Header
           cartCount={cartCount}
-          onOpenCart={() => setIsCartOpen(true)}
+          onOpenCart={openCart}
           onOpenAuth={() => setIsAuthOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
         />
@@ -129,26 +127,17 @@ export default function ShopClient() {
 
         <Footer />
 
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          items={cart}
-          onUpdateQuantity={(productId, qty) => {
-            if (qty <= 0) {
-              setCart((prev) => prev.filter((i) => i.product.id !== productId));
-            } else {
-              setCart((prev) => prev.map((i) => i.product.id === productId ? { ...i, quantity: qty } : i));
-            }
-          }}
-          onRemoveItem={(productId) => setCart((prev) => prev.filter((i) => i.product.id !== productId))}
-        />
+        <CartDrawer />
 
         <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
         <SearchModal
           isOpen={isSearchOpen}
           onClose={() => setIsSearchOpen(false)}
-          onSelectProduct={() => {}}
+          onSelectProduct={(product) => {
+            setIsSearchOpen(false);
+            router.push(`/product/${product.id}`);
+          }}
         />
 
       </div>

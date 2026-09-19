@@ -4,7 +4,15 @@ import React, { useState, useEffect, useId } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCart } from '../../context/CartContext';
-import { createOrder, getCoupons, validateCoupon as apiValidateCoupon } from '../../services/api';
+import {
+  createOrder,
+  getCoupons,
+  validateCoupon as apiValidateCoupon,
+  getRazorpayKeyId,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+} from '../../services/api';
+import { loadRazorpayScript } from '../../utils/loadRazorpay';
 import OriginalTransparentLogo from '../../components/OriginalTransparentLogo';
 import {
   ShieldCheck,
@@ -289,15 +297,136 @@ export default function CheckoutClient() {
         notes: formData.notes.trim(),
       };
 
-      const res = await createOrder(payload);
+      if (paymentMethod === 'cod') {
+        const res = await createOrder(payload);
 
-      if (res.success && res.data?.orderId) {
-        clearCart();
-        router.push(`/order-success/${res.data.orderId}`);
-      } else {
-        setErrorMessage(res.message || 'Failed to place order. Please check your details.');
-        setIsSubmitting(false);
+        if (res.success && res.data?.orderId) {
+          clearCart();
+          router.push(`/order-success/${res.data.orderId}`);
+        } else {
+          setErrorMessage(res.message || 'Failed to place order. Please check your details.');
+          setIsSubmitting(false);
+        }
+        return;
       }
+
+      // Online Payment via Razorpay
+      const isRazorpayLoaded = await loadRazorpayScript();
+      if (!isRazorpayLoaded) {
+        setErrorMessage(
+          'Unable to load Razorpay payment SDK. Please check your network connection or select Cash on Delivery.'
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 1. Create order in MongoDB first with payment status 'pending'
+      const orderRes = await createOrder(payload);
+      if (!orderRes.success || !orderRes.data?.orderId) {
+        setErrorMessage(orderRes.message || 'Failed to initiate order. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const createdOrder = orderRes.data;
+      let razorpayOrderData = (orderRes as any).razorpay;
+
+      // 2. If razorpay order was not generated in createOrder, create it via payment API
+      if (!razorpayOrderData?.id) {
+        const rzpRes = await createRazorpayOrder({
+          amount: createdOrder.pricing.total,
+          orderId: createdOrder.orderId,
+        });
+
+        if (!rzpRes.success || !rzpRes.data) {
+          setErrorMessage(
+            rzpRes.message ||
+              'Payment gateway initialization failed. Please check your keys or choose Cash on Delivery.'
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
+        razorpayOrderData = rzpRes.data;
+      }
+
+      // 3. Resolve keyId
+      let keyId = razorpayOrderData.keyId;
+      if (!keyId) {
+        const keyRes = await getRazorpayKeyId();
+        keyId = keyRes.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '';
+      }
+
+      if (!keyId) {
+        setErrorMessage(
+          'Razorpay Test Key ID is not configured. Please contact administrator or choose Cash on Delivery.'
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // 4. Launch Razorpay Checkout Modal
+      const rzpOptions = {
+        key: keyId,
+        amount: razorpayOrderData.amount,
+        currency: razorpayOrderData.currency || 'INR',
+        name: 'Labdhi Herbs',
+        description: `Ayurvedic Order #${createdOrder.orderId}`,
+        image: '/uploads/logo/Main-logo-531.jpg',
+        order_id: razorpayOrderData.id,
+        handler: async function (response: any) {
+          try {
+            setIsSubmitting(true);
+            const verifyRes = await verifyRazorpayPayment({
+              orderId: createdOrder.orderId,
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            });
+
+            if (verifyRes.success) {
+              clearCart();
+              router.push(`/order-success/${createdOrder.orderId}?payment=success`);
+            } else {
+              setErrorMessage(
+                verifyRes.message ||
+                  'Payment verification failed. If money was debited, please contact customer support.'
+              );
+              setIsSubmitting(false);
+            }
+          } catch (verifyErr: any) {
+            setErrorMessage(verifyErr.message || 'An error occurred while verifying payment.');
+            setIsSubmitting(false);
+          }
+        },
+        prefill: {
+          name: formData.fullName.trim(),
+          email: formData.email.trim(),
+          contact: cleanPhone,
+        },
+        notes: {
+          orderId: createdOrder.orderId,
+          address: `${formData.address}, ${formData.city}, ${formData.state} - ${cleanPincode}`,
+        },
+        theme: {
+          color: '#1F3A2E',
+        },
+        modal: {
+          ondismiss: function () {
+            setIsSubmitting(false);
+            setErrorMessage('Payment was cancelled or closed. You can retry paying or select Cash on Delivery.');
+          },
+        },
+      };
+
+      const razorpayInstance = new (window as any).Razorpay(rzpOptions);
+      razorpayInstance.on('payment.failed', function (response: any) {
+        setIsSubmitting(false);
+        setErrorMessage(
+          `Payment failed: ${response.error?.description || 'Transaction was declined.'}`
+        );
+      });
+      razorpayInstance.open();
     } catch (err: any) {
       setErrorMessage(err.message || 'An unexpected error occurred. Please try again.');
       setIsSubmitting(false);
@@ -694,73 +823,49 @@ export default function CheckoutClient() {
                       className="mt-1 w-4 h-4 text-[#1F3A2E] focus:ring-[#1F3A2E] cursor-pointer"
                     />
                     <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
                         <span className="text-xs sm:text-sm font-bold text-[#1A201C] flex items-center gap-2">
                           <QrCode className="w-4 h-4 text-[#B58A5A]" />
-                          <span>Instant Online Payment (UPI / QR / Cards / NetBanking)</span>
+                          <span>Instant Online Payment (Razorpay)</span>
                         </span>
-                        <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-                          Instant Order Confirmation
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                            <span>Test Mode</span>
+                          </span>
+                          <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
+                            Instant Confirmation
+                          </span>
+                        </div>
                       </div>
                       <p className="text-xs text-slate-500 font-light leading-relaxed">
-                        Pay securely with Google Pay, PhonePe, Paytm, RuPay, Visa, Mastercard, or NetBanking.
+                        Pay securely with Razorpay Test Mode via UPI (Google Pay, PhonePe, Paytm), RuPay, Visa, Mastercard, or 50+ NetBanking options.
                       </p>
 
                       {paymentMethod === 'online' && (
                         <div className="pt-3 space-y-3">
-                          <div className="grid grid-cols-3 gap-2 text-xs">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOnlineType('upi');
-                              }}
-                              className={`py-2 px-3 rounded-xl border text-center font-semibold transition-all ${
-                                onlineType === 'upi'
-                                  ? 'border-[#1F3A2E] bg-[#1F3A2E] text-white shadow-xs'
-                                  : 'border-[#EFE9DD] bg-white text-slate-600'
-                              }`}
-                            >
+                          <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                            <span className="px-2.5 py-1 rounded-lg bg-white border border-[#EFE9DD] font-semibold text-slate-700">
                               UPI / QR
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOnlineType('card');
-                              }}
-                              className={`py-2 px-3 rounded-xl border text-center font-semibold transition-all ${
-                                onlineType === 'card'
-                                  ? 'border-[#1F3A2E] bg-[#1F3A2E] text-white shadow-xs'
-                                  : 'border-[#EFE9DD] bg-white text-slate-600'
-                              }`}
-                            >
-                              Cards
-                            </button>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOnlineType('netbanking');
-                              }}
-                              className={`py-2 px-3 rounded-xl border text-center font-semibold transition-all ${
-                                onlineType === 'netbanking'
-                                  ? 'border-[#1F3A2E] bg-[#1F3A2E] text-white shadow-xs'
-                                  : 'border-[#EFE9DD] bg-white text-slate-600'
-                              }`}
-                            >
-                              NetBanking
-                            </button>
+                            </span>
+                            <span className="px-2.5 py-1 rounded-lg bg-white border border-[#EFE9DD] font-semibold text-slate-700">
+                              GPay / PhonePe
+                            </span>
+                            <span className="px-2.5 py-1 rounded-lg bg-white border border-[#EFE9DD] font-semibold text-slate-700">
+                              Cards (Visa/Mastercard/RuPay)
+                            </span>
+                            <span className="px-2.5 py-1 rounded-lg bg-white border border-[#EFE9DD] font-semibold text-slate-700">
+                              50+ NetBanking
+                            </span>
                           </div>
 
-                          <div className="p-3.5 rounded-xl bg-white border border-[#EFE9DD] text-xs text-slate-600 space-y-1">
-                            <div className="flex items-center gap-2 text-emerald-800 font-bold">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              <span>Instant UPI Verification Enabled</span>
+                          <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-slate-600 space-y-1">
+                            <div className="flex items-center gap-2 text-amber-900 font-bold">
+                              <ShieldCheck className="w-4 h-4 text-amber-600" />
+                              <span>Razorpay Test Mode Active</span>
                             </div>
-                            <p className="text-[11px] text-slate-500 font-light">
-                              Upon clicking &quot;Place Order&quot;, your payment is processed with 100% encryption and instant confirmation.
+                            <p className="text-[11px] text-slate-600 leading-relaxed">
+                              No real money will be charged. In the Razorpay popup, you can use any test UPI ID (e.g. <span className="font-mono font-bold text-[#1F3A2E]">success@razorpay</span>) or test card (<span className="font-mono font-bold text-[#1F3A2E]">4111 1111 1111 1111</span>) to test the flow end-to-end.
                             </p>
                           </div>
                         </div>
@@ -961,7 +1066,9 @@ export default function CheckoutClient() {
                     <>
                       <Lock className="w-4 h-4 text-[#D4A373]" />
                       <span>
-                        Place Order — {paymentMethod === 'cod' ? 'Cash on Delivery' : 'Instant Online'}
+                        {paymentMethod === 'cod'
+                          ? 'Place Order — Cash on Delivery'
+                          : `Pay ₹${finalTotal} via Razorpay (Test Mode)`}
                       </span>
                     </>
                   )}

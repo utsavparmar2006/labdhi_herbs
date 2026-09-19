@@ -16,6 +16,7 @@ import blogRoutes from './routes/blog.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import couponRoutes from './routes/coupon.routes.js';
 import siteSettingsRoutes from './routes/siteSettings.routes.js';
+import paymentRoutes from './routes/payment.routes.js';
 import { seedDefaultCoupons } from './controllers/coupon.controller.js';
 import { seedSiteSettings } from './controllers/siteSettings.controller.js';
 import { errorHandler } from './middlewares/errorHandler.js';
@@ -74,6 +75,8 @@ app.use('/api/v1/coupons', couponRoutes);
 app.use('/api/public/coupons', couponRoutes);
 app.use('/api/v1/site-settings', siteSettingsRoutes);
 app.use('/api/public/site-settings', siteSettingsRoutes);
+app.use('/api/v1/payment', paymentRoutes);
+app.use('/api/public/payment', paymentRoutes);
 
 // Root Route welcome message
 app.get('/', (_req: Request, res: Response) => {

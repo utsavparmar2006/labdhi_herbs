@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -13,7 +12,8 @@ import Footer from '../../../../components/Footer';
 import BrandDropdown from '../../../../components/BrandDropdown';
 import SortDropdown from '../../../../components/SortDropdown';
 import { PRODUCTS } from '../../../../services/mockData';
-import { MainCategory, SubCategory, Product, CartItem } from '../../../../types';
+import { MainCategory, SubCategory, Product } from '../../../../types';
+import { useCart } from '../../../../context/CartContext';
 import {
   ArrowLeft,
   Star,
@@ -33,18 +33,15 @@ interface Props {
 }
 
 export default function SubCategoryProductsClient({ mainCategory, subCategory }: Props) {
+  const { cartCount, openCart, addToCart: contextAddToCart } = useCart();
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [selectedSort, setSelectedSort] = useState('featured');
 
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [addedItemIds, setAddedItemIds] = useState<string[]>([]);
   const [visibleCount, setVisibleCount] = useState(8);
-
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   // Filter products for this subcategory
   const filteredProducts = useMemo(() => {
@@ -82,15 +79,7 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
   const hasMore = visibleCount < filteredProducts.length;
 
   const handleAddToCart = (product: Product, quantity = 1) => {
-    setCart((prev) => {
-      const idx = prev.findIndex((i) => i.product.id === product.id);
-      if (idx > -1) {
-        const updated = [...prev];
-        updated[idx].quantity += quantity;
-        return updated;
-      }
-      return [...prev, { product, quantity }];
-    });
+    contextAddToCart(product, quantity);
     setAddedItemIds((prev) => [...prev, product.id]);
     setTimeout(() => setAddedItemIds((prev) => prev.filter((id) => id !== product.id)), 1500);
   };
@@ -106,7 +95,7 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
 
         <Header
           cartCount={cartCount}
-          onOpenCart={() => setIsCartOpen(true)}
+          onOpenCart={openCart}
           onOpenAuth={() => setIsAuthOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
         />
@@ -337,16 +326,7 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
           onAddToCart={handleAddToCart}
         />
 
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          items={cart}
-          onUpdateQuantity={(productId, qty) => {
-            if (qty <= 0) setCart((prev) => prev.filter((i) => i.product.id !== productId));
-            else setCart((prev) => prev.map((i) => i.product.id === productId ? { ...i, quantity: qty } : i));
-          }}
-          onRemoveItem={(productId) => setCart((prev) => prev.filter((i) => i.product.id !== productId))}
-        />
+        <CartDrawer />
 
         <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 

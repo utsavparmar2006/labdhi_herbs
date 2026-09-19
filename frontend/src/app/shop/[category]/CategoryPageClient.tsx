@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import SmoothScroll from '../../../components/SmoothScroll';
 import Header from '../../../components/Header';
 import CartDrawer from '../../../components/CartDrawer';
 import AuthModal from '../../../components/AuthModal';
 import SearchModal from '../../../components/SearchModal';
 import Footer from '../../../components/Footer';
-import { MainCategory, CartItem } from '../../../types';
+import { MainCategory } from '../../../types';
+import { useCart } from '../../../context/CartContext';
 import { ArrowLeft, ArrowRight, Layers } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -17,12 +19,10 @@ interface Props {
 }
 
 export default function CategoryPageClient({ mainCategory }: Props) {
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const router = useRouter();
+  const { cartCount, openCart } = useCart();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   // Sub-categories to display as cards (exclude generic 'All')
   const subCategoryCards = mainCategory.subCategories.filter((sc) => sc.slug !== 'All');
@@ -33,7 +33,7 @@ export default function CategoryPageClient({ mainCategory }: Props) {
 
         <Header
           cartCount={cartCount}
-          onOpenCart={() => setIsCartOpen(true)}
+          onOpenCart={openCart}
           onOpenAuth={() => setIsAuthOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
         />
@@ -165,27 +165,17 @@ export default function CategoryPageClient({ mainCategory }: Props) {
 
         <Footer />
 
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          items={cart}
-          onUpdateQuantity={(productId, qty) => {
-            if (qty <= 0) setCart((prev) => prev.filter((i) => i.product.id !== productId));
-            else setCart((prev) =>
-              prev.map((i) => i.product.id === productId ? { ...i, quantity: qty } : i)
-            );
-          }}
-          onRemoveItem={(productId) =>
-            setCart((prev) => prev.filter((i) => i.product.id !== productId))
-          }
-        />
+        <CartDrawer />
 
         <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
         <SearchModal
           isOpen={isSearchOpen}
           onClose={() => setIsSearchOpen(false)}
-          onSelectProduct={() => {}}
+          onSelectProduct={(product) => {
+            setIsSearchOpen(false);
+            router.push(`/product/${product.id}`);
+          }}
         />
 
       </div>

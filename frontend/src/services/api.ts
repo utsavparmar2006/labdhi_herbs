@@ -1,4 +1,4 @@
-import { HealthResponse, HomePageConfigData, MainCategory, SubCategory, Product, SuccessStory, BlogPost, Order, OrderStats, User, Coupon, CouponValidationResult } from '../types';
+import { HealthResponse, HomePageConfigData, MainCategory, SubCategory, Product, SuccessStory, BlogPost, Order, OrderStatusType, OrderStats, User, Coupon, CouponValidationResult } from '../types';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -1065,13 +1065,15 @@ export async function getAdminOrders(params?: {
 }
 
 /**
- * Update Order Status (Admin only)
+ * Update Order Status, Delivery Courier & Tracking Info (Admin only)
  */
 export async function updateOrderStatus(
   id: string,
   payload: {
-    status?: 'placed' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+    status?: OrderStatusType;
     paymentStatus?: 'pending' | 'completed' | 'failed';
+    deliveryName?: string;
+    deliveryTrackId?: string;
   }
 ): Promise<{ success: boolean; message: string; data?: Order }> {
   try {
@@ -1090,6 +1092,118 @@ export async function updateOrderStatus(
     return data;
   } catch (error: any) {
     return { success: false, message: error.message || 'Failed to update order status' };
+  }
+}
+
+/**
+ * Public Track Order by Order ID (for customer tracking portal)
+ */
+export async function trackOrderByOrderId(orderId: string): Promise<{
+  success: boolean;
+  data?: Order;
+  message?: string;
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/orders/track/${encodeURIComponent(orderId.trim())}`, {
+      cache: 'no-store',
+    });
+    const data = await res.json();
+    return data;
+  } catch (error: any) {
+    return { success: false, message: error.message || 'Failed to track order' };
+  }
+}
+
+/**
+ * ============================================================================
+ * RAZORPAY PAYMENT GATEWAY API
+ * ============================================================================
+ */
+
+/**
+ * Fetch Public Razorpay Key ID
+ */
+export async function getRazorpayKeyId(): Promise<{
+  success: boolean;
+  keyId?: string;
+  isConfigured?: boolean;
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/payment/razorpay/key`, {
+      cache: 'no-store',
+    });
+    return await res.json();
+  } catch (error: any) {
+    return {
+      success: false,
+      keyId: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || '',
+    };
+  }
+}
+
+/**
+ * Create Razorpay Order
+ */
+export async function createRazorpayOrder(payload: {
+  amount: number;
+  currency?: string;
+  orderId?: string;
+  receipt?: string;
+}): Promise<{
+  success: boolean;
+  data?: {
+    id: string;
+    amount: number;
+    currency: string;
+    receipt: string;
+    keyId: string;
+  };
+  message?: string;
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/payment/razorpay/create-order`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message || 'Failed to initiate Razorpay order',
+    };
+  }
+}
+
+/**
+ * Verify Razorpay Payment Signature
+ */
+export async function verifyRazorpayPayment(payload: {
+  orderId?: string;
+  razorpayOrderId: string;
+  razorpayPaymentId: string;
+  razorpaySignature: string;
+}): Promise<{
+  success: boolean;
+  message?: string;
+  data?: Order;
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/v1/payment/razorpay/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    return await res.json();
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error.message || 'Payment signature verification failed',
+    };
   }
 }
 

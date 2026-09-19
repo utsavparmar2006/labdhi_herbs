@@ -7,8 +7,8 @@ import Footer from '../../components/Footer';
 import CartDrawer from '../../components/CartDrawer';
 import AuthModal from '../../components/AuthModal';
 import SearchModal from '../../components/SearchModal';
-import { CartItem } from '../../types';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
+import { useCart } from '../../context/CartContext';
 import { 
   ChevronRight, 
   ChevronDown, 
@@ -22,6 +22,7 @@ import {
 
 export default function FaqPage() {
   const { settings, profile } = useSiteSettings();
+  const { cartCount, openCart } = useCart();
   const phone = profile.adminPhone || settings.supportPhone || '+91 93283 49328';
   const email = profile.adminEmail || settings.supportEmail || 'support@labdhiherbs.com';
   const city = profile.city || settings.city || 'Surat';
@@ -29,12 +30,8 @@ export default function FaqPage() {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   // Filter only active FAQs and sort by order
   const activeFaqs = (settings.faq || [])
@@ -53,7 +50,7 @@ export default function FaqPage() {
     <div className="min-h-screen bg-[#F8F6F0] text-[#1A201C] font-sans selection:bg-[#1F3A2E] selection:text-[#EFE9DD]">
       <Header
         cartCount={cartCount}
-        onOpenCart={() => setIsCartOpen(true)}
+        onOpenCart={openCart}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
       />
@@ -167,10 +164,7 @@ export default function FaqPage() {
         </div>
       </main>
 
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-      />
+      <CartDrawer />
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       <SearchModal
         isOpen={isSearchOpen}

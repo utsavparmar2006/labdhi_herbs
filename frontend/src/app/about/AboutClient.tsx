@@ -13,44 +13,16 @@ import CartDrawer from '../../components/CartDrawer';
 import AuthModal from '../../components/AuthModal';
 import SearchModal from '../../components/SearchModal';
 import Footer from '../../components/Footer';
-import { Product, CartItem } from '../../types';
+import { Product } from '../../types';
+import { useCart } from '../../context/CartContext';
 import { ChevronRight, Leaf, ShieldCheck, Heart, ArrowRight, Sparkles, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function AboutClient() {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const { cartCount, openCart, addToCart: handleAddToCart } = useCart();
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
-
-  const handleAddToCart = (product: Product, quantity = 1) => {
-    setCart((prevCart) => {
-      const existingIndex = prevCart.findIndex((item) => item.product.id === product.id);
-      if (existingIndex > -1) {
-        const updated = [...prevCart];
-        updated[existingIndex].quantity += quantity;
-        return updated;
-      }
-      return [...prevCart, { product, quantity }];
-    });
-  };
-
-  const handleUpdateCartQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setCart((prev) => prev.filter((item) => item.product.id !== productId));
-      return;
-    }
-    setCart((prev) =>
-      prev.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
-    );
-  };
-
-  const handleRemoveCartItem = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
-  };
 
   return (
     <SmoothScroll>
@@ -59,7 +31,7 @@ export default function AboutClient() {
         {/* Header Navigation */}
         <Header
           cartCount={cartCount}
-          onOpenCart={() => setIsCartOpen(true)}
+          onOpenCart={openCart}
           onOpenAuth={() => setIsAuthOpen(true)}
           onOpenSearch={() => setIsSearchOpen(true)}
         />
@@ -183,13 +155,7 @@ export default function AboutClient() {
           onAddToCart={handleAddToCart}
         />
 
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          items={cart}
-          onUpdateQuantity={handleUpdateCartQuantity}
-          onRemoveItem={handleRemoveCartItem}
-        />
+        <CartDrawer />
 
         <AuthModal
           isOpen={isAuthOpen}

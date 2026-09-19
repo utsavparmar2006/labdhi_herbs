@@ -25,7 +25,7 @@ export default function CartDrawer({
 
   const isOpen = propIsOpen !== undefined ? propIsOpen : cartContext.isCartOpen;
   const onClose = propOnClose || cartContext.closeCart;
-  const items = propItems || cartContext.items;
+  const items = propItems !== undefined && propItems.length > 0 ? propItems : cartContext.items;
   const onUpdateQuantity = propOnUpdate || cartContext.updateQuantity;
   const onRemoveItem = propOnRemove || cartContext.removeFromCart;
 

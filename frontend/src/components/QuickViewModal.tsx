@@ -88,21 +88,6 @@ export default function QuickViewModal({ product, onClose, onAddToCart }: QuickV
               <p className="text-xs text-slate-600 font-light leading-relaxed">
                 {product.description}
               </p>
-
-              {/* Key Benefits */}
-              <div className="space-y-1.5">
-                <span className="text-xs font-semibold text-[#1A201C] flex items-center gap-1">
-                  <Leaf className="w-3.5 h-3.5 text-[#B58A5A]" /> Key Benefits:
-                </span>
-                <ul className="space-y-1 text-xs text-slate-600">
-                  {product.benefits.slice(0, 3).map((b, idx) => (
-                    <li key={idx} className="flex items-center gap-2">
-                      <Leaf className="w-3 h-3 text-[#1F3A2E] shrink-0" />
-                      <span>{b}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
             </div>
 
             {/* Quantity and Add to Cart */}

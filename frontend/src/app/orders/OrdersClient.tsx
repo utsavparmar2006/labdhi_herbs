@@ -10,7 +10,8 @@ import AuthModal from '../../components/AuthModal';
 import SearchModal from '../../components/SearchModal';
 import { useCart } from '../../context/CartContext';
 import { getMyOrders } from '../../services/api';
-import { Order, Product } from '../../types';
+import { Order, Product, OrderStatusType } from '../../types';
+import AdminInvoiceModal from '../admin/orders/components/AdminInvoiceModal';
 import {
   Package,
   Clock,
@@ -33,7 +34,8 @@ import {
   Receipt,
   User as UserIcon,
   Lock,
-  Phone
+  Phone,
+  Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -54,6 +56,7 @@ export default function OrdersClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
   const [reorderingId, setReorderingId] = useState<string | null>(null);
+  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
 
   const fetchOrders = async () => {
     setIsLoading(true);
@@ -147,32 +150,29 @@ export default function OrdersClient() {
 
   const getStatusBadge = (status: Order['orderStatus']) => {
     switch (status) {
+      case 'pending':
       case 'placed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-            <Clock className="w-3.5 h-3.5 text-blue-600" />
-            <span>Order Placed</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+            <Clock className="w-3.5 h-3.5 text-amber-600" />
+            <span>Order Received</span>
           </span>
         );
+      case 'accepted':
       case 'confirmed':
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-            <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Confirmed</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+            <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />
+            <span>Order Accepted</span>
           </span>
         );
+      case 'dispatched':
       case 'processing':
-        return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-            <Package className="w-3.5 h-3.5 text-amber-600" />
-            <span>Preparing Package</span>
-          </span>
-        );
       case 'shipped':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
             <Truck className="w-3.5 h-3.5 text-purple-600" />
-            <span>Out for Delivery</span>
+            <span>Dispatched</span>
           </span>
         );
       case 'delivered':
@@ -182,11 +182,26 @@ export default function OrdersClient() {
             <span>Delivered</span>
           </span>
         );
+      case 'returned_by_customer':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200">
+            <RotateCcw className="w-3.5 h-3.5 text-orange-600" />
+            <span>Returned by Customer</span>
+          </span>
+        );
+      case 'cancelled_by_seller':
       case 'cancelled':
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-red-50 text-red-700 border border-red-200">
             <XCircle className="w-3.5 h-3.5 text-red-600" />
-            <span>Cancelled</span>
+            <span>Cancelled by Seller</span>
+          </span>
+        );
+      case 'return_received':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-800 border border-slate-300">
+            <Check className="w-3.5 h-3.5 text-slate-600" />
+            <span>Return Received</span>
           </span>
         );
       default:
@@ -529,10 +544,35 @@ export default function OrdersClient() {
                             </p>
                           </div>
 
-                          {/* Quick Delivery Tag */}
-                          <div className="mt-4 pt-3 border-t border-[#EFE9DD] text-[10px] text-[#71846C] flex items-center gap-1.5">
-                            <Truck className="w-3.5 h-3.5 text-[#D4A373]" />
-                            <span>Shipped via Bluedart / Delhivery Express</span>
+                          {/* Quick Delivery / Tracking Tag */}
+                          <div className="mt-4 pt-3 border-t border-[#EFE9DD] text-[11px] text-[#71846C] space-y-1">
+                            {order.deliveryName || order.deliveryTrackId ? (
+                              <div className="bg-[#1F3A2E]/5 rounded-xl p-2.5 border border-[#1F3A2E]/10">
+                                <div className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#1F3A2E]">
+                                    <Truck className="w-3.5 h-3.5 text-[#D4A373]" />
+                                    <span>{order.deliveryName || 'Courier Partner'}</span>
+                                  </div>
+                                  <Link
+                                    href={`/track-order?orderId=${order.orderId}`}
+                                    className="text-[10px] font-bold text-[#1F3A2E] hover:underline flex items-center gap-0.5"
+                                  >
+                                    <span>Track</span>
+                                    <ArrowRight className="w-2.5 h-2.5" />
+                                  </Link>
+                                </div>
+                                {order.deliveryTrackId && (
+                                  <p className="text-[10px] text-slate-600 font-mono mt-0.5">
+                                    Tracking ID: <span className="font-bold text-[#1F3A2E]">{order.deliveryTrackId}</span>
+                                  </p>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5 text-[10px]">
+                                <Truck className="w-3.5 h-3.5 text-[#D4A373]" />
+                                <span>Shipped via Bluedart / Delhivery Express</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -565,24 +605,34 @@ export default function OrdersClient() {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2.5 flex-wrap">
+                        {/* Invoice Button */}
+                        <button
+                          onClick={() => setSelectedInvoiceOrder(order)}
+                          className="px-3.5 py-2 rounded-xl bg-[#F8F6F0] hover:bg-[#EFE9DD] text-[#1F3A2E] text-xs font-bold border border-[#EFE9DD] transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          title="View & Print Official GST Invoice"
+                        >
+                          <Printer className="w-3.5 h-3.5 text-[#D4A373]" />
+                          <span>Invoice</span>
+                        </button>
+
                         {/* Reorder Button */}
                         <button
                           onClick={() => handleReorder(order)}
                           disabled={reorderingId === order.orderId}
-                          className="px-4 py-2 rounded-xl bg-[#F8F6F0] hover:bg-[#EFE9DD] text-[#1F3A2E] text-xs font-bold border border-[#EFE9DD] transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                          className="px-3.5 py-2 rounded-xl bg-[#F8F6F0] hover:bg-[#EFE9DD] text-[#1F3A2E] text-xs font-bold border border-[#EFE9DD] transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                         >
                           <RotateCcw className={`w-3.5 h-3.5 text-[#D4A373] ${reorderingId === order.orderId ? 'animate-spin' : ''}`} />
                           <span>Reorder</span>
                         </button>
 
-                        {/* Track & View Receipt */}
+                        {/* Track Order Live */}
                         <Link
-                          href={`/order-success/${order.orderId}`}
+                          href={`/track-order?orderId=${order.orderId}`}
                           className="px-4 py-2 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
                         >
-                          <Receipt className="w-3.5 h-3.5 text-[#D4A373]" />
-                          <span>Track & View Receipt</span>
+                          <Truck className="w-3.5 h-3.5 text-[#D4A373]" />
+                          <span>Track Order</span>
                           <ArrowRight className="w-3 h-3 text-[#D4A373]" />
                         </Link>
                       </div>
@@ -597,6 +647,13 @@ export default function OrdersClient() {
 
       {/* Universal Footer */}
       <Footer />
+
+      {/* Official Tax Invoice Modal */}
+      <AdminInvoiceModal
+        isOpen={!!selectedInvoiceOrder}
+        onClose={() => setSelectedInvoiceOrder(null)}
+        order={selectedInvoiceOrder}
+      />
 
       {/* Cart Drawer */}
       <CartDrawer />

@@ -8,20 +8,20 @@ import Footer from './Footer';
 import CartDrawer from './CartDrawer';
 import AuthModal from './AuthModal';
 import SearchModal from './SearchModal';
-import { CartItem } from '../types';
 import { 
   FileText, 
   Shield, 
   RotateCcw, 
   Truck, 
   HelpCircle, 
-  Info,
-  ChevronRight,
-  Sparkles,
-  Phone,
-  Mail
+  Info, 
+  ChevronRight, 
+  Sparkles, 
+  Phone, 
+  Mail 
 } from 'lucide-react';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { useCart } from '../context/CartContext';
 
 interface PolicyPageLayoutProps {
   title: string;
@@ -47,23 +47,20 @@ export default function PolicyPageLayout({
 }: PolicyPageLayoutProps) {
   const pathname = usePathname();
   const { settings, profile } = useSiteSettings();
+  const { cartCount, openCart } = useCart();
   const phone = profile.adminPhone || settings.supportPhone || '+91 93283 49328';
   const email = profile.adminEmail || settings.supportEmail || 'support@labdhiherbs.com';
   const city = profile.city || settings.city || 'Surat';
 
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-
-  const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
 
   return (
     <div className="min-h-screen bg-[#F8F6F0] text-[#1A201C] font-sans selection:bg-[#1F3A2E] selection:text-[#EFE9DD]">
       {/* Header */}
       <Header
         cartCount={cartCount}
-        onOpenCart={() => setIsCartOpen(true)}
+        onOpenCart={openCart}
         onOpenAuth={() => setIsAuthOpen(true)}
         onOpenSearch={() => setIsSearchOpen(true)}
       />
@@ -237,10 +234,7 @@ export default function PolicyPageLayout({
       `}</style>
 
       {/* Drawers and Modals */}
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-      />
+      <CartDrawer />
       <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
       <SearchModal
         isOpen={isSearchOpen}
