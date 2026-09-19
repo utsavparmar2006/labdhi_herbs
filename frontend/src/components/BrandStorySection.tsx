@@ -52,7 +52,7 @@ export default function BrandStorySection() {
 
         {/* Story Text Content */}
         <div className="lg:col-span-6 space-y-6">
-          {customAboutContent ? (
+          {customAboutContent && customAboutContent.length > 250 ? (
             <div
               className="prose prose-slate text-xs sm:text-sm text-slate-600 font-light leading-relaxed max-w-none space-y-3"
               dangerouslySetInnerHTML={{ __html: customAboutContent }}
@@ -60,27 +60,35 @@ export default function BrandStorySection() {
           ) : (
             <div className="space-y-4 text-xs sm:text-sm text-slate-600 font-light leading-relaxed">
               <p className="text-base sm:text-lg font-serif italic text-[#1A201C] font-semibold leading-relaxed border-l-2 border-[#B58A5A] pl-4">
-                "We started Labdhi Herbs with a simple conviction: daily hair care, skin care, and pain relief products should be 100% natural, effective, and free from harmful synthetic chemicals."
+                "Founded on the principle of transparent, commission-free, and genuine Ayurvedic care, Labdhi Herbs brings pure botanical healing directly from our Surat workshop to your family."
               </p>
 
               <p>
-                In a world flooded with artificial cosmetics and quick-fix chemical serums, Labdhi Herbs returned to the roots of authentic Gujarati Ayurveda. Every formulation is handcrafted in our {city} lab using time-tested herbs like Bhringraj, Amla, Sandalwood, Multani Mitti, and Mahanarayan oil.
+                Labdhi Herbs originated in {city}, {state} with a clear mission: to eliminate commercial middlemen, artificial fillers, and exaggerated cosmetic claims. Our journey began with the iconic <strong>Roopotkarsh Vilepan</strong> and traditional herbal face packs, formulated by Ayurvedic masters using cold-pressed extracts, medicinal herbs, and pure oils.
               </p>
 
               <p>
-                We do not compromise on purity. We source our raw botanical bark, roots, and essential oils directly from trusted organic farms, ensuring every bottle delivers maximum herbal potency to your family.
+                As established on our original platform, we believe in providing <em>commission-free, fast, reliable, and comprehensive access</em> to value-for-money Ayurvedic formulations under one roof. Every batch of our Hair Oils, Face Packs, Skincare Ointments, and Muscle &amp; Joint Care remedies is prepared following classical herbal protocols without synthetic parabens, artificial dyes, or mineral oils.
+              </p>
+
+              <p>
+                From our roots at Makkai Pool Road, Adajan in Surat, we connect directly with consumers across India—ensuring complete price transparency, authentic ingredients, and personalized customer care.
               </p>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#EFE9DD]">
-            <div className="p-4 rounded-2xl bg-[#F8F6F0] space-y-1">
-              <span className="text-xl sm:text-2xl font-bold font-serif text-[#1F3A2E]">100%</span>
-              <span className="text-xs text-slate-600 font-medium block">Pure Botanical Extracts</span>
+          <div className="grid grid-cols-3 gap-3 pt-4 border-t border-[#EFE9DD]">
+            <div className="p-3.5 rounded-2xl bg-[#F8F6F0] space-y-1 text-center">
+              <span className="text-lg sm:text-2xl font-bold font-serif text-[#1F3A2E] block">100%</span>
+              <span className="text-[10px] sm:text-xs text-slate-600 font-medium block">Pure Botanicals</span>
             </div>
-            <div className="p-4 rounded-2xl bg-[#F8F6F0] space-y-1">
-              <span className="text-xl sm:text-2xl font-bold font-serif text-[#1F3A2E]">0%</span>
-              <span className="text-xs text-slate-600 font-medium block">Synthetic Parabens &amp; Dyes</span>
+            <div className="p-3.5 rounded-2xl bg-[#F8F6F0] space-y-1 text-center">
+              <span className="text-lg sm:text-2xl font-bold font-serif text-[#1F3A2E] block">0%</span>
+              <span className="text-[10px] sm:text-xs text-slate-600 font-medium block">Middleman Markup</span>
+            </div>
+            <div className="p-3.5 rounded-2xl bg-[#F8F6F0] space-y-1 text-center">
+              <span className="text-lg sm:text-2xl font-bold font-serif text-[#1F3A2E] block">Surat</span>
+              <span className="text-[10px] sm:text-xs text-slate-600 font-medium block">Ayurvedic Roots</span>
             </div>
           </div>
         </div>
