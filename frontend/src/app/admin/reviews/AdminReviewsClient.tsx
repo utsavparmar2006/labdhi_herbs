@@ -394,7 +394,7 @@ export default function AdminReviewsClient() {
                       setSelectedProductId('all');
                       setPage(1);
                     }}
-                    className="w-full bg-[#F8F6F0] border border-[#EFE9DD] rounded-xl pl-8 pr-7 py-2 text-xs font-semibold text-[#14261E] focus:outline-none focus:border-[#14261E] cursor-pointer truncate"
+                    className="w-full bg-[#F8F6F0] border border-[#EFE9DD] rounded-xl pl-8 pr-8 py-2 text-xs font-semibold text-[#14261E] focus:outline-none focus:border-[#14261E] cursor-pointer truncate appearance-none"
                   >
                     <option value="all">📂 All Categories</option>
                     {mainCategories.map((cat) => (
@@ -415,7 +415,7 @@ export default function AdminReviewsClient() {
                       setSelectedProductId(e.target.value);
                       setPage(1);
                     }}
-                    className="w-full bg-[#F8F6F0] border border-[#EFE9DD] rounded-xl pl-8 pr-7 py-2 text-xs font-semibold text-[#14261E] focus:outline-none focus:border-[#14261E] cursor-pointer truncate"
+                    className="w-full bg-[#F8F6F0] border border-[#EFE9DD] rounded-xl pl-8 pr-8 py-2 text-xs font-semibold text-[#14261E] focus:outline-none focus:border-[#14261E] cursor-pointer truncate appearance-none"
                   >
                     <option value="all">
                       {selectedMainCategory !== 'all'
@@ -446,14 +446,15 @@ export default function AdminReviewsClient() {
                 </div>
 
                 {/* 3. Star Filter Dropdown */}
-                <div className="relative w-full sm:w-36">
+                <div className="relative w-full sm:w-44">
+                  <Star className="w-3.5 h-3.5 text-amber-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none fill-amber-400" />
                   <select
                     value={ratingFilter || ''}
                     onChange={(e) => {
                       setRatingFilter(e.target.value ? parseInt(e.target.value) : null);
                       setPage(1);
                     }}
-                    className="w-full bg-[#F8F6F0] border border-[#EFE9DD] rounded-xl px-3 py-2 pr-7 text-xs font-semibold text-[#14261E] focus:outline-none focus:border-[#14261E] cursor-pointer"
+                    className="w-full bg-[#F8F6F0] border border-[#EFE9DD] rounded-xl pl-8 pr-8 py-2 text-xs font-semibold text-[#14261E] focus:outline-none focus:border-[#14261E] cursor-pointer appearance-none truncate"
                   >
                     <option value="">All Ratings (1-5★)</option>
                     <option value="5">5 Stars Only</option>
