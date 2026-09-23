@@ -97,10 +97,14 @@ export default function AdminLoginClient() {
 
           {/* Top Brand Header */}
           <div className="relative z-10 space-y-6">
-            <OriginalTransparentLogo className="h-12 w-auto" isDarkBackground={true} />
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[#D4A373] text-[11px] font-bold uppercase tracking-wider">
-              <ShieldCheck className="w-3.5 h-3.5" />
-              <span>Admin Portal 2.0</span>
+            <div className="inline-block bg-white px-3.5 py-2 rounded-2xl shadow-sm border border-white/20">
+              <OriginalTransparentLogo className="h-10 w-auto" isDarkBackground={false} />
+            </div>
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[#D4A373] text-[11px] font-bold uppercase tracking-wider">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span>Admin Portal 2.0</span>
+              </div>
             </div>
           </div>
 

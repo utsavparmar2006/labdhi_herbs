@@ -57,9 +57,11 @@ export default function AdminSidebar({
     <div className="flex flex-col h-full bg-[#14261E] text-white selection:bg-[#1F3A2E] selection:text-white">
       
       {/* Brand Header */}
-      <div className="p-6 border-b border-white/10 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
         <Link href="/admin/dashboard" className="flex items-center gap-3">
-          <OriginalTransparentLogo className="h-9 w-auto" isDarkBackground={true} />
+          <div className="bg-white px-2.5 py-1.5 rounded-xl shadow-xs border border-white/20 flex items-center justify-center shrink-0">
+            <OriginalTransparentLogo className="h-8 w-auto" isDarkBackground={false} />
+          </div>
           {!isCollapsed && (
             <span className="font-bold text-xs uppercase tracking-wider text-[#D4A373]">
               Admin Panel
