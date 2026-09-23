@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -245,13 +244,24 @@ export default function AdminLoginClient() {
 
           </form>
 
-          {/* Footer Security Note */}
-          <div className="pt-4 border-t border-[#EFE9DD] text-center">
-            <span className="text-[11px] text-slate-400 font-light flex items-center justify-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-              Restricted area • Authorized Labdhi Herbs administrators only.
-            </span>
-          </div>
+            {/* Default Admin Credentials Helper */}
+            <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-left text-[11px] text-amber-900 space-y-1">
+              <span className="font-bold text-amber-950 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-amber-700" /> Default Admin Login:
+              </span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-0.5">
+                <div>Email: <code className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-amber-200 text-slate-800">admin@labdhiherbs.com</code></div>
+                <div>Password: <code className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-amber-200 text-slate-800">Admin@123456</code></div>
+              </div>
+            </div>
+
+            {/* Footer Security Note */}
+            <div className="pt-2 border-t border-[#EFE9DD] text-center">
+              <span className="text-[11px] text-slate-400 font-light flex items-center justify-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+                Restricted area • Authorized Labdhi Herbs administrators only.
+              </span>
+            </div>
 
         </div>
 

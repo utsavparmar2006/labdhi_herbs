@@ -89,7 +89,7 @@ const uploadVideo = multer({
  * @access Private (Admin only)
  */
 router.post(
-  '/image',
+  ['/image', '/'],
   verifyJWT,
   verifyAdmin,
   upload.single('file'),

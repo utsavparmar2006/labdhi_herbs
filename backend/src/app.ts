@@ -17,15 +17,11 @@ import orderRoutes from './routes/order.routes.js';
 import couponRoutes from './routes/coupon.routes.js';
 import siteSettingsRoutes from './routes/siteSettings.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
-import { seedDefaultCoupons } from './controllers/coupon.controller.js';
-import { seedSiteSettings } from './controllers/siteSettings.controller.js';
+import reviewRoutes from './routes/review.routes.js';
+import subscriberRoutes from './routes/subscriber.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app: Application = express();
-
-// Seed initial default coupons and site settings
-seedDefaultCoupons();
-seedSiteSettings();
 
 // Security HTTP Headers with cross-origin resource sharing for uploads
 app.use(
@@ -50,9 +46,9 @@ app.use('/uploads', express.static(UPLOAD_DIR));
 // HTTP Request Logger
 app.use(morgan('dev'));
 
-// Body & Cookie Parser Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body & Cookie Parser Middleware with explicit limits (Industry Standard Protection)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
 // API Routes
@@ -77,6 +73,10 @@ app.use('/api/v1/site-settings', siteSettingsRoutes);
 app.use('/api/public/site-settings', siteSettingsRoutes);
 app.use('/api/v1/payment', paymentRoutes);
 app.use('/api/public/payment', paymentRoutes);
+app.use('/api/v1/reviews', reviewRoutes);
+app.use('/api/public/reviews', reviewRoutes);
+app.use('/api/v1/subscribers', subscriberRoutes);
+app.use('/api/public/subscribers', subscriberRoutes);
 
 // Root Route welcome message
 app.get('/', (_req: Request, res: Response) => {

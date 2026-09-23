@@ -80,11 +80,6 @@ export default function PolicyPageLayout({
             <span className="text-[#D4A373] font-semibold">{title}</span>
           </nav>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1F3A2E] border border-[#71846C]/40 text-[#D4A373] text-[11px] font-semibold uppercase tracking-wider mx-auto">
-            <Sparkles className="w-3 h-3" />
-            <span>{badge}</span>
-          </div>
-
           <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
             {title}
           </h1>

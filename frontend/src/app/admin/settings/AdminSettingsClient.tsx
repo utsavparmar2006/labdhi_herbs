@@ -249,11 +249,13 @@ function ImageUpload({
   value,
   onChange,
   hint,
+  onError,
 }: {
   label: string;
   value: string;
   onChange: (url: string) => void;
   hint?: string;
+  onError?: (msg: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -261,22 +263,49 @@ function ImageUpload({
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      const msg = 'File size exceeds 10MB limit.';
+      if (onError) onError(msg);
+      else alert(msg);
+      return;
+    }
+
     setUploading(true);
     try {
       const form = new FormData();
       form.append('file', file);
-      const res = await fetch(`${API}/v1/upload`, {
+      const token = getToken();
+
+      let res = await fetch(`${API}/v1/upload/image`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: { Authorization: `Bearer ${token}` },
         body: form,
       });
+
+      if (!res.ok) {
+        res = await fetch(`${API}/v1/upload`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        });
+      }
+
       const data = await res.json();
       if (data.success && data.url) {
         onChange(data.url);
+      } else {
+        const errorMsg = data.message || 'Image upload failed. Please check file format.';
+        if (onError) onError(errorMsg);
+        else alert(errorMsg);
       }
-    } catch (_) {
+    } catch (err: any) {
+      const errorMsg = err?.message || 'Network error during upload. Please try again.';
+      if (onError) onError(errorMsg);
+      else alert(errorMsg);
     } finally {
       setUploading(false);
+      if (inputRef.current) inputRef.current.value = '';
     }
   };
 
@@ -770,7 +799,10 @@ export default function AdminSettingsClient() {
   const saveShipping = () => save('policy/shippingPolicy', { content: settings.shippingPolicy });
   const saveFaq = () => save('faq', settings.faq);
   const saveCopyright = () => save('copyright', { copyrightText: settings.copyrightText, copyrightYear: settings.copyrightYear });
-  const saveLogos = () => save('logos', { logoLight: settings.logoLight, logoDark: settings.logoDark, favicon: settings.favicon });
+  const saveLogos = () => {
+    const activeLogo = settings.logoLight || settings.logoDark || '';
+    save('logos', { logoLight: activeLogo, logoDark: activeLogo, favicon: settings.favicon || '' });
+  };
   const saveBanners = () => save('banners', settings.banners);
   const saveSite = () =>
     save('general', {
@@ -1214,65 +1246,41 @@ export default function AdminSettingsClient() {
         );
 
       // ── Logo ─────────────────────────────────────────────────────────────────
-      case 'logo':
+      case 'logo': {
+        const currentLogo = settings.logoLight || settings.logoDark || '';
         return (
-          <SettingsCard title="Logo & Favicon" icon={Star}>
+          <SettingsCard title="Website Logo" icon={Star}>
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-4 rounded-xl border border-[#EFE9DD] bg-white space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-slate-700" />
-                    <p className="text-xs font-bold text-slate-500 uppercase">Light Mode Logo</p>
+              <div className="p-6 rounded-2xl border border-[#EFE9DD] bg-white space-y-5 shadow-xs">
+                <div className="flex items-center justify-between pb-3 border-b border-[#EFE9DD]">
+                  <div>
+                    <h3 className="text-sm font-bold text-[#1A201C]">Brand Logo</h3>
+                    <p className="text-xs text-slate-500">
+                      This single logo will be displayed across your entire website header, footer, invoice, and admin panel.
+                    </p>
                   </div>
-                  <div className="bg-white rounded-xl p-4 border border-[#EFE9DD] min-h-[80px] flex items-center justify-center">
-                    {settings.logoLight ? (
-                      <img src={settings.logoLight.startsWith('http') ? settings.logoLight : `http://localhost:5000${settings.logoLight}`} alt="Light logo" className="max-h-16 object-contain" />
-                    ) : (
-                      <p className="text-xs text-slate-400">No logo uploaded</p>
-                    )}
-                  </div>
-                  <ImageUpload
-                    label="Upload Light Logo"
-                    value={settings.logoLight}
-                    onChange={(url) => setField('logoLight', url)}
-                    hint="Use on light/white backgrounds. PNG with transparency recommended."
-                  />
+                  <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E]">
+                    Official Logo
+                  </span>
                 </div>
-                <div className="p-4 rounded-xl border border-[#EFE9DD] bg-[#1F3A2E] space-y-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#D4A373]" />
-                    <p className="text-xs font-bold text-[#D4A373] uppercase">Dark Mode Logo</p>
-                  </div>
-                  <div className="bg-[#14261E] rounded-xl p-4 border border-white/10 min-h-[80px] flex items-center justify-center">
-                    {settings.logoDark ? (
-                      <img src={settings.logoDark.startsWith('http') ? settings.logoDark : `http://localhost:5000${settings.logoDark}`} alt="Dark logo" className="max-h-16 object-contain" />
-                    ) : (
-                      <p className="text-xs text-white/30">No logo uploaded</p>
-                    )}
-                  </div>
-                  <div className="[&_label]:text-[#D4A373] [&_input]:bg-white/10 [&_input]:border-white/20 [&_input]:text-white [&_button]:bg-white/10 [&_button]:border-white/20 [&_button]:text-white">
-                    <ImageUpload
-                      label="Upload Dark Logo"
-                      value={settings.logoDark}
-                      onChange={(url) => setField('logoDark', url)}
-                      hint="Use on dark backgrounds."
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="border border-[#EFE9DD] rounded-xl p-4 space-y-3">
-                <p className="text-xs font-bold text-slate-500 uppercase">Favicon</p>
+
+                {/* Single Image Upload Control */}
                 <ImageUpload
-                  label="Favicon"
-                  value={settings.favicon}
-                  onChange={(url) => setField('favicon', url)}
-                  hint="Recommended: 32×32px .ico or .png file"
+                  label="Upload Website Logo"
+                  value={currentLogo}
+                  onChange={(url) => {
+                    setField('logoLight', url);
+                    setField('logoDark', url);
+                  }}
+                  hint="Upload your official brand logo. Transparent PNG or SVG is recommended."
                 />
               </div>
-              <SaveButton onClick={saveLogos} loading={saving} />
+
+              <SaveButton onClick={saveLogos} loading={saving} label="Save Logo" />
             </div>
           </SettingsCard>
         );
+      }
 
       // ── Banners ──────────────────────────────────────────────────────────────
       case 'banners':

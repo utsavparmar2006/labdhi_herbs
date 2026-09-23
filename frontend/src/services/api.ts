@@ -7,6 +7,64 @@ const getAuthToken = (): string => {
   return localStorage.getItem('accessToken') || '';
 };
 
+export interface ApiRequestOptions extends RequestInit {
+  timeoutMs?: number;
+  token?: string;
+}
+
+/**
+ * Industry-standard resilient fetch wrapper with automatic auth, timeouts, and error handling
+ */
+export async function apiRequest<T = any>(
+  endpoint: string,
+  options: ApiRequestOptions = {}
+): Promise<{ success: boolean; data?: T; message?: string; error?: string }> {
+  const { timeoutMs = 15000, token, headers, ...restOptions } = options;
+  const authToken = token || getAuthToken();
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const url = endpoint.startsWith('http')
+      ? endpoint
+      : `${API_BASE_URL}${endpoint.startsWith('/') ? '' : '/'}${endpoint}`;
+
+    const reqHeaders: Record<string, string> = {
+      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      ...((headers as Record<string, string>) || {}),
+    };
+
+    if (restOptions.body && !(restOptions.body instanceof FormData) && !reqHeaders['Content-Type']) {
+      reqHeaders['Content-Type'] = 'application/json';
+    }
+
+    const res = await fetch(url, {
+      ...restOptions,
+      headers: reqHeaders,
+      signal: controller.signal,
+    });
+
+    const data = await res.json().catch(() => null);
+
+    if (!res.ok) {
+      return {
+        success: false,
+        message: data?.message || `Request failed with status ${res.status}`,
+      };
+    }
+
+    return data || { success: true };
+  } catch (err: any) {
+    if (err.name === 'AbortError') {
+      return { success: false, message: 'Request timed out. Please check your connection.' };
+    }
+    return { success: false, message: err.message || 'Network request failed' };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function checkBackendHealth(): Promise<HealthResponse> {
   try {
     const res = await fetch(`${API_BASE_URL}/health`, {
@@ -587,17 +645,38 @@ export async function toggleProductFeatured(
   }
 }
 
+export interface StoryFilterOptions {
+  type?: 'photo' | 'video';
+  mainCategory?: string;
+  category?: string;
+  subCategory?: string;
+}
+
 /**
  * Fetch all active success stories for storefront
  */
-export async function getSuccessStories(type?: 'photo' | 'video'): Promise<{
+export async function getSuccessStories(
+  filterOrType?: 'photo' | 'video' | StoryFilterOptions
+): Promise<{
   success: boolean;
   data: SuccessStory[];
   count?: number;
 }> {
   try {
-    const url = type
-      ? `${API_BASE_URL}/v1/stories?type=${type}`
+    const params = new URLSearchParams();
+    if (typeof filterOrType === 'string') {
+      params.set('type', filterOrType);
+    } else if (filterOrType) {
+      if (filterOrType.type) params.set('type', filterOrType.type);
+      const cat = filterOrType.mainCategory || filterOrType.category;
+      if (cat && cat !== 'all') params.set('mainCategory', cat);
+      if (filterOrType.subCategory && filterOrType.subCategory !== 'all') {
+        params.set('subCategory', filterOrType.subCategory);
+      }
+    }
+    const query = params.toString();
+    const url = query
+      ? `${API_BASE_URL}/v1/stories?${query}`
       : `${API_BASE_URL}/v1/stories`;
     const res = await fetch(url, {
       cache: 'no-store',
@@ -615,7 +694,9 @@ export async function getSuccessStories(type?: 'photo' | 'video'): Promise<{
 /**
  * Fetch all success stories for Admin Dashboard (includes stats & inactive)
  */
-export async function getAdminSuccessStories(type?: 'photo' | 'video'): Promise<{
+export async function getAdminSuccessStories(
+  filterOrType?: 'photo' | 'video' | StoryFilterOptions
+): Promise<{
   success: boolean;
   data: SuccessStory[];
   stats?: {
@@ -630,8 +711,20 @@ export async function getAdminSuccessStories(type?: 'photo' | 'video'): Promise<
 }> {
   try {
     const token = getAuthToken();
-    const url = type
-      ? `${API_BASE_URL}/v1/stories/admin/all?type=${type}`
+    const params = new URLSearchParams();
+    if (typeof filterOrType === 'string') {
+      params.set('type', filterOrType);
+    } else if (filterOrType) {
+      if (filterOrType.type) params.set('type', filterOrType.type);
+      const cat = filterOrType.mainCategory || filterOrType.category;
+      if (cat && cat !== 'all') params.set('mainCategory', cat);
+      if (filterOrType.subCategory && filterOrType.subCategory !== 'all') {
+        params.set('subCategory', filterOrType.subCategory);
+      }
+    }
+    const query = params.toString();
+    const url = query
+      ? `${API_BASE_URL}/v1/stories/admin/all?${query}`
       : `${API_BASE_URL}/v1/stories/admin/all`;
     const res = await fetch(url, {
       headers: {
@@ -1503,9 +1596,187 @@ export async function validateCoupon(body: {
     return { success: false, message: error.message || 'Validation request failed' };
   }
 }
+/**
+ * Request password reset verification OTP
+ */
+export async function forgotPassword(email: string): Promise<{
+  success: boolean;
+  message?: string;
+  devOtp?: string;
+}> {
+  return await apiRequest('/v1/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
 
+/**
+ * Reset password using verified 6-digit OTP
+ */
+export async function resetPassword(
+  email: string,
+  otp: string,
+  newPassword: string
+): Promise<{
+  success: boolean;
+  message?: string;
+  data?: {
+    user: any;
+    accessToken: string;
+  };
+}> {
+  return await apiRequest('/v1/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp, newPassword }),
+  });
+}
 
+/**
+ * Public: Subscribe to newsletter & WhatsApp wellness updates
+ */
+export async function subscribeToNewsletter(payload: {
+  name: string;
+  email: string;
+  phone: string;
+  source?: string;
+}): Promise<{
+  success: boolean;
+  message?: string;
+  couponCode?: string;
+  whatsappMessage?: string;
+  customerWhatsappUrl?: string;
+  directChatWithAdminUrl?: string;
+  data?: any;
+}> {
+  return await apiRequest('/v1/subscribers/subscribe', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
 
+/**
+ * Admin: Fetch all captured subscribers with pagination & search
+ */
+export async function getSubscribersList(params: {
+  search?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+} = {}): Promise<{
+  success: boolean;
+  data?: any[];
+  meta?: {
+    total: number;
+    page: number;
+    limit: number;
+    pages: number;
+    totalActive: number;
+    totalUnsubscribed: number;
+  };
+  message?: string;
+}> {
+  const query = new URLSearchParams();
+  if (params.search) query.set('search', params.search);
+  if (params.status) query.set('status', params.status);
+  if (params.page) query.set('page', String(params.page));
+  if (params.limit) query.set('limit', String(params.limit));
 
+  return await apiRequest(`/v1/subscribers?${query.toString()}`, {
+    method: 'GET',
+  });
+}
 
+/**
+ * Admin: Get newsletter auto-responder & company message settings
+ */
+export async function getNewsletterSettings(): Promise<{
+  success: boolean;
+  data?: any;
+  companyProfile?: {
+    adminEmail: string;
+    adminPhone: string;
+    whatsappNumber: string;
+  };
+  message?: string;
+}> {
+  return await apiRequest('/v1/subscribers/settings', {
+    method: 'GET',
+  });
+}
+
+/**
+ * Admin: Update newsletter message templates & company settings
+ */
+export async function updateNewsletterSettings(settings: any): Promise<{
+  success: boolean;
+  data?: any;
+  message?: string;
+}> {
+  return await apiRequest('/v1/subscribers/settings', {
+    method: 'PUT',
+    body: JSON.stringify(settings),
+  });
+}
+
+/**
+ * Admin: Delete a subscriber lead
+ */
+export async function deleteSubscriber(id: string): Promise<{
+  success: boolean;
+  message?: string;
+}> {
+  return await apiRequest(`/v1/subscribers/${id}`, {
+    method: 'DELETE',
+  });
+}
+
+/**
+ * Admin: Re-dispatch / refresh welcome message for a subscriber
+ */
+export async function resendSubscriberMessage(id: string): Promise<{
+  success: boolean;
+  message?: string;
+  whatsappUrl?: string;
+  whatsappMessage?: string;
+}> {
+  return await apiRequest(`/v1/subscribers/${id}/resend`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Admin: Helper to get CSV download URL with auth token
+ */
+export function getExportSubscribersUrl(): string {
+  const token = getAuthToken();
+  return `${API_BASE_URL}/v1/subscribers/export?token=${token}`;
+}
+
+/**
+ * Admin: Send a test email to verify SMTP configuration
+ */
+export async function testEmailSettings(toEmail: string, smtpConfig: any): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  return await apiRequest('/v1/subscribers/settings/test-email', {
+    method: 'POST',
+    body: JSON.stringify({ toEmail, smtpConfig }),
+  });
+}
+
+/**
+ * Admin: Send a test WhatsApp message to verify WhatsApp Gateway
+ */
+export async function testWhatsAppGateway(testPhone: string, message: string, gatewayConfig: any): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  return await apiRequest('/v1/subscribers/settings/test-whatsapp', {
+    method: 'POST',
+    body: JSON.stringify({ testPhone, message, gatewayConfig }),
+  });
+}
 

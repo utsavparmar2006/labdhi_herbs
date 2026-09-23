@@ -38,6 +38,7 @@ const OLD_STATUS_OPTIONS: { id: string; label: string; badgeColor: string }[] = 
   { id: 'pending', label: 'Pending for Approval (Order Received)', badgeColor: 'bg-amber-50 text-amber-700 border-amber-200' },
   { id: 'accepted', label: 'Accepted', badgeColor: 'bg-blue-50 text-blue-700 border-blue-200' },
   { id: 'dispatched', label: 'Dispatched', badgeColor: 'bg-purple-50 text-purple-700 border-purple-200' },
+  { id: 'in_transit', label: 'In Transit', badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
   { id: 'delivered', label: 'Delivered', badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
   { id: 'returned_by_customer', label: 'Return by Customer', badgeColor: 'bg-orange-50 text-orange-700 border-orange-200' },
   { id: 'cancelled_by_seller', label: 'Cancel by Seller', badgeColor: 'bg-red-50 text-red-700 border-red-200' },
@@ -172,6 +173,14 @@ export default function AdminOrdersClient() {
           <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
             <Truck className="w-3 h-3 text-purple-600" />
             <span>Dispatched</span>
+          </span>
+        );
+      case 'in_transit':
+      case 'transit':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+            <Truck className="w-3 h-3 text-indigo-600" />
+            <span>In Transit</span>
           </span>
         );
       case 'delivered':
@@ -525,6 +534,7 @@ export default function AdminOrdersClient() {
                             <option value="pending">Pending for Approval</option>
                             <option value="accepted">Accept</option>
                             <option value="dispatched">Dispatch</option>
+                            <option value="in_transit">In Transit</option>
                             <option value="delivered">Delivered</option>
                             <option value="returned_by_customer">Return by Customer</option>
                             <option value="cancelled_by_seller">Cancel by Seller</option>

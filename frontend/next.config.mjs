@@ -1,6 +1,48 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  compress: true, // Industry Standard: Gzip/Brotli compression for fast delivery
+
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '5000',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'labdhiherbs.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.cloudinary.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.amazonaws.com',
+        pathname: '/**',
+      },
+    ],
+  },
+
+  compiler: {
+    // Strip non-error console statements in production bundles
+    removeConsole:
+      process.env.NODE_ENV === 'production'
+        ? { exclude: ['error', 'warn'] }
+        : false,
+  },
+
   async redirects() {
     return [
       { source: '/Terms_condition', destination: '/terms', permanent: true },
@@ -15,6 +57,7 @@ const nextConfig = {
       { source: '/faq_management', destination: '/faq', permanent: true },
     ];
   },
+
   webpack: (config, { dev }) => {
     if (dev) {
       // Use in-memory cache in development on Windows to prevent PackFileCache ENOENT / file locking errors

@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SmoothScroll from '../../../components/SmoothScroll';
 import Header from '../../../components/Header';
 import ProductGallery from '../../../components/ProductGallery';
 import ProductTabs from '../../../components/ProductTabs';
+import ProductReviewsSection from '../../../components/ProductReviewsSection';
 import RelatedProducts from '../../../components/RelatedProducts';
 import QuickViewModal from '../../../components/QuickViewModal';
 import CartDrawer from '../../../components/CartDrawer';
@@ -88,6 +89,17 @@ export default function ProductClient({ productId }: ProductClientProps) {
     router.push('/checkout');
   };
 
+  const handleRatingUpdate = useCallback((newRating: number, newCount: number) => {
+    setProduct((prev) => {
+      if (prev.rating === newRating && prev.reviewsCount === newCount) return prev;
+      return {
+        ...prev,
+        rating: newRating,
+        reviewsCount: newCount,
+      };
+    });
+  }, []);
+
   return (
     <SmoothScroll>
       <div className="min-h-screen bg-[#F8F6F0] text-[#1A201C] selection:bg-[#1F3A2E] selection:text-[#EFE9DD] font-sans pb-20 md:pb-0">
@@ -100,7 +112,7 @@ export default function ProductClient({ productId }: ProductClientProps) {
           onOpenSearch={() => setIsSearchOpen(true)}
         />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 pb-12 space-y-10">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 sm:pt-36 md:pt-40 pb-12 space-y-10">
           
           {/* Breadcrumb Navigation */}
           <nav className="flex items-center gap-2 text-xs text-slate-500 font-medium">
@@ -123,7 +135,7 @@ export default function ProductClient({ productId }: ProductClientProps) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             
             {/* Left Column: Product Gallery (Sticky & Balanced) */}
-            <div className="lg:col-span-5 lg:sticky lg:top-24">
+            <div className="lg:col-span-5 lg:sticky lg:top-36">
               <ProductGallery
                 images={Array.from(
                   new Set(
@@ -143,26 +155,33 @@ export default function ProductClient({ productId }: ProductClientProps) {
             {/* Right Column: Product Info & Purchase Actions */}
             <div className="lg:col-span-7 space-y-5">
               
-              <div className="space-y-3">
-                {/* Category Pill */}
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-semibold uppercase tracking-wider">
-                  <Leaf className="w-3.5 h-3.5 text-[#B58A5A]" />
-                  <span>{product.category}</span>
-                </div>
+              <div className="space-y-2">
+                {/* Category Label */}
+                {product.category && (
+                  <span className="text-xs font-bold text-[#B58A5A] uppercase tracking-wider block">
+                    {product.category}
+                  </span>
+                )}
 
                 {/* Product Title */}
                 <h1 className="font-serif text-3xl sm:text-4xl font-bold text-[#1A201C] tracking-tight leading-tight">
                   {product.name}
                 </h1>
 
-                {/* Rating & Review Counter */}
-                <div className="flex items-center gap-3 text-xs">
-                  <div className="flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 text-amber-700 font-bold">
+                {/* Rating & Review Counter (Click to scroll to reviews) */}
+                <a
+                  href="#reviews-section"
+                  className="inline-flex items-center gap-3 text-xs group cursor-pointer"
+                  title="View customer reviews and ratings"
+                >
+                  <div className="flex items-center gap-1 bg-amber-50 group-hover:bg-amber-100 px-2.5 py-1 rounded-full border border-amber-200 text-amber-700 font-bold transition-colors">
                     <Star className="w-3.5 h-3.5 fill-current text-amber-500" />
                     <span>{product.rating}</span>
                   </div>
-                  <span className="text-slate-500 font-light">Based on {product.reviewsCount} customer reviews</span>
-                </div>
+                  <span className="text-slate-500 font-light group-hover:text-[#14261E] group-hover:underline transition-colors">
+                    Based on {product.reviewsCount} customer {product.reviewsCount === 1 ? 'review' : 'reviews'}
+                  </span>
+                </a>
               </div>
 
               {/* Price Block */}
@@ -262,6 +281,13 @@ export default function ProductClient({ productId }: ProductClientProps) {
             usage={product.usage}
             benefits={product.benefits}
             ingredients={product.ingredients}
+          />
+
+          {/* Customer Reviews & Ratings Engine */}
+          <ProductReviewsSection
+            productId={product.id}
+            productName={product.name}
+            onRatingUpdate={handleRatingUpdate}
           />
 
           {/* Related Formulations Showcase */}

@@ -149,27 +149,36 @@ const calculateReadTime = (content: string, excerpt: string): string => {
   return `${minutes} min read`;
 };
 
+let isBlogsSeeded = false;
+
 /**
  * Seed initial blogs if collection is empty, and ensure all initial 4 blogs exist
  */
 const ensureSeedBlogs = async () => {
-  const count = await Blog.countDocuments();
-  if (count === 0) {
-    await Blog.insertMany(INITIAL_BLOGS);
-    return;
-  }
-
-  // Ensure 4th article exists if older DB had only 3
-  const hasFourth = await Blog.findOne({ id: 'ayurvedic-dinacharya-daily-wellness' });
-  if (!hasFourth) {
-    const fourth = INITIAL_BLOGS.find((b) => b.id === 'ayurvedic-dinacharya-daily-wellness');
-    if (fourth) {
-      await Blog.create(fourth);
+  if (isBlogsSeeded) return;
+  try {
+    const count = await Blog.countDocuments();
+    if (count === 0) {
+      await Blog.insertMany(INITIAL_BLOGS);
+      isBlogsSeeded = true;
+      return;
     }
-  }
 
-  // Ensure showOnHome is populated for existing docs
-  await Blog.updateMany({ showOnHome: { $exists: false } }, { $set: { showOnHome: true } });
+    // Ensure 4th article exists if older DB had only 3
+    const hasFourth = await Blog.findOne({ id: 'ayurvedic-dinacharya-daily-wellness' });
+    if (!hasFourth) {
+      const fourth = INITIAL_BLOGS.find((b) => b.id === 'ayurvedic-dinacharya-daily-wellness');
+      if (fourth) {
+        await Blog.create(fourth);
+      }
+    }
+
+    // Ensure showOnHome is populated for existing docs
+    await Blog.updateMany({ showOnHome: { $exists: false } }, { $set: { showOnHome: true } });
+    isBlogsSeeded = true;
+  } catch (err) {
+    // If DB is temporarily busy, retry on next call
+  }
 };
 
 /**
@@ -202,11 +211,13 @@ export const getBlogs = async (req: Request, res: Response): Promise<void> => {
       ];
     }
 
-    const blogs = await Blog.find(filter).sort({
-      featured: -1,
-      order: 1,
-      createdAt: -1,
-    });
+    const blogs = await Blog.find(filter)
+      .sort({
+        featured: -1,
+        order: 1,
+        createdAt: -1,
+      })
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -234,7 +245,7 @@ export const getBlogById = async (req: Request, res: Response): Promise<void> =>
 
     const blog = await Blog.findOne({
       $or: [{ id }, { slug: id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }],
-    });
+    }).lean();
 
     if (!blog) {
       res.status(404).json({

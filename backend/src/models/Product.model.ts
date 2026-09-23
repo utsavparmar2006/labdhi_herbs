@@ -55,6 +55,12 @@ const ProductSchema: Schema = new Schema(
   { timestamps: true, id: false }
 );
 
+// Compound indexes for optimal catalog querying and sorting
+ProductSchema.index({ mainCategory: 1, subCategory: 1, inStock: 1 });
+ProductSchema.index({ categoryId: 1, inStock: 1 });
+ProductSchema.index({ featured: 1, inStock: 1 });
+ProductSchema.index({ createdAt: -1 });
+
 ProductSchema.pre('validate', function (next) {
   if (!this.id && this.name) {
     const raw = String(this.name);

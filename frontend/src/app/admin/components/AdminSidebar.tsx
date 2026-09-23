@@ -19,6 +19,8 @@ import {
   Sparkles,
   Award,
   Tag,
+  Star,
+  MailCheck,
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -34,10 +36,12 @@ const NAV_ITEMS = [
   { name: 'Users', href: '/admin/users', icon: Users },
   { name: 'Products', href: '/admin/products', icon: Package },
   { name: 'Categories', href: '/admin/categories', icon: FolderTree },
+  { name: 'Product Reviews', href: '/admin/reviews', icon: Star },
   { name: 'Discount Management', href: '/admin/discounts', icon: Tag },
   { name: 'Success Stories', href: '/admin/stories', icon: Award },
   { name: 'Orders', href: '/admin/orders', icon: ShoppingBag },
   { name: 'Blog / Journal', href: '/admin/blog', icon: BookOpen },
+  { name: 'Subscribers & Leads', href: '/admin/subscribers', icon: MailCheck },
   { name: 'Settings', href: '/admin/settings', icon: Settings },
 ];
 

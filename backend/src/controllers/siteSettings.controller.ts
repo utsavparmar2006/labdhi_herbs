@@ -239,6 +239,19 @@ export const updateGeneralSettings = async (req: Request, res: Response) => {
     if (reviewManagementEnabled !== undefined) updateData.reviewManagementEnabled = reviewManagementEnabled;
     if (blogManagementEnabled !== undefined) updateData.blogManagementEnabled = blogManagementEnabled;
 
+    // Two-way sync with profile fields for full consistency across all components
+    if (supportPhone) updateData['profile.adminPhone'] = supportPhone;
+    if (supportEmail) updateData['profile.adminEmail'] = supportEmail;
+    if (address) updateData['profile.address'] = address;
+    if (city) updateData['profile.city'] = city;
+    if (state) updateData['profile.state'] = state;
+    if (social) {
+      if (social.facebook !== undefined) updateData['profile.facebook'] = social.facebook;
+      if (social.instagram !== undefined) updateData['profile.instagram'] = social.instagram;
+      if (social.youtube !== undefined) updateData['profile.youtube'] = social.youtube;
+      if (social.twitter !== undefined) updateData['profile.twitter'] = social.twitter;
+    }
+
     const settings = await SiteSettings.findOneAndUpdate(
       {},
       { $set: updateData },

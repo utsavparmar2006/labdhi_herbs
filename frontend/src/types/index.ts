@@ -160,6 +160,8 @@ export interface SuccessStory {
   verified: boolean;
   status: 'active' | 'inactive';
   order: number;
+  mainCategory?: string;
+  subCategory?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -212,6 +214,7 @@ export type OrderStatusType =
   | 'pending'
   | 'accepted'
   | 'dispatched'
+  | 'in_transit'
   | 'delivered'
   | 'returned_by_customer'
   | 'cancelled_by_seller'

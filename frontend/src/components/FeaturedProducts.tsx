@@ -76,10 +76,6 @@ export default function FeaturedProducts({
       
       {/* Centered Header */}
       <div className="text-center max-w-3xl mx-auto space-y-3 border-b border-[#EFE9DD] pb-6">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-semibold uppercase tracking-wider">
-          <Leaf className="w-3.5 h-3.5 text-[#B58A5A]" />
-          <span>Featured Herbal Formulations</span>
-        </div>
         <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#1A201C] tracking-tight">
           Handcrafted Herbal Remedies
         </h2>

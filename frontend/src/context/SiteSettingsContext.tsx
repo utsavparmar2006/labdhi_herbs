@@ -243,24 +243,39 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
       const data = await res.json();
       if (data.success && data.data) {
         const d = data.data;
+        const activePhone = d.supportPhone || d.profile?.adminPhone || DEFAULT_PROFILE.adminPhone;
+        const activeEmail = d.supportEmail || d.profile?.adminEmail || DEFAULT_PROFILE.adminEmail;
+        const activeAddress = d.address || d.profile?.address || DEFAULT_PROFILE.address;
+        const activeCity = d.city || d.profile?.city || DEFAULT_PROFILE.city;
+        const activeState = d.state || d.profile?.state || DEFAULT_PROFILE.state;
+        const activeLogo = d.logoLight || d.logoDark || '';
+
         const mergedProfile: AdminProfileData = {
           ...DEFAULT_PROFILE,
           ...(d.profile || {}),
-          adminEmail: d.profile?.adminEmail || d.supportEmail || DEFAULT_PROFILE.adminEmail,
-          adminPhone: d.profile?.adminPhone || d.supportPhone || DEFAULT_PROFILE.adminPhone,
-          address: d.profile?.address || d.address || DEFAULT_PROFILE.address,
-          city: d.profile?.city || d.city || DEFAULT_PROFILE.city,
-          state: d.profile?.state || d.state || DEFAULT_PROFILE.state,
+          adminEmail: activeEmail,
+          adminPhone: activePhone,
+          address: activeAddress,
+          city: activeCity,
+          state: activeState,
           country: d.profile?.country || 'India',
-          facebook: d.profile?.facebook || d.social?.facebook || DEFAULT_PROFILE.facebook,
-          instagram: d.profile?.instagram || d.social?.instagram || DEFAULT_PROFILE.instagram,
-          youtube: d.profile?.youtube || d.social?.youtube || '',
-          twitter: d.profile?.twitter || d.social?.twitter || '',
+          facebook: d.social?.facebook || d.profile?.facebook || DEFAULT_PROFILE.facebook,
+          instagram: d.social?.instagram || d.profile?.instagram || DEFAULT_PROFILE.instagram,
+          youtube: d.social?.youtube || d.profile?.youtube || '',
+          twitter: d.social?.twitter || d.profile?.twitter || '',
         };
 
         setSettings({
           ...DEFAULT_SETTINGS,
           ...d,
+          supportPhone: activePhone,
+          supportEmail: activeEmail,
+          whatsappNumber: d.whatsappNumber || activePhone,
+          address: activeAddress,
+          city: activeCity,
+          state: activeState,
+          logoLight: activeLogo,
+          logoDark: activeLogo,
           aboutUs: d.aboutUs?.content ? d.aboutUs : DEFAULT_SETTINGS.aboutUs,
           termsAndConditions: d.termsAndConditions || DEFAULT_SETTINGS.termsAndConditions,
           privacyPolicy: d.privacyPolicy || DEFAULT_SETTINGS.privacyPolicy,

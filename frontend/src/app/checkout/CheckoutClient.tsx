@@ -14,6 +14,7 @@ import {
 } from '../../services/api';
 import { loadRazorpayScript } from '../../utils/loadRazorpay';
 import OriginalTransparentLogo from '../../components/OriginalTransparentLogo';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import {
   ShieldCheck,
   Truck,
@@ -78,6 +79,8 @@ const AVAILABLE_COUPONS = [
 export default function CheckoutClient() {
   const router = useRouter();
   const { items, totalAmount, clearCart } = useCart();
+  const { settings, profile } = useSiteSettings();
+  const supportPhone = settings.supportPhone || profile.adminPhone || '+91 93283 49328';
 
   // Form State
   const [formData, setFormData] = useState({
@@ -499,7 +502,7 @@ export default function CheckoutClient() {
             </div>
             <div className="flex items-center gap-1.5 text-slate-700">
               <Phone className="w-3.5 h-3.5 text-[#B58A5A]" />
-              <span>Support: +91 93283 49328</span>
+              <span>Support: {supportPhone}</span>
             </div>
           </div>
 

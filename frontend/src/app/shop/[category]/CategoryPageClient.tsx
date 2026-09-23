@@ -38,29 +38,24 @@ export default function CategoryPageClient({ mainCategory }: Props) {
           onOpenSearch={() => setIsSearchOpen(true)}
         />
 
-        {/* Category Hero Banner with safe top padding for fixed Header */}
-        <div
-          className="relative pt-36 pb-12 sm:pt-40 sm:pb-16 overflow-hidden"
-          style={{
-            backgroundImage: `url(${mainCategory.image})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-[#14261E]/95 via-[#14261E]/80 to-black/40" />
+        {/* Category Hero Banner (Clean Ayurvedic Deep Green Matching Policy Pages) */}
+        <section className="relative pt-32 pb-14 md:pt-40 md:pb-16 bg-[#14261E] text-white overflow-hidden">
+          {/* Background glow accent */}
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-8 flex flex-col justify-center gap-3.5">
             
             {/* Breadcrumb & Back button */}
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 href="/shop"
-                className="inline-flex items-center gap-2 text-emerald-200 text-xs font-semibold hover:text-[#D4A373] transition-colors w-fit bg-white/10 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-white/15 shadow-sm"
+                className="inline-flex items-center gap-2 text-emerald-200 text-xs font-semibold hover:text-[#D4A373] transition-colors w-fit bg-white/10 px-3.5 py-1.5 rounded-full border border-white/15 shadow-sm"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back to Main Categories</span>
               </Link>
 
-              <div className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-200/70 font-medium">
+              <div className="hidden sm:flex items-center gap-1.5 text-xs text-emerald-200/80 font-medium">
                 <Link href="/" className="hover:text-white transition-colors">Home</Link>
                 <span>/</span>
                 <Link href="/shop" className="hover:text-white transition-colors">Shop</Link>
@@ -70,28 +65,21 @@ export default function CategoryPageClient({ mainCategory }: Props) {
             </div>
 
             <div>
-              <p className="text-[#D4A373] text-xs font-bold uppercase tracking-widest mb-1.5">
-                Ayurvedic Collection
-              </p>
-              <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
+              <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
                 {mainCategory.name}
               </h1>
-              <p className="mt-2 text-sm sm:text-base text-emerald-100/85 font-light max-w-xl leading-relaxed">
+              <p className="mt-2 text-xs sm:text-base text-emerald-100/75 font-light max-w-xl leading-relaxed">
                 {mainCategory.description}
               </p>
             </div>
           </div>
-        </div>
+        </section>
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
 
           {/* Section Header */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-[#EFE9DD] pb-5">
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-bold uppercase tracking-wider mb-2">
-                <Layers className="w-3.5 h-3.5 text-[#B58A5A]" />
-                <span>Select Sub-Category</span>
-              </div>
               <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A201C]">
                 Explore {mainCategory.name} Formulations
               </h2>

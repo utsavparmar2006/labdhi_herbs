@@ -288,6 +288,8 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
         filter.orderStatus = { $in: ['accepted', 'confirmed', '1'] };
       } else if (s === 'dispatched' || s === '2' || s === 'shipped' || s === 'processing') {
         filter.orderStatus = { $in: ['dispatched', 'shipped', 'processing', '2'] };
+      } else if (s === 'in_transit' || s === 'transit') {
+        filter.orderStatus = { $in: ['in_transit', 'transit'] };
       } else if (s === 'returned_by_customer' || s === '3') {
         filter.orderStatus = { $in: ['returned_by_customer', '3'] };
       } else if (s === 'cancelled_by_seller' || s === '4' || s === 'cancelled') {

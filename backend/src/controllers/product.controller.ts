@@ -195,10 +195,18 @@ const INITIAL_PRODUCTS = [
   },
 ];
 
+let isInitialProductsChecked = false;
+
 const ensureInitialProducts = async () => {
-  const count = await Product.countDocuments();
-  if (count === 0) {
-    await Product.insertMany(INITIAL_PRODUCTS);
+  if (isInitialProductsChecked) return;
+  try {
+    const count = await Product.countDocuments();
+    if (count === 0) {
+      await Product.insertMany(INITIAL_PRODUCTS);
+    }
+    isInitialProductsChecked = true;
+  } catch (err) {
+    // If DB is temporarily busy, retry on next call
   }
 };
 
@@ -288,7 +296,7 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
     const skip = (pageNum - 1) * limitNum;
 
     const [products, totalCount] = await Promise.all([
-      Product.find(filter).sort(sortOption).skip(skip).limit(limitNum),
+      Product.find(filter).sort(sortOption).skip(skip).limit(limitNum).lean(),
       Product.countDocuments(filter),
     ]);
 
@@ -323,7 +331,7 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
 
     const product = await Product.findOne({
       $or: [{ id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }],
-    });
+    }).lean();
 
     if (!product) {
       res.status(404).json({

@@ -10,6 +10,8 @@ const INITIAL_STORIES = [
     title: "Priya Patel's Hair Care Transformation",
     formulation: 'Herbal Kesh Sanjivani Hair Oil',
     productId: 'ayurvedic-hair-growth-oil',
+    mainCategory: 'hair-care',
+    subCategory: 'hair-oils',
     duration: '6 Weeks Treatment',
     rating: 5,
     comment:
@@ -34,6 +36,8 @@ const INITIAL_STORIES = [
     title: 'Acne Scars & Deep Blemish Clearance',
     formulation: 'Beautiction Face Pack',
     productId: 'beautiction-face-pack',
+    mainCategory: 'skin-face-care',
+    subCategory: 'face-packs',
     duration: '4 Weeks Treatment',
     rating: 5,
     comment:
@@ -57,6 +61,8 @@ const INITIAL_STORIES = [
     title: 'Dry Skin Texture & Eczema Relief',
     formulation: 'Soft N Silky Skincare Ointment',
     productId: 'soft-n-silky-skincare-ointment',
+    mainCategory: 'skin-face-care',
+    subCategory: 'skin-ointments',
     duration: '3 Weeks Treatment',
     rating: 5,
     comment:
@@ -86,28 +92,58 @@ const generateSlug = (text: string): string => {
 /**
  * Seed initial stories if collection is empty, or migrate existing records
  */
+let isStoriesSeeded = false;
+
 const ensureSeedStories = async () => {
-  const count = await Story.countDocuments();
-  if (count === 0) {
-    await Story.insertMany(INITIAL_STORIES);
-  } else {
-    // Migration: ensure records have storyType set
-    await Story.updateMany(
-      { storyType: { $exists: false } },
-      [
-        {
-          $set: {
-            storyType: {
-              $cond: [
-                { $gt: [{ $strLenCP: { $ifNull: ['$videoUrl', ''] } }, 0] },
-                'video',
-                'photo',
-              ],
+  if (isStoriesSeeded) return;
+  try {
+    const count = await Story.countDocuments();
+    if (count === 0) {
+      await Story.insertMany(INITIAL_STORIES);
+    } else {
+      // Migration: ensure records have storyType set
+      await Story.updateMany(
+        { storyType: { $exists: false } },
+        [
+          {
+            $set: {
+              storyType: {
+                $cond: [
+                  { $gt: [{ $strLenCP: { $ifNull: ['$videoUrl', ''] } }, 0] },
+                  'video',
+                  'photo',
+                ],
+              },
             },
           },
-        },
-      ]
-    );
+        ]
+      );
+
+      // Seed default categories for existing initial records if missing
+      await Story.updateOne(
+        { id: 'priya-patel-hair-growth', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
+        { $set: { mainCategory: 'hair-care', subCategory: 'hair-oils' } }
+      );
+      await Story.updateOne(
+        { id: 'meera-kothari-acne-clearance', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
+        { $set: { mainCategory: 'skin-face-care', subCategory: 'face-packs' } }
+      );
+      await Story.updateOne(
+        { id: 'rajesh-shah-eczema-relief', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
+        { $set: { mainCategory: 'skin-face-care', subCategory: 'skin-ointments' } }
+      );
+      await Story.updateOne(
+        { id: 'aarav-mehta-scalp-vitality', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
+        { $set: { mainCategory: 'hair-care', subCategory: 'hair-oils' } }
+      );
+      await Story.updateOne(
+        { id: 'ananya-desai-acne-glow', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
+        { $set: { mainCategory: 'skin-face-care', subCategory: 'face-packs' } }
+      );
+    }
+    isStoriesSeeded = true;
+  } catch (err) {
+    // If DB is temporarily busy, retry on next call
   }
 };
 
@@ -120,17 +156,44 @@ export const getStories = async (_req: Request, res: Response): Promise<void> =>
   try {
     await ensureSeedStories();
 
-    const { type } = _req.query;
+    const { type, category, mainCategory, subCategory } = _req.query;
     const filter: any = { status: 'active' };
     if (type === 'photo' || type === 'video') {
       filter.storyType = type;
     }
 
-    const stories = await Story.find(filter).sort({
-      featured: -1,
-      order: 1,
-      createdAt: -1,
-    });
+    const catFilter = (mainCategory || category) as string | undefined;
+    if (catFilter && catFilter !== 'all') {
+      filter.$or = [
+        { mainCategory: catFilter },
+        { mainCategory: { $regex: new RegExp(`^${catFilter.replace(/-/g, '[-\\s]')}$`, 'i') } },
+      ];
+    }
+
+    if (subCategory && (subCategory as string) !== 'all') {
+      const subCatStr = subCategory as string;
+      const subRegex = new RegExp(`^${subCatStr.replace(/-/g, '[-\\s]')}$`, 'i');
+      if (filter.$or) {
+        filter.$and = [
+          { $or: filter.$or },
+          { $or: [{ subCategory: subCatStr }, { subCategory: { $regex: subRegex } }] },
+        ];
+        delete filter.$or;
+      } else {
+        filter.$or = [
+          { subCategory: subCatStr },
+          { subCategory: { $regex: subRegex } },
+        ];
+      }
+    }
+
+    const stories = await Story.find(filter)
+      .sort({
+        featured: -1,
+        order: 1,
+        createdAt: -1,
+      })
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -155,14 +218,39 @@ export const getAdminStories = async (_req: Request, res: Response): Promise<voi
   try {
     await ensureSeedStories();
 
-    const { type } = _req.query;
+    const { type, category, mainCategory, subCategory } = _req.query;
     const filter: any = {};
     if (type === 'photo' || type === 'video') {
       filter.storyType = type;
     }
 
+    const catFilter = (mainCategory || category) as string | undefined;
+    if (catFilter && catFilter !== 'all') {
+      filter.$or = [
+        { mainCategory: catFilter },
+        { mainCategory: { $regex: new RegExp(`^${catFilter.replace(/-/g, '[-\\s]')}$`, 'i') } },
+      ];
+    }
+
+    if (subCategory && (subCategory as string) !== 'all') {
+      const subCatStr = subCategory as string;
+      const subRegex = new RegExp(`^${subCatStr.replace(/-/g, '[-\\s]')}$`, 'i');
+      if (filter.$or) {
+        filter.$and = [
+          { $or: filter.$or },
+          { $or: [{ subCategory: subCatStr }, { subCategory: { $regex: subRegex } }] },
+        ];
+        delete filter.$or;
+      } else {
+        filter.$or = [
+          { subCategory: subCatStr },
+          { subCategory: { $regex: subRegex } },
+        ];
+      }
+    }
+
     const stories = await Story.find(filter).sort({ order: 1, createdAt: -1 });
-    const allStories = type ? await Story.find() : stories;
+    const allStories = type || catFilter || subCategory ? await Story.find() : stories;
 
     const stats = {
       totalStories: allStories.length,
@@ -203,6 +291,8 @@ export const createStory = async (req: Request, res: Response): Promise<void> =>
       title,
       formulation,
       productId,
+      mainCategory,
+      subCategory,
       duration,
       rating,
       comment,
@@ -261,6 +351,8 @@ export const createStory = async (req: Request, res: Response): Promise<void> =>
       title: title.trim(),
       formulation: formulation.trim(),
       productId: productId ? productId.trim() : '',
+      mainCategory: mainCategory ? mainCategory.trim() : '',
+      subCategory: subCategory ? subCategory.trim() : '',
       duration: duration ? duration.trim() : '4 Weeks Treatment',
       rating: rating ? Number(rating) : 5,
       comment: comment.trim(),

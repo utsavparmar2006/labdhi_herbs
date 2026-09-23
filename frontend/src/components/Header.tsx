@@ -112,12 +112,14 @@ export default function Header({
     messages: DEFAULT_ANNOUNCEMENTS,
   });
 
-  const displayPhone = profile.adminPhone || announcementBar.phone || '+91 93283 49328';
+  const displayPhone = settings.supportPhone || profile.adminPhone || announcementBar.phone || '+91 93283 49328';
   const cleanPhone = displayPhone.replace(/[^+\d]/g, '');
-  const displayEmail = profile.adminEmail || announcementBar.email || 'support@labdhiherbs.com';
-  const displayLocation = (profile.city && profile.state) 
-    ? `${profile.city}, ${profile.state}` 
-    : (announcementBar.locationText || 'Surat, Gujarat');
+  const displayEmail = settings.supportEmail || profile.adminEmail || announcementBar.email || 'support@labdhiherbs.com';
+  const displayLocation = (settings.city && settings.state)
+    ? `${settings.city}, ${settings.state}`
+    : (profile.city && profile.state) 
+      ? `${profile.city}, ${profile.state}` 
+      : (announcementBar.locationText || 'Surat, Gujarat');
 
   useEffect(() => {
     const checkAuth = () => {
@@ -228,10 +230,10 @@ export default function Header({
       {/* Dynamic Sticky Top Announcement Bar (Hero Line) */}
       {announcementBar.enabled && (
         <div
-          className={`w-full transition-all duration-300 flex items-center justify-between px-4 sm:px-8 border-b ${
+          className={`w-full transition-all duration-300 flex items-center justify-between px-4 sm:px-8 border-b bg-[#0E1E16] border-[#71846C]/40 ${
             isScrolled
-              ? 'bg-[#14261E]/95 backdrop-blur-md py-1.5 border-[#71846C]/30 text-white text-[11px]'
-              : 'bg-[#1F3A2E] py-2 border-[#71846C]/40 text-[#EFE9DD] text-xs'
+              ? 'py-1.5 text-white text-[11px]'
+              : 'py-2 text-[#EFE9DD] text-xs'
           }`}
         >
           {/* Left Info: Contact */}
@@ -286,30 +288,27 @@ export default function Header({
         </div>
       )}
 
-      {/* Main Glassmorphic Navigation Bar */}
+      {/* Main Luxury Ayurvedic Navigation Bar (Exact Compact Size from Scrolled View, 100% Seamless) */}
       <header
-        className={`w-full transition-all duration-300 ${
-          isScrolled
-            ? 'bg-[#F8F6F0]/95 backdrop-blur-xl shadow-md text-[#1A201C] py-2 sm:py-2.5 border-b border-[#EFE9DD]'
-            : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white py-2.5 sm:py-3.5'
-        }`}
+        className="w-full transition-all duration-300 relative bg-[#F8F6F0] text-[#1A201C] border-none shadow-none py-3.5 sm:py-4"
       >
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-2">
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4">
           
-          {/* Brand Logo - Original Client Logo with 100% Removed Background */}
+          {/* Brand Logo - Crisp, perfectly balanced */}
           <Link href="/" className="flex items-center group shrink-0">
-            {(isScrolled ? (darkLogo || lightLogo) : (lightLogo || darkLogo)) ? (
+            {(darkLogo || lightLogo) ? (
               <img
-                src={(isScrolled ? (darkLogo || lightLogo) : (lightLogo || darkLogo))!.startsWith('http') 
-                  ? (isScrolled ? (darkLogo || lightLogo) : (lightLogo || darkLogo))! 
-                  : `http://localhost:5000${isScrolled ? (darkLogo || lightLogo) : (lightLogo || darkLogo)}`}
+                src={(darkLogo || lightLogo)!.startsWith('http') 
+                  ? (darkLogo || lightLogo)! 
+                  : `http://localhost:5000${darkLogo || lightLogo}`}
                 alt="Labdhi Herbs Logo"
-                className="h-8 sm:h-10 md:h-12 w-auto object-contain transition-transform group-hover:scale-105"
+                className="h-9 sm:h-11 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             ) : (
               <OriginalTransparentLogo
-                className="h-8 sm:h-10 md:h-12 max-w-[130px] sm:max-w-[180px] md:max-w-none w-auto transition-transform group-hover:scale-105"
-                isDarkBackground={!isScrolled}
+                className="h-9 sm:h-11 md:h-12 max-w-[170px] sm:max-w-[200px] md:max-w-none w-auto transition-transform duration-300 group-hover:scale-105"
+                isDarkBackground={false}
               />
             )}
           </Link>
@@ -322,35 +321,23 @@ export default function Header({
                 <Link
                   key={item.name}
                   href={item.href}
-                  className={`relative py-2 transition-all duration-200 group flex flex-col items-center ${
+                  className={`relative py-1.5 text-sm transition-colors duration-200 group flex items-center select-none ${
                     active
-                      ? isScrolled
-                        ? 'text-[#1F3A2E] font-bold'
-                        : 'text-[#F4BA44] font-bold'
-                      : isScrolled
-                        ? 'text-[#1A201C]/75 hover:text-[#1F3A2E] font-medium'
-                        : 'text-white/80 hover:text-white font-medium'
+                      ? 'text-[#1F3A2E] font-bold'
+                      : 'text-[#1A201C]/80 hover:text-[#1F3A2E] font-semibold'
                   }`}
                 >
-                  <span className="flex items-center gap-1.5">
-                    <span>{item.name}</span>
-                  </span>
+                  <span>{item.name}</span>
 
-                  {/* Active Indicator Mark */}
+                  {/* Clean Bottom Underline Indicator */}
                   {active ? (
                     <motion.div
-                      layoutId="activeDesktopNavMark"
-                      className={`absolute -bottom-0.5 left-0 right-0 h-[2.5px] rounded-full ${
-                        isScrolled ? 'bg-[#1F3A2E]' : 'bg-[#F4BA44]'
-                      }`}
-                      transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+                      layoutId="activeDesktopNavUnderline"
+                      className="absolute -bottom-0.5 left-0 right-0 h-[2.5px] rounded-full bg-[#1F3A2E]"
+                      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
                     />
                   ) : (
-                    <span
-                      className={`absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] rounded-full transition-all duration-300 group-hover:w-full opacity-0 group-hover:opacity-70 ${
-                        isScrolled ? 'bg-[#1F3A2E]' : 'bg-[#F4BA44]'
-                      }`}
-                    />
+                    <span className="absolute -bottom-0.5 left-0 right-0 h-[2px] rounded-full bg-[#1F3A2E]/30 scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-center" />
                   )}
                 </Link>
               );
@@ -364,13 +351,9 @@ export default function Header({
             <button
               onClick={onOpenSearch}
               aria-label="Search"
-              className={`p-2 rounded-full transition-all ${
-                isScrolled
-                  ? 'hover:bg-[#EFE9DD] text-[#1A201C]'
-                  : 'hover:bg-white/10 text-white'
-              }`}
+              className="p-3 rounded-2xl bg-white/80 hover:bg-[#EFE9DD] text-[#1A201C] hover:text-[#1F3A2E] border border-[#EFE9DD] transition-all cursor-pointer shadow-xs"
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
 
             {/* Account Profile / Login Button */}
@@ -378,15 +361,11 @@ export default function Header({
               <div className="relative">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className={`hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold border transition-all cursor-pointer shadow-xs ${
-                    isScrolled
-                      ? 'border-[#1F3A2E] bg-[#1F3A2E] text-white hover:bg-[#15271F]'
-                      : 'border-white/40 bg-white/10 text-white hover:bg-white/20'
-                  }`}
+                  className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold border border-[#EFE9DD] bg-white/80 hover:bg-[#EFE9DD] text-[#1A201C] transition-all cursor-pointer shadow-xs"
                 >
-                  <User className="w-3.5 h-3.5 text-[#D4A373]" />
+                  <User className="w-4 h-4 text-[#1F3A2E]" />
                   <span>Hi, {user.name.split(' ')[0]}</span>
-                  <ChevronDown className="w-3 h-3 text-[#D4A373]" />
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
                 </button>
 
                 {/* User Dropdown Menu */}
@@ -406,7 +385,7 @@ export default function Header({
                         <Link
                           href="/profile"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-[#1F3A2E] hover:bg-[#F8F6F0] hover:text-[#D4A373] transition-colors flex items-center gap-2.5"
+                          className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-[#F8F6F0] hover:text-[#1F3A2E] transition-colors flex items-center gap-2.5"
                         >
                           <User className="w-3.5 h-3.5 text-[#71846C]" />
                           <span>My Profile</span>
@@ -415,7 +394,7 @@ export default function Header({
                         <Link
                           href="/orders"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-[#1F3A2E] hover:bg-[#F8F6F0] hover:text-[#D4A373] transition-colors flex items-center gap-2.5"
+                          className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-[#F8F6F0] hover:text-[#1F3A2E] transition-colors flex items-center gap-2.5"
                         >
                           <Package className="w-3.5 h-3.5 text-[#71846C]" />
                           <span>My Orders</span>
@@ -424,7 +403,7 @@ export default function Header({
                         <Link
                           href="/track-order"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="w-full text-left px-4 py-2 text-xs font-semibold text-[#1F3A2E] hover:bg-[#F8F6F0] hover:text-[#D4A373] transition-colors flex items-center gap-2.5"
+                          className="w-full text-left px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-[#F8F6F0] hover:text-[#1F3A2E] transition-colors flex items-center gap-2.5"
                         >
                           <Truck className="w-3.5 h-3.5 text-[#71846C]" />
                           <span>Track Order</span>
@@ -463,13 +442,9 @@ export default function Header({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className={`hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
-                  isScrolled
-                    ? 'border-[#1F3A2E] text-[#1F3A2E] hover:bg-[#1F3A2E] hover:text-white'
-                    : 'border-white/40 text-white hover:bg-white hover:text-[#1F3A2E]'
-                }`}
+                className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold border border-[#1F3A2E] text-[#1F3A2E] bg-white/80 hover:bg-[#1F3A2E] hover:text-white transition-all cursor-pointer shadow-xs"
               >
-                <User className="w-3.5 h-3.5" />
+                <User className="w-4 h-4 text-[#1F3A2E]" />
                 <span>Login</span>
               </button>
             )}
@@ -478,11 +453,11 @@ export default function Header({
             <button
               onClick={effectiveOnOpenCart}
               aria-label="Shopping Cart"
-              className="relative p-2 rounded-full bg-[#1F3A2E] text-[#EFE9DD] hover:bg-[#15271F] transition-all shadow-sm cursor-pointer"
+              className="relative p-3 rounded-2xl bg-[#1F3A2E] hover:bg-[#15271F] text-white transition-all shadow-md cursor-pointer group"
             >
-              <ShoppingBag className="w-5 h-5 text-[#D4A373]" />
+              <ShoppingBag className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#D4A373]" />
               {effectiveCartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#D4A373] text-[#1F3A2E] font-bold text-[10px] rounded-full flex items-center justify-center shadow-md animate-bounce">
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-[#D4A373] text-[#1F3A2E] font-extrabold text-[10px] rounded-full flex items-center justify-center shadow-md animate-pulse">
                   {effectiveCartCount}
                 </span>
               )}
@@ -491,10 +466,10 @@ export default function Header({
             {/* Mobile Hamburger Toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`md:hidden p-2 rounded-lg ${isScrolled ? 'text-[#1A201C]' : 'text-white'}`}
+              className="md:hidden p-2.5 rounded-2xl bg-[#F8F6F0] hover:bg-[#EFE9DD] border border-[#EFE9DD] text-[#1A201C] transition-colors cursor-pointer"
               aria-label="Toggle menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
 
           </div>

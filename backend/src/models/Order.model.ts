@@ -48,6 +48,7 @@ export type OrderStatusType =
   | 'pending'
   | 'accepted'
   | 'dispatched'
+  | 'in_transit'
   | 'delivered'
   | 'returned_by_customer'
   | 'cancelled_by_seller'
@@ -157,6 +158,7 @@ const OrderSchema = new Schema<IOrder>(
         'pending',
         'accepted',
         'dispatched',
+        'in_transit',
         'delivered',
         'returned_by_customer',
         'cancelled_by_seller',
@@ -174,5 +176,10 @@ const OrderSchema = new Schema<IOrder>(
   },
   { timestamps: true }
 );
+
+// Compound indexes for fast order filtering and admin dashboard aggregations
+OrderSchema.index({ orderStatus: 1, createdAt: -1 });
+OrderSchema.index({ 'customer.email': 1, createdAt: -1 });
+OrderSchema.index({ createdAt: -1 });
 
 export const Order = mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);

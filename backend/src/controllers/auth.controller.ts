@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { User, IUser } from '../models/User.model.js';
 import { AuthRequest } from '../middlewares/auth.middleware.js';
@@ -466,3 +467,200 @@ export const changeUserPassword = async (
     next(error);
   }
 };
+
+/**
+ * @desc    Request password reset OTP for forgotten password
+ * @route   POST /api/v1/auth/forgot-password
+ * @access  Public
+ */
+export const forgotPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      res.status(400).json({
+        success: false,
+        message: 'Please provide your registered email address',
+      });
+      return;
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        message: 'No registered account found with this email address. Please check your email or register.',
+      });
+      return;
+    }
+
+    // Generate a secure 6-digit numeric OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const hashedOtp = crypto.createHash('sha256').update(otp).digest('hex');
+
+    user.resetPasswordOtp = hashedOtp;
+    user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes validity
+    await user.save({ validateBeforeSave: false });
+
+    console.log(`[Auth] Password Reset OTP for ${normalizedEmail}: ${otp}`);
+
+    res.status(200).json({
+      success: true,
+      message: `A 6-digit verification code has been generated for ${normalizedEmail}.`,
+      // Return devOtp in non-production for zero-friction testing
+      ...(process.env.NODE_ENV !== 'production' && { devOtp: otp }),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Verify password reset OTP
+ * @route   POST /api/v1/auth/verify-reset-otp
+ * @access  Public
+ */
+export const verifyResetOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      res.status(400).json({
+        success: false,
+        message: 'Email and 6-digit verification code are required',
+      });
+      return;
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail }).select('+resetPasswordOtp +resetPasswordExpires');
+
+    if (!user || !user.resetPasswordOtp || !user.resetPasswordExpires) {
+      res.status(400).json({
+        success: false,
+        message: 'No active password reset request found for this email. Please request a new code.',
+      });
+      return;
+    }
+
+    if (user.resetPasswordExpires < new Date()) {
+      res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new code.',
+      });
+      return;
+    }
+
+    const hashedOtp = crypto.createHash('sha256').update(String(otp).trim()).digest('hex');
+    if (hashedOtp !== user.resetPasswordOtp) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid verification code. Please check and try again.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Verification code confirmed successfully.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Reset user password using verified OTP and log in
+ * @route   POST /api/v1/auth/reset-password
+ * @access  Public
+ */
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      res.status(400).json({
+        success: false,
+        message: 'Email, verification code, and new password are required',
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters long',
+      });
+      return;
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail }).select('+resetPasswordOtp +resetPasswordExpires');
+
+    if (!user || !user.resetPasswordOtp || !user.resetPasswordExpires) {
+      res.status(400).json({
+        success: false,
+        message: 'No active password reset request found. Please request a new code.',
+      });
+      return;
+    }
+
+    if (user.resetPasswordExpires < new Date()) {
+      res.status(400).json({
+        success: false,
+        message: 'Verification code has expired. Please request a new code.',
+      });
+      return;
+    }
+
+    const hashedOtp = crypto.createHash('sha256').update(String(otp).trim()).digest('hex');
+    if (hashedOtp !== user.resetPasswordOtp) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid 6-digit verification code. Please try again.',
+      });
+      return;
+    }
+
+    // Set new password (pre-save hook will hash it with bcrypt)
+    user.password = newPassword;
+    user.resetPasswordOtp = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    // Automatically generate authentication tokens for seamless auto-login
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(String(user._id));
+    res.cookie('accessToken', accessToken, getCookieOptions());
+    res.cookie('refreshToken', refreshToken, getCookieOptions());
+
+    res.status(200).json({
+      success: true,
+      message: 'Your password has been reset successfully! Welcome back.',
+      data: {
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          phone: user.phone,
+          role: user.role,
+        },
+        accessToken,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

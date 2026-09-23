@@ -65,12 +65,11 @@ export default function ShopClient() {
           {/* Category Section Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#EFE9DD] pb-5">
             <div className="flex items-center gap-3">
-              <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-bold uppercase tracking-wider">
-                <Layers className="w-3.5 h-3.5 text-[#B58A5A]" />
-                <span>Care Categories</span>
-              </div>
+              <h2 className="font-serif text-xl sm:text-2xl font-bold text-[#1A201C]">
+                Care Categories
+              </h2>
               <span className="text-xs text-slate-500 font-light hidden sm:inline">
-                Select a discipline to discover targeted botanical formulations
+                • Select a discipline to discover targeted botanical formulations
               </span>
             </div>
             <span className="text-xs font-semibold text-[#71846C] tracking-wide">

@@ -15,10 +15,6 @@ export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
       
       {/* Section Header */}
       <div className="text-center max-w-3xl mx-auto space-y-3">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-semibold uppercase tracking-wider">
-          <Leaf className="w-3.5 h-3.5 text-[#B58A5A]" />
-          <span>Curated Herbal Care</span>
-        </div>
         <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#1A201C] tracking-tight">
           Explore By Herbal Category
         </h2>

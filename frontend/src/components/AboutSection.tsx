@@ -11,11 +11,6 @@ export default function AboutSection() {
         
         {/* Mobile Section Header (Title First in Responsive / Mobile) */}
         <div className="lg:hidden space-y-3 mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-semibold uppercase tracking-wider">
-            <Leaf className="w-3.5 h-3.5 text-[#B58A5A]" />
-            <span>Our Herbal Legacy</span>
-          </div>
-
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-[#1A201C] tracking-tight leading-tight">
             Rooted in Pure Botanical Wisdom
           </h2>
@@ -65,11 +60,6 @@ export default function AboutSection() {
           >
             {/* Desktop-only Title Block (Hidden on mobile to avoid duplication) */}
             <div className="hidden lg:block space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-semibold uppercase tracking-wider">
-                <Leaf className="w-3.5 h-3.5 text-[#B58A5A]" />
-                <span>Our Herbal Legacy</span>
-              </div>
-
               <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#1A201C] tracking-tight leading-tight">
                 Rooted in Pure Botanical Wisdom
               </h2>

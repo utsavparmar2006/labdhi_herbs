@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -172,6 +171,11 @@ export default function ProductGallery({
               <img
                 src={galleryImages[selectedImageIndex] || galleryImages[0]}
                 alt={`${productName} - Photo ${selectedImageIndex + 1} of ${galleryImages.length}`}
+                loading="eager"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=800';
+                }}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
               />
 

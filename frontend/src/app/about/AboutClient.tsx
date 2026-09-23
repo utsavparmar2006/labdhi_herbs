@@ -5,7 +5,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 import SmoothScroll from '../../components/SmoothScroll';
 import Header from '../../components/Header';
-import BrandStorySection from '../../components/BrandStorySection';
 import BrandValuesGrid from '../../components/BrandValuesGrid';
 import HerbalProcess from '../../components/HerbalProcess';
 import QuickViewModal from '../../components/QuickViewModal';
@@ -15,6 +14,7 @@ import SearchModal from '../../components/SearchModal';
 import Footer from '../../components/Footer';
 import { Product } from '../../types';
 import { useCart } from '../../context/CartContext';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import {
   ChevronRight,
   Leaf,
@@ -31,9 +31,14 @@ import {
 
 export default function AboutClient() {
   const { cartCount, openCart, addToCart: handleAddToCart } = useCart();
+  const { settings, profile } = useSiteSettings();
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const displayPhone = settings.supportPhone || profile.adminPhone || '+91 93283 49328';
+  const displayEmail = settings.supportEmail || profile.adminEmail || 'support@labdhiherbs.com';
+  const displayAddress = settings.address || profile.address || '40, Jay Ambe Society, Makkai Pool Rd, Adajan, Surat, Gujarat 395009';
 
   return (
     <SmoothScroll>
@@ -47,20 +52,15 @@ export default function AboutClient() {
           onOpenSearch={() => setIsSearchOpen(true)}
         />
 
-        {/* 60vh About Hero */}
-        <section className="relative h-[60vh] min-h-[440px] max-h-[580px] w-full flex items-center justify-center overflow-hidden bg-[#14261E]">
-          <img
-            src="https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=1800"
-            alt="About Labdhi Herbs Banner"
-            className="absolute inset-0 w-full h-full object-cover opacity-30"
-          />
+        {/* About Hero Banner (Clean Ayurvedic Deep Green Matching Policy Pages) */}
+        <section className="relative pt-32 pb-14 md:pt-40 md:pb-20 bg-[#14261E] text-white overflow-hidden">
+          {/* Background glow accent */}
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="absolute inset-0 bg-gradient-to-t from-[#14261E] via-[#14261E]/60 to-transparent" />
-
-          <div className="max-w-4xl mx-auto px-4 text-center space-y-4 relative z-10 pt-16 flex flex-col items-center">
+          <div className="max-w-4xl mx-auto px-4 text-center space-y-4 relative z-10 flex flex-col items-center">
             
-            {/* Breadcrumb Navigation - Dedicated Top Row */}
-            <nav className="flex items-center gap-2 text-xs text-emerald-200/80 font-medium">
+            {/* Breadcrumb Navigation */}
+            <nav className="inline-flex items-center gap-2 text-xs text-emerald-200/80 font-medium">
               <Link href="/" className="hover:text-white transition-colors">
                 Home
               </Link>
@@ -72,7 +72,7 @@ export default function AboutClient() {
               Pure Herbal Wisdom Handcrafted in Surat
             </h1>
 
-            <p className="text-xs sm:text-base text-emerald-100/80 font-light max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xs sm:text-base text-emerald-100/75 font-light max-w-2xl mx-auto leading-relaxed">
               Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free hair, skin, and joint care formulations.
             </p>
 
@@ -82,21 +82,11 @@ export default function AboutClient() {
         {/* Main Content Layout */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
           
-          {/* Section 01: Brand Story & Surat Roots */}
-          <section className="space-y-3">
-            <BrandStorySection />
-          </section>
-
-          {/* Section 02: Our Philosophy Statement Block */}
-          {/* Section 02: Founding Mission & Transparency Promise (From Original Platform) */}
+          {/* Section 01: Founding Mission & Transparency Promise (From Original Platform) */}
           <section className="p-8 sm:p-14 rounded-3xl bg-[#14261E] text-[#EFE9DD] border border-[#71846C]/30 shadow-2xl relative overflow-hidden space-y-8">
             <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
             <div className="max-w-3xl space-y-3 relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#D4A373] text-[11px] font-bold uppercase tracking-wider">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Our Founding Mission</span>
-              </div>
               <h2 className="font-serif text-2xl sm:text-4xl font-bold text-white leading-snug">
                 Transparent, Commission-Free &amp; Reliable Ayurvedic Care
               </h2>
@@ -261,15 +251,15 @@ export default function AboutClient() {
                 <div className="space-y-2 pt-2 text-xs text-slate-700">
                   <p className="flex items-start gap-2.5">
                     <MapPin className="w-4 h-4 text-[#1F3A2E] shrink-0 mt-0.5" />
-                    <span><strong>Address:</strong> 40, Jay Ambe Society, Makkai Pool Rd, Adajan, Surat, Gujarat 395009</span>
+                    <span><strong>Address:</strong> {displayAddress}</span>
                   </p>
                   <p className="flex items-center gap-2.5">
                     <Phone className="w-4 h-4 text-[#1F3A2E] shrink-0" />
-                    <span><strong>Direct Helpline:</strong> +91 93283 49328 (Call / WhatsApp)</span>
+                    <span><strong>Direct Helpline:</strong> {displayPhone} (Call / WhatsApp)</span>
                   </p>
                   <p className="flex items-center gap-2.5">
                     <Mail className="w-4 h-4 text-[#1F3A2E] shrink-0" />
-                    <span><strong>Official Email:</strong> support@labdhiherbs.com</span>
+                    <span><strong>Official Email:</strong> {displayEmail}</span>
                   </p>
                 </div>
               </div>

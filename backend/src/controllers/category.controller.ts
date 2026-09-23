@@ -97,47 +97,56 @@ const INITIAL_CATEGORIES = [
 /**
  * Auto-seed categories if collection is empty, and ensure default sub-categories are populated
  */
+let isCategoriesInitialized = false;
+
 const ensureInitialCategories = async () => {
-  const count = await Category.countDocuments();
-  if (count === 0) {
-    await Category.insertMany(INITIAL_CATEGORIES);
-    return;
-  }
-
-  // Fix any existing category in database that lacks an 'id'
-  const allExisting = await Category.find();
-  for (const cat of allExisting) {
-    let modified = false;
-    if (!cat.id) {
-      cat.id = generateSlug(cat.slug || cat.name || String(cat._id));
-      modified = true;
+  if (isCategoriesInitialized) return;
+  try {
+    const count = await Category.countDocuments();
+    if (count === 0) {
+      await Category.insertMany(INITIAL_CATEGORIES);
+      isCategoriesInitialized = true;
+      return;
     }
-    if (modified) {
-      await cat.save();
-    }
-  }
 
-  // Ensure initial categories have their sub-categories populated if empty
-  for (const initCat of INITIAL_CATEGORIES) {
-    const existing = await Category.findOne({
-      $or: [{ id: initCat.id }, { slug: initCat.slug }, { name: initCat.name }],
-    });
-    if (existing) {
+    // Fix any existing category in database that lacks an 'id'
+    const allExisting = await Category.find();
+    for (const cat of allExisting) {
       let modified = false;
-      if (!existing.id) {
-        existing.id = initCat.id;
-        modified = true;
-      }
-      if (!existing.subCategories || existing.subCategories.length === 0) {
-        existing.subCategories = initCat.subCategories as any;
+      if (!cat.id) {
+        cat.id = generateSlug(cat.slug || cat.name || String(cat._id));
         modified = true;
       }
       if (modified) {
-        await existing.save();
+        await cat.save();
       }
-    } else {
-      await Category.create(initCat);
     }
+
+    // Ensure initial categories have their sub-categories populated if empty
+    for (const initCat of INITIAL_CATEGORIES) {
+      const existing = await Category.findOne({
+        $or: [{ id: initCat.id }, { slug: initCat.slug }, { name: initCat.name }],
+      });
+      if (existing) {
+        let modified = false;
+        if (!existing.id) {
+          existing.id = initCat.id;
+          modified = true;
+        }
+        if (!existing.subCategories || existing.subCategories.length === 0) {
+          existing.subCategories = initCat.subCategories as any;
+          modified = true;
+        }
+        if (modified) {
+          await existing.save();
+        }
+      } else {
+        await Category.create(initCat);
+      }
+    }
+    isCategoriesInitialized = true;
+  } catch (err) {
+    // If DB is temporarily busy, retry on next call
   }
 };
 
@@ -161,7 +170,7 @@ const generateSlug = (text: string): string => {
 export const getCategories = async (_req: Request, res: Response): Promise<void> => {
   try {
     await ensureInitialCategories();
-    const categories = await Category.find({ status: 'active' }).sort({ order: 1, createdAt: 1 });
+    const categories = await Category.find({ status: 'active' }).sort({ order: 1, createdAt: 1 }).lean();
 
     res.status(200).json({
       success: true,

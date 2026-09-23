@@ -31,10 +31,6 @@ export default function WhyChooseUs() {
   return (
     <section className="py-14 sm:py-20 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 sm:space-y-12">
       <div className="text-center max-w-3xl mx-auto space-y-2.5 sm:space-y-3 px-2">
-        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E] text-[10px] sm:text-xs font-semibold uppercase tracking-wider">
-          <Leaf className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#B58A5A]" />
-          <span>The Labdhi Difference</span>
-        </div>
         <h2 className="font-serif text-2xl sm:text-4xl md:text-5xl font-bold text-[#1A201C] tracking-tight">
           Why Choose Labdhi Herbs?
         </h2>

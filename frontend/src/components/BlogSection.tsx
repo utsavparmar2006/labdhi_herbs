@@ -42,10 +42,6 @@ export default function BlogSection() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4">
         <div className="space-y-3 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-semibold uppercase tracking-wider">
-            <BookOpen className="w-3.5 h-3.5 text-[#B58A5A]" />
-            <span>Wellness Journal</span>
-          </div>
           <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#1A201C] tracking-tight">
             Herbal Insights & Ayurvedic Wisdom
           </h2>

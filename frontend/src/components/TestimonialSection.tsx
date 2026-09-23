@@ -16,9 +16,6 @@ export default function TestimonialSection() {
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-[#D4A373] text-xs font-semibold uppercase tracking-wider border border-white/20">
-            <span>Customer Success Stories</span>
-          </div>
           <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight">
             Real Transformations & Genuine Feedback
           </h2>

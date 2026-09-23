@@ -20,6 +20,8 @@ export interface IStory extends Document {
   verified: boolean;
   status: 'active' | 'inactive';
   order: number;
+  mainCategory?: string;
+  subCategory?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +65,8 @@ const StorySchema: Schema = new Schema(
       default: 'active',
       index: true,
     },
+    mainCategory: { type: String, default: '', index: true, trim: true },
+    subCategory: { type: String, default: '', index: true, trim: true },
     order: { type: Number, default: 0, index: true },
   },
   { timestamps: true, id: false }

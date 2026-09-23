@@ -81,6 +81,27 @@ export interface ISiteSettings extends Document {
   metaTitle: string;
   metaDescription: string;
   metaKeywords: string;
+  // Newsletter & Lead Auto-responder Configuration
+  newsletterConfig?: {
+    adminNotificationEmail: string;
+    adminWhatsAppNumber: string;
+    defaultCouponCode: string;
+    welcomeEmailSubject: string;
+    welcomeEmailBody: string;
+    whatsappMessageTemplate: string;
+    smtpHost: string;
+    smtpPort: number;
+    smtpUser: string;
+    smtpPass: string;
+    smtpSenderName: string;
+    autoSendEmail: boolean;
+    autoSendWhatsApp: boolean;
+    notifyAdmin: boolean;
+    whatsappGatewayProvider?: string;
+    whatsappApiUrl?: string;
+    whatsappApiKey?: string;
+    whatsappInstanceId?: string;
+  };
   updatedAt: Date;
   createdAt: Date;
 }
@@ -255,6 +276,37 @@ const SiteSettingsSchema: Schema = new Schema(
     metaKeywords: {
       type: String,
       default: 'Ayurvedic herbs, herbal products, natural skincare, hair care, joint care, Surat, Gujarat',
+    },
+    newsletterConfig: {
+      adminNotificationEmail: { type: String, default: 'support@labdhiherbs.com' },
+      adminWhatsAppNumber: { type: String, default: '+919328349328' },
+      defaultCouponCode: { type: String, default: 'WELCOME10' },
+      welcomeEmailSubject: {
+        type: String,
+        default: '🌿 Welcome to Labdhi Herbs, {name}! Your 10% Discount Code: {couponCode}',
+      },
+      welcomeEmailBody: {
+        type: String,
+        default:
+          'Namaste {name} ji,\n\nWelcome to the Labdhi Herbs family! We are truly delighted to have you join our Ayurvedic wellness community.\n\nWe handcraft 100% natural, chemical-free herbal formulations for hair, skin, and joint care rooted in authentic Gujarati botanical wisdom.\n\n🎁 Here is your exclusive 10% OFF discount coupon for your first order:\nCoupon Code: {couponCode}\n\nUse this code at checkout to get an extra 10% discount on all formulations!\nShop botanical formulations: https://labdhiherbs.com/shop\n\nIf you need any guidance or have wellness questions, reply directly to this email or contact us at {adminPhone}.\n\nWarm regards,\nTeam Labdhi Herbs\nSurat, Gujarat',
+      },
+      whatsappMessageTemplate: {
+        type: String,
+        default:
+          '🌿 *Namaste {name} ji!*\n\nWelcome to the *Labdhi Herbs* family! We are truly delighted to have you with us.\n\n🎁 As a welcome gift, here is your exclusive *10% OFF* discount coupon for your first order:\n👉 Voucher Code: *{couponCode}*\n\n✨ Handcrafted 100% natural Ayurvedic care direct from Surat, Gujarat.\n🛍️ Shop now: https://labdhiherbs.com/shop\n\nIf you need any guidance selecting the right formulation for your hair, skin, or joints, feel free to reply right here!\n\n_— Team Labdhi Herbs_',
+      },
+      smtpHost: { type: String, default: '' },
+      smtpPort: { type: Number, default: 587 },
+      smtpUser: { type: String, default: '' },
+      smtpPass: { type: String, default: '' },
+      smtpSenderName: { type: String, default: 'Labdhi Herbs' },
+      autoSendEmail: { type: Boolean, default: true },
+      autoSendWhatsApp: { type: Boolean, default: true },
+      notifyAdmin: { type: Boolean, default: true },
+      whatsappGatewayProvider: { type: String, default: 'none' },
+      whatsappApiUrl: { type: String, default: '' },
+      whatsappApiKey: { type: String, default: '' },
+      whatsappInstanceId: { type: String, default: '' },
     },
   },
   {

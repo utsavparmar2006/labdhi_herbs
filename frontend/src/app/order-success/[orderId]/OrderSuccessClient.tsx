@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getOrderById } from '../../../services/api';
 import { Order } from '../../../types';
 import OriginalTransparentLogo from '../../../components/OriginalTransparentLogo';
+import { useSiteSettings } from '../../../context/SiteSettingsContext';
 import {
   CheckCircle2,
   Package,
@@ -29,6 +30,7 @@ interface OrderSuccessClientProps {
 }
 
 export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps) {
+  const { settings, profile } = useSiteSettings();
   const [order, setOrder] = useState<Order | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -355,7 +357,7 @@ export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps)
 
           <div className="flex items-center gap-2 text-xs text-slate-500">
             <HelpCircle className="w-4 h-4 text-[#B58A5A]" />
-            <span>Need help with this order? Call +91 93283 49328</span>
+            <span>Need help with this order? Call {settings.supportPhone || profile.adminPhone || '+91 93283 49328'}</span>
           </div>
         </div>
 

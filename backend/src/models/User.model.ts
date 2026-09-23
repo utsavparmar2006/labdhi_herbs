@@ -16,6 +16,8 @@ export interface IUser extends Document {
   isOnline: boolean;
   lastLoginAt?: Date;
   refreshToken?: string;
+  resetPasswordOtp?: string;
+  resetPasswordExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   isPasswordCorrect(password: string): Promise<boolean>;
@@ -94,6 +96,14 @@ const userSchema = new Schema<IUser>(
     },
     refreshToken: {
       type: String,
+      select: false,
+    },
+    resetPasswordOtp: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
       select: false,
     },
   },

@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -12,6 +11,7 @@ import QuickViewModal from '../../components/QuickViewModal';
 import CartDrawer from '../../components/CartDrawer';
 import AuthModal from '../../components/AuthModal';
 import SearchModal from '../../components/SearchModal';
+import NewsletterSubscribeModal from '../../components/NewsletterSubscribeModal';
 import Footer from '../../components/Footer';
 import { BLOG_POSTS } from '../../services/mockData';
 import { getBlogPosts } from '../../services/api';
@@ -30,6 +30,16 @@ export default function BlogClient() {
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSubscribeModalOpen, setIsSubscribeModalOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('labdhi_subscribed');
+      if (saved && JSON.parse(saved)?.subscribed) {
+        setIsSubscribed(true);
+      }
+    } catch (e) {}
+  }, []);
 
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
@@ -77,10 +87,7 @@ export default function BlogClient() {
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newsletterEmail) return;
-    setIsSubscribed(true);
-    setTimeout(() => setIsSubscribed(false), 4000);
-    setNewsletterEmail('');
+    setIsSubscribeModalOpen(true);
   };
 
   return (
@@ -95,29 +102,32 @@ export default function BlogClient() {
           onOpenSearch={() => setIsSearchOpen(true)}
         />
 
-        {/* Calm Editorial Hero Banner */}
-        <section className="pt-32 pb-16 bg-[#F8F6F0] border-b border-[#EFE9DD]">
-          <div className="max-w-4xl mx-auto px-4 text-center space-y-4 flex flex-col items-center">
+        {/* Editorial Hero Banner (Clean Ayurvedic Deep Green Matching Policy Pages) */}
+        <section className="relative pt-32 pb-14 md:pt-40 md:pb-20 bg-[#14261E] text-white overflow-hidden">
+          {/* Background glow accent */}
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="max-w-4xl mx-auto px-4 text-center space-y-4 relative z-10 flex flex-col items-center">
             
-            {/* Breadcrumb Navigation - Dedicated Top Row */}
-            <nav className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-              <Link href="/" className="hover:text-[#1F3A2E] transition-colors">
+            {/* Breadcrumb Navigation */}
+            <nav className="inline-flex items-center gap-2 text-xs text-emerald-200/80 font-medium">
+              <Link href="/" className="hover:text-white transition-colors">
                 Home
               </Link>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              <span className="text-[#1F3A2E] font-semibold">The Herbal Journal</span>
+              <ChevronRight className="w-3.5 h-3.5 text-emerald-400/80" />
+              <span className="text-[#D4A373] font-semibold">The Herbal Journal</span>
             </nav>
 
-            <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[#1A201C] tracking-tight leading-tight">
+            <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
               Knowledge for a Healthier, More Natural Life
             </h1>
 
-            <p className="text-xs sm:text-base text-slate-600 font-light max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xs sm:text-base text-emerald-100/75 font-light max-w-2xl mx-auto leading-relaxed">
               Explore time-tested Ayurvedic routines, botanical ingredient guides, and hair, skin, and joint care wisdom from our Surat herbalists.
             </p>
 
             {/* Search Input Bar */}
-            <div className="max-w-md mx-auto relative pt-2">
+            <div className="max-w-md w-full mx-auto relative pt-2">
               <div className="relative flex items-center">
                 <Search className="w-4 h-4 text-slate-400 absolute left-4 pointer-events-none" />
                 <input
@@ -125,7 +135,7 @@ export default function BlogClient() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search articles by topic or herb..."
-                  className="w-full pl-11 pr-10 py-3 rounded-2xl bg-white border border-[#EFE9DD] text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 shadow-xs"
+                  className="w-full pl-11 pr-10 py-3 rounded-2xl bg-white text-slate-800 placeholder-slate-400 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#D4A373] shadow-md"
                 />
                 {searchQuery && (
                   <button
@@ -211,32 +221,43 @@ export default function BlogClient() {
               </p>
             </div>
 
-            <form onSubmit={handleNewsletterSubmit} className="max-w-md flex flex-col sm:flex-row gap-3 relative z-10">
-              <input
-                type="email"
-                required
-                value={newsletterEmail}
-                onChange={(e) => setNewsletterEmail(e.target.value)}
-                placeholder="Enter your email address..."
-                className="flex-1 px-4 py-3.5 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-emerald-200/50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#D4A373]"
-              />
-              <button
-                type="submit"
-                className="px-6 py-3.5 rounded-2xl bg-[#D4A373] hover:bg-[#b88c5d] text-[#1F3A2E] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all"
-              >
-                <span>Subscribe</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
-
-            {isSubscribed && (
-              <p className="text-xs text-emerald-300 font-bold animate-pulse">
-                ✓ Thank you for subscribing to The Herbal Journal!
-              </p>
+            {isSubscribed ? (
+              <div className="flex items-center gap-3 bg-white/10 px-5 py-3.5 rounded-2xl border border-white/20 relative z-10">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <p className="text-xs text-white font-medium">
+                  You are already subscribed to The Herbal Journal! Thank you for being with us.
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleNewsletterSubmit} className="max-w-md flex flex-col sm:flex-row gap-3 relative z-10">
+                <input
+                  type="email"
+                  required
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="Enter your email address..."
+                  className="flex-1 px-4 py-3.5 rounded-2xl bg-white/10 border border-white/20 text-white placeholder-emerald-200/50 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#D4A373]"
+                />
+                <button
+                  type="submit"
+                  className="px-6 py-3.5 rounded-2xl bg-[#D4A373] hover:bg-[#b88c5d] text-[#1F3A2E] font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all"
+                >
+                  <span>Subscribe</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
             )}
           </section>
 
         </main>
+
+        {/* Lead Capture Modal */}
+        <NewsletterSubscribeModal
+          isOpen={isSubscribeModalOpen}
+          onClose={() => setIsSubscribeModalOpen(false)}
+          initialEmail={newsletterEmail}
+          source="blog_journal"
+        />
 
         {/* Article Full Reader Modal */}
         <AnimatePresence>
