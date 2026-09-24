@@ -30,8 +30,11 @@ import {
   ShieldCheck,
   ArrowRight,
   Sparkles,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getDirectTrackingUrl } from '../../utils/courierTracking';
 
 export default function TrackOrderClient() {
   const router = useRouter();
@@ -47,6 +50,7 @@ export default function TrackOrderClient() {
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [copiedTrackId, setCopiedTrackId] = useState(false);
 
   const handleTrack = async (idToSearch?: string) => {
     const targetId = (idToSearch !== undefined ? idToSearch : orderInput).trim();
@@ -320,24 +324,113 @@ export default function TrackOrderClient() {
 
                 {/* Tracking & Courier Details Box */}
                 {(orderData.deliveryName || orderData.deliveryTrackId) && (
-                  <div className="p-4 rounded-2xl bg-[#F8F6F0] border border-[#EFE9DD] flex flex-wrap items-center justify-between gap-4 text-left max-w-lg mx-auto">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                        Delivery Partner
-                      </span>
-                      <span className="font-bold text-slate-800 text-xs">
-                        {orderData.deliveryName || 'Standard Express'}
-                      </span>
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-[#F8F6F0] to-[#EFE9DD]/50 border border-[#EFE9DD] text-left max-w-lg mx-auto shadow-xs space-y-3.5">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-[#EFE9DD]">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-9 h-9 rounded-xl bg-[#1F3A2E] text-white flex items-center justify-center shadow-xs">
+                          <Truck className="w-5 h-5 text-[#D4A373]" />
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                            Delivery Partner
+                          </span>
+                          <span className="font-bold text-[#1F3A2E] text-sm">
+                            {orderData.deliveryName || 'Postal / Express Service'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Courier Badge */}
+                      {(() => {
+                        const nameLower = (orderData.deliveryName || '').toLowerCase();
+                        const isPost = nameLower.includes('post') || nameLower.includes('dak');
+                        const isLocal =
+                          nameLower.includes('tirupati') ||
+                          nameLower.includes('maruti') ||
+                          nameLower.includes('anjani');
+                        return isPost ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                            📮 India Post / Speed Post
+                          </span>
+                        ) : isLocal ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            📦 Local Courier
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
+                            🚚 Express Courier
+                          </span>
+                        );
+                      })()}
                     </div>
 
                     {orderData.deliveryTrackId && (
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                          Tracking / AWB No.
-                        </span>
-                        <span className="font-mono font-bold text-slate-900 text-xs">
-                          {orderData.deliveryTrackId}
-                        </span>
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2 bg-white px-3.5 py-2.5 rounded-xl border border-[#EFE9DD]">
+                          <div>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                              Consignment / Tracking Number
+                            </span>
+                            <span className="font-mono font-bold text-[#1F3A2E] text-sm tracking-wide">
+                              {orderData.deliveryTrackId}
+                            </span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (orderData.deliveryTrackId) {
+                                navigator.clipboard.writeText(orderData.deliveryTrackId);
+                                setCopiedTrackId(true);
+                                setTimeout(() => setCopiedTrackId(false), 2000);
+                              }
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg border border-[#EFE9DD] bg-[#F8F6F0] hover:bg-[#EFE9DD] text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                          >
+                            {copiedTrackId ? (
+                              <>
+                                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                                <span className="text-emerald-700 font-bold">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Live Direct Tracking Button */}
+                        {getDirectTrackingUrl(orderData.deliveryName, orderData.deliveryTrackId) && (
+                          <a
+                            href={getDirectTrackingUrl(orderData.deliveryName, orderData.deliveryTrackId)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full py-2.5 px-4 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
+                          >
+                            <span>Track Live on Official Courier Portal</span>
+                            <ExternalLink className="w-3.5 h-3.5 text-[#D4A373]" />
+                          </a>
+                        )}
+
+                        {/* Informative Note for India Post or Local Couriers */}
+                        {(() => {
+                          const nameLower = (orderData.deliveryName || '').toLowerCase();
+                          const isPost = nameLower.includes('post') || nameLower.includes('dak');
+                          if (isPost) {
+                            return (
+                              <p className="text-[11px] text-slate-500 leading-snug">
+                                ℹ️ <strong>India Post Note:</strong> Consignment status is updated on the Bharatiya Dak system after counter scanning. Click the button above to check live dispatch details on indiapost.gov.in.
+                              </p>
+                            );
+                          }
+                          return (
+                            <p className="text-[11px] text-slate-500 leading-snug">
+                              ℹ️ Real-time updates for shipments handled by {orderData.deliveryName || 'local courier'} are available on their official portal above.
+                            </p>
+                          );
+                        })()}
                       </div>
                     )}
                   </div>

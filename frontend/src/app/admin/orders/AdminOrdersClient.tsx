@@ -29,8 +29,17 @@ import {
   Calendar,
   AlertCircle,
   FileText,
+  ExternalLink,
+  Copy,
+  Check,
+  Share2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  COURIER_PROVIDERS,
+  getDirectTrackingUrl,
+  buildDispatchWhatsAppUrl,
+} from '../../../utils/courierTracking';
 
 // Order Status definitions aligned with older website (0 to 5 + Delivered)
 const OLD_STATUS_OPTIONS: { id: string; label: string; badgeColor: string }[] = [
@@ -109,7 +118,18 @@ export default function AdminOrdersClient() {
   const handleOpenOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setEditStatus(order.orderStatus || 'pending');
-    setEditDeliveryName(order.deliveryName || '');
+    
+    // Smart courier default: Online paid -> Local Courier, COD/Standard -> India Post
+    const isOnline =
+      order.payment?.method === 'online' ||
+      order.payment?.status === 'completed';
+
+    if (order.deliveryName && order.deliveryName.trim()) {
+      setEditDeliveryName(order.deliveryName);
+    } else {
+      setEditDeliveryName(isOnline ? 'Shree Tirupati Courier' : 'India Post / Speed Post');
+    }
+
     setEditDeliveryTrackId(order.deliveryTrackId || '');
     setEditPaymentStatus(order.payment?.status || 'pending');
   };
@@ -542,33 +562,184 @@ export default function AdminOrdersClient() {
                           </select>
                         </div>
 
-                        {/* Delivery By */}
+                        {/* Smart Payment & Dispatch Recommendation */}
+                        {(() => {
+                          const isOnline =
+                            selectedOrder.payment?.method === 'online' ||
+                            selectedOrder.payment?.status === 'completed';
+                          return isOnline ? (
+                            <div className="p-2.5 rounded-xl bg-blue-50/80 border border-blue-200 text-blue-900 text-xs">
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className="font-bold flex items-center gap-1">
+                                  <span>💳</span> Online Paid (Prepaid)
+                                </span>
+                                <span className="text-[10px] bg-blue-200/70 text-blue-800 px-1.5 py-0.5 rounded font-bold uppercase">
+                                  Local Courier Best
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-blue-700 leading-snug">
+                                Online orders should be dispatched via <strong>Local Courier</strong> (Tirupati, Maruti, DTDC) for fast delivery.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200 text-amber-900 text-xs">
+                              <div className="flex items-center justify-between gap-1 mb-1">
+                                <span className="font-bold flex items-center gap-1">
+                                  <span>📮</span> Cash on Delivery (COD)
+                                </span>
+                                <span className="text-[10px] bg-amber-200/70 text-amber-800 px-1.5 py-0.5 rounded font-bold uppercase">
+                                  India Post Best
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-amber-800 leading-snug">
+                                Regular/COD orders are best dispatched via <strong>India Post / Speed Post</strong> (Bharatiya Dak).
+                              </p>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Delivery Partner Preset Dropdown */}
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold text-slate-700 block">
-                            Delivery By:
+                          <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                            <span>Delivery Partner:</span>
+                            <span className="text-[10px] font-medium text-slate-400">Postal / Local Courier</span>
                           </label>
+                          <select
+                            value={
+                              COURIER_PROVIDERS.some(
+                                (p) => p.name.toLowerCase() === editDeliveryName.trim().toLowerCase()
+                              )
+                                ? COURIER_PROVIDERS.find(
+                                    (p) => p.name.toLowerCase() === editDeliveryName.trim().toLowerCase()
+                                  )?.id
+                                : editDeliveryName
+                                ? 'other'
+                                : ''
+                            }
+                            onChange={(e) => {
+                              const selected = COURIER_PROVIDERS.find((p) => p.id === e.target.value);
+                              if (selected) {
+                                if (selected.id === 'other') {
+                                  setEditDeliveryName('');
+                                } else {
+                                  setEditDeliveryName(selected.name);
+                                }
+                              } else {
+                                setEditDeliveryName('');
+                              }
+                            }}
+                            className="w-full px-3 py-2 rounded-xl border border-[#EFE9DD] text-xs font-semibold bg-[#F8F6F0] text-[#1F3A2E] focus:ring-2 focus:ring-[#1F3A2E]"
+                          >
+                            <option value="">-- Choose Courier Partner --</option>
+                            <optgroup label="📮 Postal (Best for COD / Standard)">
+                              <option value="india_post">India Post / Speed Post (Bharatiya Dak)</option>
+                            </optgroup>
+                            <optgroup label="📦 Local Couriers (Best for Online Paid)">
+                              <option value="tirupati">Shree Tirupati Courier (Local Gujarat)</option>
+                              <option value="maruti">Shree Maruti Courier (Local Gujarat)</option>
+                              <option value="anjani">Anjani Courier (Western India)</option>
+                            </optgroup>
+                            <optgroup label="🚚 Express Partners">
+                              <option value="dtdc">DTDC Express</option>
+                              <option value="delhivery">Delhivery Express</option>
+                              <option value="bluedart">Blue Dart Express</option>
+                            </optgroup>
+                            <optgroup label="🏷️ Custom Partner">
+                              <option value="other">Other / Custom Courier Name</option>
+                            </optgroup>
+                          </select>
+
+                          {/* Editable Courier Name */}
                           <input
                             type="text"
                             value={editDeliveryName}
                             onChange={(e) => setEditDeliveryName(e.target.value)}
-                            placeholder="e.g. DTDC / Delhivery / Tirupati / Speed Post"
-                            className="w-full px-3 py-2 rounded-xl border border-[#EFE9DD] text-xs bg-white focus:ring-2 focus:ring-[#1F3A2E]"
+                            placeholder="Courier Name (e.g. India Post / Shree Tirupati / DTDC)"
+                            className="w-full mt-1 px-3 py-1.5 rounded-xl border border-[#EFE9DD] text-xs bg-white focus:ring-2 focus:ring-[#1F3A2E]"
                           />
                         </div>
 
-                        {/* Tracking Id */}
+                        {/* Tracking Id / Consignment Number */}
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold text-slate-700 block">
-                            Tracking Id:
-                          </label>
-                          <input
-                            type="text"
-                            value={editDeliveryTrackId}
-                            onChange={(e) => setEditDeliveryTrackId(e.target.value)}
-                            placeholder="e.g. AWB12345678"
-                            className="w-full px-3 py-2 rounded-xl border border-[#EFE9DD] text-xs font-mono bg-white focus:ring-2 focus:ring-[#1F3A2E]"
-                          />
+                          {(() => {
+                            const matchedProvider = COURIER_PROVIDERS.find(
+                              (p) =>
+                                p.name.toLowerCase() === editDeliveryName.trim().toLowerCase() ||
+                                (editDeliveryName && p.name.toLowerCase().includes(editDeliveryName.trim().toLowerCase()))
+                            );
+                            const placeholder = matchedProvider
+                              ? matchedProvider.placeholder
+                              : 'e.g. Consignment / AWB Number';
+
+                            return (
+                              <>
+                                <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                                  <span>Tracking / Consignment ID:</span>
+                                  {matchedProvider && (
+                                    <span className="text-[10px] text-emerald-700 font-semibold">
+                                      {matchedProvider.badge}
+                                    </span>
+                                  )}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editDeliveryTrackId}
+                                  onChange={(e) => setEditDeliveryTrackId(e.target.value)}
+                                  placeholder={placeholder}
+                                  className="w-full px-3 py-2 rounded-xl border border-[#EFE9DD] text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-[#1F3A2E]"
+                                />
+                              </>
+                            );
+                          })()}
                         </div>
+
+                        {/* Direct Tracking Portal Link & WhatsApp Dispatch Action */}
+                        {editDeliveryTrackId.trim() && (
+                          <div className="space-y-2 pt-1">
+                            {/* Live portal verification link */}
+                            {getDirectTrackingUrl(editDeliveryName, editDeliveryTrackId) && (
+                              <a
+                                href={getDirectTrackingUrl(editDeliveryName, editDeliveryTrackId)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-full py-2 px-3 rounded-xl border border-[#1F3A2E]/20 bg-[#1F3A2E]/5 hover:bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                              >
+                                <ExternalLink className="w-3.5 h-3.5 text-[#B58A5A]" />
+                                <span>Verify on {editDeliveryName || 'Courier'} Portal ↗</span>
+                              </a>
+                            )}
+
+                            {/* 1-Click WhatsApp Alert to Customer */}
+                            {(() => {
+                              const customerPhone =
+                                selectedOrder.customer?.phone || selectedOrder.shippingAddress?.phone;
+                              if (!customerPhone) return null;
+
+                              const waLink = buildDispatchWhatsAppUrl({
+                                phone: customerPhone,
+                                customerName:
+                                  selectedOrder.customer?.fullName ||
+                                  selectedOrder.shippingAddress?.fullName ||
+                                  'Valued Customer',
+                                orderId: selectedOrder.orderId,
+                                deliveryName: editDeliveryName || 'Postal / Courier',
+                                deliveryTrackId: editDeliveryTrackId.trim(),
+                              });
+
+                              return (
+                                <a
+                                  href={waLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
+                                >
+                                  <Send className="w-3.5 h-3.5" />
+                                  <span>Send WhatsApp Dispatch Alert 📲</span>
+                                </a>
+                              );
+                            })()}
+                          </div>
+                        )}
 
                         {/* Save Button */}
                         <div className="pt-2">

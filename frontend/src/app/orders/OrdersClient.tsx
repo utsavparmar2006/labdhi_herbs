@@ -577,7 +577,7 @@ export default function OrdersClient() {
                             ) : (
                               <div className="flex items-center gap-1.5 text-[10px]">
                                 <Truck className="w-3.5 h-3.5 text-[#D4A373]" />
-                                <span>Shipped via Bluedart / Delhivery Express</span>
+                                <span>Dispatched via India Post / Local Courier Partner</span>
                               </div>
                             )}
                           </div>
