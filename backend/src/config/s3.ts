@@ -95,8 +95,9 @@ export async function uploadToS3(params: {
   // Resolve public accessible URL
   let publicUrl = '';
   if (config.customDomain) {
-    const domain = config.customDomain.replace(/\/$/, '');
-    publicUrl = `${domain}/${key}`;
+    const domain = config.customDomain.trim().replace(/\/$/, '');
+    const cleanDomain = domain.startsWith('http://') || domain.startsWith('https://') ? domain : `https://${domain}`;
+    publicUrl = `${cleanDomain}/${key}`;
   } else {
     publicUrl = `https://${config.bucketName}.s3.${config.region}.amazonaws.com/${key}`;
   }
@@ -166,8 +167,9 @@ export async function listS3Files(prefix: string = 'uploads/'): Promise<
 
         let url = '';
         if (config.customDomain) {
-          const domain = config.customDomain.replace(/\/$/, '');
-          url = `${domain}/${key}`;
+          const domain = config.customDomain.trim().replace(/\/$/, '');
+          const cleanDomain = domain.startsWith('http://') || domain.startsWith('https://') ? domain : `https://${domain}`;
+          url = `${cleanDomain}/${key}`;
         } else {
           url = `https://${config.bucketName}.s3.${config.region}.amazonaws.com/${key}`;
         }
