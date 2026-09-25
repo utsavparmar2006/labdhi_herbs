@@ -144,6 +144,15 @@ export const loginUser = async (
       return;
     }
 
+    // If logging in via Admin portal, enforce admin role strictly
+    if (req.body.adminOnly && user.role !== 'admin') {
+      res.status(403).json({
+        success: false,
+        message: 'Access Denied: This account does not have administrator privileges.',
+      });
+      return;
+    }
+
     user.lastLoginAt = new Date();
     user.isOnline = true;
     await user.save();

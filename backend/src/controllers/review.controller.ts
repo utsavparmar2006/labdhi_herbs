@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
 import { Review, IReview } from '../models/Review.model.js';
 import { Product } from '../models/Product.model.js';
+import { isS3Configured, uploadToS3 } from '../config/s3.js';
 
 /**
  * @desc Get all approved reviews for a specific product with filters, pagination and breakdown statistics
@@ -184,6 +187,23 @@ export const createReview = async (req: Request, res: Response): Promise<void> =
       const protocol = req.protocol;
       const host = req.get('host') || 'localhost:5000';
       for (const file of req.files) {
+        if (isS3Configured()) {
+          try {
+            const s3Result = await uploadToS3({
+              filePath: file.path,
+              filename: path.basename(file.filename),
+              mimetype: file.mimetype,
+              folder: 'uploads/reviews',
+            });
+            uploadedImages.push(s3Result.url);
+            try {
+              if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+            } catch (e) {}
+            continue;
+          } catch (s3Err) {
+            console.error('Failed to upload review image to S3:', s3Err);
+          }
+        }
         uploadedImages.push(`${protocol}://${host}/uploads/${file.filename}`);
       }
     }

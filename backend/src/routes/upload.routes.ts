@@ -3,10 +3,11 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
+import { isS3Configured, uploadToS3, listS3Files } from '../config/s3.js';
 
 const router = Router();
 
-// Ensure upload directory exists
+// Ensure local upload directory exists as local fallback / temp buffer
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -54,7 +55,7 @@ const fileFilter = (
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB limit for high-res images
   fileFilter,
 });
 
@@ -84,7 +85,7 @@ const uploadVideo = multer({
 });
 
 /**
- * @desc Upload single image from folder / file picker
+ * @desc Upload single image from folder / file picker to AWS S3 (or local fallback)
  * @route POST /api/v1/upload/image
  * @access Private (Admin only)
  */
@@ -93,7 +94,7 @@ router.post(
   verifyJWT,
   verifyAdmin,
   upload.single('file'),
-  (req: Request, res: Response): void => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       if (!req.file) {
         res.status(400).json({
@@ -103,10 +104,40 @@ router.post(
         return;
       }
 
-      // Base server URL (e.g. http://localhost:5000)
-      const protocol = req.protocol;
-      const host = req.get('host') || 'localhost:5000';
-      const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+      let fileUrl = '';
+      let storageProvider: 's3' | 'local' = 'local';
+
+      // 1. Try uploading to AWS S3 if credentials are configured
+      if (isS3Configured()) {
+        try {
+          const s3Result = await uploadToS3({
+            filePath: req.file.path,
+            filename: req.file.filename,
+            mimetype: req.file.mimetype,
+            folder: 'uploads',
+          });
+          fileUrl = s3Result.url;
+          storageProvider = 's3';
+
+          // Clean up local temp file after successful S3 upload
+          try {
+            if (fs.existsSync(req.file.path)) {
+              fs.unlinkSync(req.file.path);
+            }
+          } catch (unlinkErr) {
+            // Non-blocking
+          }
+        } catch (s3Error: any) {
+          console.error('AWS S3 upload error, falling back to local file:', s3Error.message);
+        }
+      }
+
+      // 2. Fallback to local server storage if S3 was not used or failed
+      if (!fileUrl) {
+        const protocol = req.protocol;
+        const host = req.get('host') || 'localhost:5000';
+        fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+      }
 
       res.status(200).json({
         success: true,
@@ -116,6 +147,7 @@ router.post(
         originalName: req.file.originalname,
         size: req.file.size,
         mimetype: req.file.mimetype,
+        storage: storageProvider,
       });
     } catch (error: any) {
       res.status(500).json({
@@ -128,7 +160,7 @@ router.post(
 );
 
 /**
- * @desc Upload video file from folder / file picker (for Hero Banner)
+ * @desc Upload video file to AWS S3 (or local fallback)
  * @route POST /api/v1/upload/video
  * @access Private (Admin only)
  */
@@ -137,7 +169,7 @@ router.post(
   verifyJWT,
   verifyAdmin,
   uploadVideo.single('file'),
-  (req: Request, res: Response): void => {
+  async (req: Request, res: Response): Promise<void> => {
     try {
       if (!req.file) {
         res.status(400).json({
@@ -147,9 +179,39 @@ router.post(
         return;
       }
 
-      const protocol = req.protocol;
-      const host = req.get('host') || 'localhost:5000';
-      const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+      let fileUrl = '';
+      let storageProvider: 's3' | 'local' = 'local';
+
+      // 1. Try uploading to AWS S3 if credentials are configured
+      if (isS3Configured()) {
+        try {
+          const s3Result = await uploadToS3({
+            filePath: req.file.path,
+            filename: req.file.filename,
+            mimetype: req.file.mimetype,
+            folder: 'uploads/videos',
+          });
+          fileUrl = s3Result.url;
+          storageProvider = 's3';
+
+          try {
+            if (fs.existsSync(req.file.path)) {
+              fs.unlinkSync(req.file.path);
+            }
+          } catch (unlinkErr) {
+            // Non-blocking
+          }
+        } catch (s3Error: any) {
+          console.error('AWS S3 video upload error, falling back to local file:', s3Error.message);
+        }
+      }
+
+      // 2. Fallback to local server storage
+      if (!fileUrl) {
+        const protocol = req.protocol;
+        const host = req.get('host') || 'localhost:5000';
+        fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+      }
 
       res.status(200).json({
         success: true,
@@ -159,6 +221,7 @@ router.post(
         originalName: req.file.originalname,
         size: req.file.size,
         mimetype: req.file.mimetype,
+        storage: storageProvider,
       });
     } catch (error: any) {
       res.status(500).json({
@@ -171,14 +234,33 @@ router.post(
 );
 
 /**
- * @desc Get Media Library files from upload folder
+ * @desc Get Media Library files from AWS S3 or upload folder
  * @route GET /api/v1/upload/media-library
  * @access Public / Admin
  */
-router.get('/media-library', (_req: Request, res: Response): void => {
+router.get('/media-library', async (_req: Request, res: Response): Promise<void> => {
   try {
+    // 1. If S3 is configured, fetch media library directly from S3
+    if (isS3Configured()) {
+      try {
+        const s3Files = await listS3Files('uploads/');
+        if (s3Files.length > 0) {
+          res.status(200).json({
+            success: true,
+            files: s3Files,
+            totalCount: s3Files.length,
+            storage: 's3',
+          });
+          return;
+        }
+      } catch (s3Err) {
+        console.error('Failed to list files from S3, falling back to local files:', s3Err);
+      }
+    }
+
+    // 2. Fallback to local files
     if (!fs.existsSync(UPLOAD_DIR)) {
-      res.status(200).json({ success: true, files: [] });
+      res.status(200).json({ success: true, files: [], storage: 'local' });
       return;
     }
 
@@ -214,7 +296,7 @@ router.get('/media-library', (_req: Request, res: Response): void => {
         return {
           filename,
           url: `${protocol}://${host}/uploads/${filename}`,
-          type: isVideo ? 'video' : 'image',
+          type: isVideo ? ('video' as const) : ('image' as const),
           size: stats.size,
           createdAt: stats.birthtime,
           updatedAt: stats.mtime,
@@ -226,11 +308,12 @@ router.get('/media-library', (_req: Request, res: Response): void => {
       success: true,
       files,
       totalCount: files.length,
+      storage: 'local',
     });
   } catch (error: any) {
     res.status(500).json({
       success: false,
-      message: 'Failed to read media library folder',
+      message: 'Failed to read media library',
       error: error.message,
     });
   }

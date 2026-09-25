@@ -561,7 +561,7 @@ export default function OrdersClient() {
                                     <span>{order.deliveryName || 'Courier Partner'}</span>
                                   </div>
                                   <Link
-                                    href={`/track-order?orderId=${order.orderId}`}
+                                    href={`/track-order?${order.deliveryTrackId ? `trackingId=${encodeURIComponent(order.deliveryTrackId)}` : `orderId=${encodeURIComponent(order.orderId)}`}`}
                                     className="text-[10px] font-bold text-[#1F3A2E] hover:underline flex items-center gap-0.5"
                                   >
                                     <span>Track</span>
@@ -635,7 +635,7 @@ export default function OrdersClient() {
 
                         {/* Track Order Live */}
                         <Link
-                          href={`/track-order?orderId=${order.orderId}`}
+                          href={`/track-order?${order.deliveryTrackId ? `trackingId=${encodeURIComponent(order.deliveryTrackId)}` : `orderId=${encodeURIComponent(order.orderId)}`}`}
                           className="px-4 py-2 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
                         >
                           <Truck className="w-3.5 h-3.5 text-[#D4A373]" />

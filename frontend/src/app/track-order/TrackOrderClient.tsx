@@ -40,9 +40,17 @@ export default function TrackOrderClient() {
   const router = useRouter();
   const { cartCount, openCart } = useCart();
   const searchParams = useSearchParams();
-  const initialOrderId = searchParams.get('product_id') || searchParams.get('order_id') || searchParams.get('id') || '';
+  const initialTrackingQuery =
+    searchParams.get('trackingId') ||
+    searchParams.get('tracking_id') ||
+    searchParams.get('track_id') ||
+    searchParams.get('orderId') ||
+    searchParams.get('order_id') ||
+    searchParams.get('id') ||
+    searchParams.get('product_id') ||
+    '';
 
-  const [orderInput, setOrderInput] = useState(initialOrderId);
+  const [orderInput, setOrderInput] = useState(initialTrackingQuery);
   const [orderData, setOrderData] = useState<Order | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -55,7 +63,7 @@ export default function TrackOrderClient() {
   const handleTrack = async (idToSearch?: string) => {
     const targetId = (idToSearch !== undefined ? idToSearch : orderInput).trim();
     if (!targetId) {
-      setErrorMessage('Please enter an Order ID to track.');
+      setErrorMessage('Please enter an Order ID or Tracking Number to track.');
       return;
     }
 
@@ -69,7 +77,7 @@ export default function TrackOrderClient() {
         setOrderData(res.data);
       } else {
         setErrorMessage(
-          res.message || `No active order found with ID "${targetId}". Please check your order confirmation details.`
+          res.message || `No active order found with ID or Tracking No "${targetId}". Please check your order confirmation details.`
         );
       }
     } catch (err: any) {
@@ -80,10 +88,11 @@ export default function TrackOrderClient() {
   };
 
   useEffect(() => {
-    if (initialOrderId) {
-      handleTrack(initialOrderId);
+    if (initialTrackingQuery) {
+      setOrderInput(initialTrackingQuery);
+      handleTrack(initialTrackingQuery);
     }
-  }, [initialOrderId]);
+  }, [initialTrackingQuery]);
 
   const getStatusText = (status?: string) => {
     switch (status) {
@@ -212,7 +221,7 @@ export default function TrackOrderClient() {
           </h1>
 
           <p className="text-xs sm:text-base text-emerald-100/75 font-light max-w-xl mx-auto leading-relaxed">
-            Enter your Order ID (found in your order confirmation SMS or email) to check live status, tracking information, and download your official invoice.
+            Enter your <strong>Order ID</strong> or <strong>Courier Tracking / AWB Number</strong> to check live dispatch status, delivery partner details, and download your official invoice.
           </p>
 
           {/* Search Box */}
@@ -230,7 +239,7 @@ export default function TrackOrderClient() {
                   type="text"
                   value={orderInput}
                   onChange={(e) => setOrderInput(e.target.value)}
-                  placeholder="e.g. 1317 or LH-2026-94821"
+                  placeholder="Enter Order ID or Courier Tracking / AWB No."
                   className="w-full pl-10 pr-3 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-mono"
                   required
                 />

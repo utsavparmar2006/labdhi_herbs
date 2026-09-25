@@ -41,7 +41,7 @@ export default function AdminLoginClient() {
       const res = await fetch(`${API_BASE_URL}/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, adminOnly: true }),
       });
 
       const data = await res.json();
@@ -50,7 +50,16 @@ export default function AdminLoginClient() {
         throw new Error(data.message || 'Invalid admin email or password.');
       }
 
-      // Store Auth Tokens & User Profile
+      // STRICT ADMIN ROLE CHECK: Only users with 'admin' role are permitted
+      if (data.data?.user?.role !== 'admin') {
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('user');
+        }
+        throw new Error('Access Denied: This account does not have administrator privileges.');
+      }
+
+      // Store Auth Tokens & User Profile for admin
       if (typeof window !== 'undefined') {
         if (data.data?.accessToken) {
           localStorage.setItem('accessToken', data.data.accessToken);

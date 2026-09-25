@@ -1079,11 +1079,14 @@ export async function createOrder(orderPayload: {
   notes?: string;
 }): Promise<{ success: boolean; message: string; data?: Order }> {
   try {
+    const token = getAuthToken();
     const res = await fetch(`${API_BASE_URL}/v1/orders`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
+      credentials: 'include',
       body: JSON.stringify(orderPayload),
     });
 

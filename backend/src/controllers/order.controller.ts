@@ -20,10 +20,18 @@ const generateOrderNumber = (): string => {
 /**
  * @desc Create a new Customer Order
  * @route POST /api/v1/orders
- * @access Public (Supports guest & registered checkout)
+ * @access Private (Requires customer authentication)
  */
-export const createOrder = async (req: Request, res: Response): Promise<void> => {
+export const createOrder = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const userId = req.user?._id || (req as any).user?._id;
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Please sign in or register to place your order.',
+      });
+      return;
+    }
     const {
       customer,
       shippingAddress,
@@ -135,8 +143,6 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       paidAt: undefined,
     };
 
-    const userId = (req as any).user?._id || req.body.userId;
-
     const newOrder = await Order.create({
       orderId,
       ...(userId ? { user: userId } : {}),
@@ -172,6 +178,25 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
       orderStatus: 'pending',
       notes: (notes || '').trim(),
     });
+
+    // Auto-sync customer phone & address to user profile
+    if (req.user) {
+      let shouldSaveUser = false;
+      if (!req.user.phone && customer.phone) {
+        req.user.phone = customer.phone.trim();
+        shouldSaveUser = true;
+      }
+      if (!req.user.address && shippingAddress.address) {
+        req.user.address = shippingAddress.address.trim();
+        req.user.city = shippingAddress.city.trim();
+        req.user.state = shippingAddress.state.trim();
+        req.user.pincode = shippingAddress.pincode.trim();
+        shouldSaveUser = true;
+      }
+      if (shouldSaveUser) {
+        await req.user.save().catch(() => {});
+      }
+    }
 
     // Handle Razorpay Order Generation for Online Payment
     let razorpayData = null;
@@ -455,6 +480,8 @@ export const trackOrderByNumber = async (req: Request, res: Response): Promise<v
       $or: [
         { orderId: cleanId },
         { orderId: new RegExp(`^${cleanId}$`, 'i') },
+        { deliveryTrackId: cleanId },
+        { deliveryTrackId: new RegExp(`^${cleanId}$`, 'i') },
         { _id: cleanId.match(/^[0-9a-fA-F]{24}$/) ? cleanId : null },
       ],
     });

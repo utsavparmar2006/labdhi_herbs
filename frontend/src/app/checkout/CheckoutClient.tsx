@@ -14,6 +14,7 @@ import {
 } from '../../services/api';
 import { loadRazorpayScript } from '../../utils/loadRazorpay';
 import OriginalTransparentLogo from '../../components/OriginalTransparentLogo';
+import AuthModal from '../../components/AuthModal';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import {
   ShieldCheck,
@@ -34,6 +35,8 @@ import {
   AlertCircle,
   X,
   ChevronRight,
+  UserCheck,
+  LogIn,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -95,11 +98,54 @@ export default function CheckoutClient() {
     notes: '',
   });
 
+  // Auth & Customer Account State (Real e-commerce mandatory login)
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
   const [onlineType, setOnlineType] = useState<'upi' | 'card' | 'netbanking'>('upi');
 
   // Dynamic Coupons State
   const [availableCoupons, setAvailableCoupons] = useState<Array<{ code: string; desc: string; type: string; value: number; min: number }>>(AVAILABLE_COUPONS);
+
+  // Sync user profile & auto-populate shipping info
+  useEffect(() => {
+    const syncUser = () => {
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('accessToken');
+        const userStr = localStorage.getItem('user');
+
+        if (token && userStr) {
+          try {
+            const user = JSON.parse(userStr);
+            setCurrentUser(user);
+            setFormData((prev) => ({
+              ...prev,
+              fullName: user.name || prev.fullName,
+              email: user.email || prev.email,
+              phone: user.phone || prev.phone,
+              address: user.address || prev.address,
+              city: user.city || prev.city || 'Surat',
+              state: user.state || prev.state || 'Gujarat',
+              pincode: user.pincode || prev.pincode,
+            }));
+          } catch (e) {
+            setCurrentUser(null);
+          }
+        } else {
+          setCurrentUser(null);
+        }
+        setAuthChecked(true);
+      }
+    };
+
+    syncUser();
+    window.addEventListener('authChange', syncUser);
+    return () => {
+      window.removeEventListener('authChange', syncUser);
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -228,6 +274,14 @@ export default function CheckoutClient() {
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+
+    // Real-world e-commerce requirement: User MUST be logged in
+    const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    if (!token || !currentUser) {
+      setErrorMessage('Please sign in or create an account to complete your order.');
+      setIsAuthOpen(true);
+      return;
+    }
 
     // Validations
     if (!formData.fullName.trim()) {
@@ -549,6 +603,67 @@ export default function CheckoutClient() {
             
             {/* Left Column: Multi-Step Delivery & Payment Form */}
             <div className="lg:col-span-7 space-y-6">
+
+              {/* Real-World E-Commerce: Account Authentication Status Banner */}
+              {currentUser ? (
+                <div className="p-4 rounded-3xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3 text-xs shadow-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs uppercase">
+                      {currentUser.name ? currentUser.name.charAt(0) : 'U'}
+                    </div>
+                    <div>
+                      <span className="font-bold text-emerald-950 flex items-center gap-1.5 text-sm">
+                        <span>{currentUser.name}</span>
+                        <span className="text-[10px] bg-emerald-200/80 text-emerald-800 px-2 py-0.5 rounded-full font-bold uppercase">
+                          Verified Account
+                        </span>
+                      </span>
+                      <span className="text-[11px] text-emerald-700 block">
+                        {currentUser.email} {currentUser.phone ? `• ${currentUser.phone}` : ''} • Order will be linked to your account
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem('accessToken');
+                      localStorage.removeItem('user');
+                      window.dispatchEvent(new Event('authChange'));
+                      setIsAuthOpen(true);
+                    }}
+                    className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 underline cursor-pointer shrink-0"
+                  >
+                    Change Account
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4.5 rounded-3xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-amber-950 text-sm flex items-center gap-1.5">
+                        <span>Sign In to Complete Your Order</span>
+                        <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold uppercase">
+                          Required
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-amber-800 leading-snug mt-0.5">
+                        Sign in or register in 10 seconds to link this order to your account, track live delivery, and download invoices.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthOpen(true)}
+                    className="px-4 py-2.5 rounded-2xl bg-[#1F3A2E] hover:bg-[#15271F] text-white font-bold text-xs shrink-0 shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <LogIn className="w-3.5 h-3.5 text-[#D4A373]" />
+                    <span>Sign In / Register</span>
+                  </button>
+                </div>
+              )}
               
               {/* Step 1: Customer Contact & Delivery Address */}
               <div className="bg-white rounded-3xl border border-[#EFE9DD] p-6 sm:p-8 shadow-xs space-y-6">
@@ -1102,6 +1217,9 @@ export default function CheckoutClient() {
       <footer className="border-t border-[#EFE9DD] bg-white py-6 mt-12 text-center text-xs text-slate-400">
         © {new Date().getFullYear()} Labdhi Herbs. All rights reserved. Handcrafted in Surat, Gujarat.
       </footer>
+
+      {/* Account Login / Registration Modal for Checkout */}
+      <AuthModal isOpen={isAuthOpen} onClose={() => setIsAuthOpen(false)} />
 
     </div>
   );

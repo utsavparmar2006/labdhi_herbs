@@ -14,8 +14,8 @@ const router = Router();
 // Customer authenticated routes
 router.get('/my-orders', verifyJWT, getMyOrders);
 
-// Public routes for checkout, tracking, and receipt
-router.post('/', createOrder);
+// Protected route: require user login to create order
+router.post('/', verifyJWT, createOrder);
 router.get('/track/:orderId', trackOrderByNumber);
 router.get('/:id', getOrderById);
 

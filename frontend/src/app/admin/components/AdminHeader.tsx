@@ -16,18 +16,30 @@ export default function AdminHeader({ onToggleMobileMenu, title = 'User Manageme
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken');
       const saved = localStorage.getItem('user');
-      if (saved) {
-        try {
-          setAdminUser(JSON.parse(saved));
-        } catch (e) {
-          setAdminUser({ name: 'Labdhi Admin', email: 'admin@labdhiherbs.com' });
+
+      if (!token || !saved) {
+        router.push('/admin/login');
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.role !== 'admin') {
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('user');
+          router.push('/admin/login');
+          return;
         }
-      } else {
-        setAdminUser({ name: 'Labdhi Admin', email: 'admin@labdhiherbs.com' });
+        setAdminUser(parsed);
+      } catch (e) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        router.push('/admin/login');
       }
     }
-  }, []);
+  }, [router]);
 
   const handleLogout = async () => {
     if (typeof window !== 'undefined') {
