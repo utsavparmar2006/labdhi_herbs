@@ -32,6 +32,16 @@ const nextConfig = {
         hostname: '**.amazonaws.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: '**.cloudfront.net',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '15.207.248.254',
+        pathname: '/**',
+      },
     ],
   },
 
