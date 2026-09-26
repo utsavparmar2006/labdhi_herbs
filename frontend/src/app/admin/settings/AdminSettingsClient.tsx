@@ -40,6 +40,7 @@ import {
   Eye,
   EyeOff,
   X,
+  Pencil,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -460,89 +461,96 @@ function FaqRow({
   );
 }
 
-// ─── Banner row ───────────────────────────────────────────────────────────────
-function BannerRow({
+// ─── Banner Card ──────────────────────────────────────────────────────────────
+function BannerCard({
   banner,
   index,
-  onChange,
+  onEdit,
+  onToggleActive,
   onDelete,
 }: {
   banner: Banner;
   index: number;
-  onChange: (i: number, field: keyof Banner, value: string | boolean | number) => void;
+  onEdit: (i: number) => void;
+  onToggleActive: (i: number) => void;
   onDelete: (i: number) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const imgSrc = banner.image
+    ? banner.image.startsWith('http')
+      ? banner.image
+      : `http://localhost:5000${banner.image}`
+    : '';
+
   return (
-    <div className={`border border-[#EFE9DD] rounded-xl overflow-hidden ${banner.isActive ? '' : 'opacity-60'}`}>
-      <div className="flex items-center gap-2 px-4 py-3 bg-[#F8F6F0]">
-        {banner.image && (
-          <img
-            src={banner.image.startsWith('http') ? banner.image : `http://localhost:5000${banner.image}`}
-            alt=""
-            className="w-10 h-10 rounded-lg object-cover border border-[#EFE9DD]"
-          />
+    <div
+      className={`flex items-center gap-4 p-3.5 bg-white border border-[#EFE9DD] rounded-2xl shadow-xs transition-all hover:border-[#1F3A2E]/20 ${
+        banner.isActive ? '' : 'opacity-65 bg-slate-50'
+      }`}
+    >
+      {/* Thumbnail */}
+      <div className="w-20 h-14 rounded-xl border border-[#EFE9DD] overflow-hidden bg-[#F8F6F0] flex-shrink-0 flex items-center justify-center">
+        {imgSrc ? (
+          <img src={imgSrc} alt={banner.title || 'Banner'} className="w-full h-full object-cover" />
+        ) : (
+          <ImageIcon className="w-6 h-6 text-slate-300" />
         )}
-        <p className="flex-1 text-sm font-semibold text-[#1A201C] truncate">{banner.title || 'New Banner'}</p>
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <h4 className="text-sm font-bold text-[#1A201C] truncate">{banner.title || 'Untitled Banner'}</h4>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              banner.isActive
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                : 'bg-slate-100 text-slate-500 border border-slate-200'
+            }`}
+          >
+            {banner.isActive ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+        {banner.subtitle && (
+          <p className="text-xs text-slate-500 truncate mt-0.5">{banner.subtitle}</p>
+        )}
+        <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
+          Link: <span className="text-[#1F3A2E]">{banner.link || '/shop'}</span>
+        </p>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         <button
-          onClick={() => onChange(index, 'isActive', !banner.isActive)}
-          className="p-1.5 rounded-lg hover:bg-[#EFE9DD] transition-colors"
+          type="button"
+          onClick={() => onToggleActive(index)}
+          className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+            banner.isActive
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+              : 'border-[#EFE9DD] bg-white text-slate-400 hover:bg-slate-100'
+          }`}
+          title={banner.isActive ? 'Hide banner' : 'Show banner'}
         >
-          {banner.isActive ? (
-            <Eye className="w-4 h-4 text-emerald-600" />
-          ) : (
-            <EyeOff className="w-4 h-4 text-slate-400" />
-          )}
+          {banner.isActive ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </button>
+
         <button
+          type="button"
+          onClick={() => onEdit(index)}
+          className="p-2 rounded-xl border border-[#EFE9DD] bg-white text-slate-600 hover:text-[#1F3A2E] hover:border-[#1F3A2E] hover:bg-[#F8F6F0] transition-colors cursor-pointer"
+          title="Edit Banner"
+        >
+          <Pencil className="w-4 h-4" />
+        </button>
+
+        <button
+          type="button"
           onClick={() => onDelete(index)}
-          className="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors"
+          className="p-2 rounded-xl border border-[#EFE9DD] bg-white text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors cursor-pointer"
+          title="Delete Banner"
         >
           <Trash2 className="w-4 h-4" />
         </button>
-        <button onClick={() => setOpen(!open)} className="p-1.5 rounded-lg hover:bg-[#EFE9DD] transition-colors">
-          {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </button>
       </div>
-      {open && (
-        <div className="px-4 pb-4 pt-2 space-y-3 bg-white">
-          <div className="grid grid-cols-2 gap-3">
-            <FormField label="Title">
-              <input
-                type="text"
-                value={banner.title}
-                onChange={(e) => onChange(index, 'title', e.target.value)}
-                className={inputCls}
-                placeholder="Banner title"
-              />
-            </FormField>
-            <FormField label="Subtitle">
-              <input
-                type="text"
-                value={banner.subtitle}
-                onChange={(e) => onChange(index, 'subtitle', e.target.value)}
-                className={inputCls}
-                placeholder="Subtitle / tagline"
-              />
-            </FormField>
-          </div>
-          <ImageUpload
-            label="Banner Image"
-            value={banner.image}
-            onChange={(url) => onChange(index, 'image', url)}
-            hint="Recommended: 1200×400px"
-          />
-          <FormField label="Link URL">
-            <input
-              type="text"
-              value={banner.link}
-              onChange={(e) => onChange(index, 'link', e.target.value)}
-              className={inputCls}
-              placeholder="/shop or https://..."
-            />
-          </FormField>
-        </div>
-      )}
     </div>
   );
 }
@@ -563,6 +571,24 @@ export default function AdminSettingsClient() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Banner Modal State
+  const [bannerModalOpen, setBannerModalOpen] = useState(false);
+  const [editingBannerIndex, setEditingBannerIndex] = useState<number | null>(null);
+  const [bannerForm, setBannerForm] = useState<{
+    id?: string;
+    title: string;
+    subtitle: string;
+    image: string;
+    link: string;
+    isActive: boolean;
+  }>({
+    title: '',
+    subtitle: '',
+    image: '',
+    link: '/shop',
+    isActive: true,
+  });
 
   const defaultSettings: SiteSettings = {
     profile: {
@@ -686,39 +712,41 @@ export default function AdminSettingsClient() {
     }));
   }, []);
 
-  // Banner helpers
-  const updateBannerItem = useCallback(
-    (index: number, field: keyof Banner, value: string | boolean | number) => {
-      setSettings((prev) => {
-        const banners = [...prev.banners];
-        banners[index] = { ...banners[index], [field]: value };
-        return { ...prev, banners };
-      });
-    },
-    []
-  );
-  const addBanner = useCallback(() => {
-    setSettings((prev) => ({
-      ...prev,
-      banners: [
-        ...prev.banners,
-        {
-          id: Math.random().toString(36).substr(2, 9),
-          title: '',
-          subtitle: '',
-          image: '',
-          link: '/shop',
-          isActive: true,
-          order: prev.banners.length + 1,
-        },
-      ],
-    }));
+  // Banner modal helpers
+  const openAddBannerModal = useCallback(() => {
+    setEditingBannerIndex(null);
+    setBannerForm({
+      id: Math.random().toString(36).substr(2, 9),
+      title: '',
+      subtitle: '',
+      image: '',
+      link: '/shop',
+      isActive: true,
+    });
+    setBannerModalOpen(true);
   }, []);
-  const deleteBanner = useCallback((index: number) => {
-    setSettings((prev) => ({
-      ...prev,
-      banners: prev.banners.filter((_, i) => i !== index),
-    }));
+
+  const openEditBannerModal = useCallback(
+    (index: number) => {
+      const item = settings.banners[index];
+      if (!item) return;
+      setEditingBannerIndex(index);
+      setBannerForm({
+        id: item.id || Math.random().toString(36).substr(2, 9),
+        title: item.title || '',
+        subtitle: item.subtitle || '',
+        image: item.image || '',
+        link: item.link || '/shop',
+        isActive: item.isActive !== false,
+      });
+      setBannerModalOpen(true);
+    },
+    [settings.banners]
+  );
+
+  const closeBannerModal = useCallback(() => {
+    setBannerModalOpen(false);
+    setEditingBannerIndex(null);
   }, []);
 
   // ── Section-specific save functions ─────────────────────────────────────────
@@ -804,6 +832,62 @@ export default function AdminSettingsClient() {
     save('logos', { logoLight: activeLogo, logoDark: activeLogo, favicon: settings.favicon || '' });
   };
   const saveBanners = () => save('banners', settings.banners);
+
+  const handleSaveBannerModal = useCallback(async () => {
+    if (!bannerForm.title.trim()) {
+      showToast('Please enter a banner title', 'error');
+      return;
+    }
+    if (!bannerForm.image.trim()) {
+      showToast('Please upload or select a banner image', 'error');
+      return;
+    }
+
+    let updatedBanners: Banner[];
+    if (editingBannerIndex !== null && editingBannerIndex >= 0) {
+      updatedBanners = [...settings.banners];
+      updatedBanners[editingBannerIndex] = {
+        ...updatedBanners[editingBannerIndex],
+        ...bannerForm,
+      };
+    } else {
+      updatedBanners = [
+        ...settings.banners,
+        {
+          id: bannerForm.id || Math.random().toString(36).substr(2, 9),
+          ...bannerForm,
+          order: settings.banners.length + 1,
+        },
+      ];
+    }
+
+    setSettings((prev) => ({ ...prev, banners: updatedBanners }));
+    setBannerModalOpen(false);
+    setEditingBannerIndex(null);
+    await save('banners', updatedBanners);
+  }, [bannerForm, editingBannerIndex, settings.banners, save, showToast]);
+
+  const handleDeleteBanner = useCallback(
+    async (index: number) => {
+      if (!confirm('Are you sure you want to delete this banner?')) return;
+      const updatedBanners = settings.banners.filter((_, i) => i !== index);
+      setSettings((prev) => ({ ...prev, banners: updatedBanners }));
+      await save('banners', updatedBanners);
+    },
+    [settings.banners, save]
+  );
+
+  const handleToggleBannerActive = useCallback(
+    async (index: number) => {
+      const updatedBanners = settings.banners.map((b, i) =>
+        i === index ? { ...b, isActive: !b.isActive } : b
+      );
+      setSettings((prev) => ({ ...prev, banners: updatedBanners }));
+      await save('banners', updatedBanners);
+    },
+    [settings.banners, save]
+  );
+
   const saveSite = () =>
     save('general', {
       siteName: settings.siteName,
@@ -1285,41 +1369,152 @@ export default function AdminSettingsClient() {
       // ── Banners ──────────────────────────────────────────────────────────────
       case 'banners':
         return (
-          <SettingsCard title="Promotional Banners" icon={Layout}>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-500">
-                  {settings.banners.length} banner{settings.banners.length !== 1 ? 's' : ''} · Manage promotional hero banners for the shop
-                </p>
-                <button
-                  onClick={addBanner}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1F3A2E]/10 text-[#1F3A2E] text-sm font-semibold rounded-xl hover:bg-[#1F3A2E] hover:text-white transition-all"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Banner
-                </button>
+          <>
+            <SettingsCard title="Promotional Banners" icon={Layout}>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-slate-500">
+                    {settings.banners.length} banner{settings.banners.length !== 1 ? 's' : ''} · Manage promotional hero banners for the shop
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openAddBannerModal}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#1F3A2E] text-white text-sm font-semibold rounded-xl hover:bg-[#15271F] transition-all cursor-pointer shadow-xs"
+                  >
+                    <Plus className="w-4 h-4 text-[#D4A373]" />
+                    Add Banner
+                  </button>
+                </div>
+                {settings.banners.length === 0 ? (
+                  <div className="text-center py-12 text-slate-400 border border-dashed border-[#EFE9DD] rounded-2xl bg-[#F8F6F0]/50">
+                    <Layout className="w-10 h-10 mx-auto mb-3 opacity-30 text-[#1F3A2E]" />
+                    <p className="text-sm font-medium text-[#1A201C]">No banners yet</p>
+                    <p className="text-xs text-slate-400 mt-1">Click &quot;Add Banner&quot; above to create your first promotional banner.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {settings.banners.map((banner, i) => (
+                      <BannerCard
+                        key={banner.id || i}
+                        banner={banner}
+                        index={i}
+                        onEdit={openEditBannerModal}
+                        onToggleActive={handleToggleBannerActive}
+                        onDelete={handleDeleteBanner}
+                      />
+                    ))}
+                  </div>
+                )}
+                {settings.banners.length > 0 && (
+                  <SaveButton onClick={saveBanners} loading={saving} label="Save All Banners" />
+                )}
               </div>
-              {settings.banners.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
-                  <Layout className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No banners yet. Click &quot;Add Banner&quot; to get started.</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {settings.banners.map((banner, i) => (
-                    <BannerRow
-                      key={banner.id || i}
-                      banner={banner}
-                      index={i}
-                      onChange={updateBannerItem}
-                      onDelete={deleteBanner}
+            </SettingsCard>
+
+            {/* Banner Add / Edit Modal */}
+            {bannerModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+                <div className="relative w-full max-w-lg bg-white rounded-3xl border border-[#EFE9DD] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                  {/* Modal Header */}
+                  <div className="p-5 border-b border-[#EFE9DD] flex items-center justify-between bg-[#F8F6F0]">
+                    <div>
+                      <h3 className="font-serif text-lg font-bold text-[#1A201C]">
+                        {editingBannerIndex !== null ? 'Edit Banner' : 'Add New Banner'}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Set hero image, title, and link for store promotions.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={closeBannerModal}
+                      className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-white transition-colors cursor-pointer"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  {/* Modal Body */}
+                  <div className="p-5 space-y-4 overflow-y-auto">
+                    <FormField label="Banner Title *">
+                      <input
+                        type="text"
+                        required
+                        value={bannerForm.title}
+                        onChange={(e) => setBannerForm((p) => ({ ...p, title: e.target.value }))}
+                        className={inputCls}
+                        placeholder="e.g. 100% Pure Botanical Formulations"
+                      />
+                    </FormField>
+
+                    <FormField label="Subtitle / Tagline">
+                      <input
+                        type="text"
+                        value={bannerForm.subtitle}
+                        onChange={(e) => setBannerForm((p) => ({ ...p, subtitle: e.target.value }))}
+                        className={inputCls}
+                        placeholder="e.g. Handcrafted in Surat, Gujarat"
+                      />
+                    </FormField>
+
+                    <ImageUpload
+                      label="Banner Image *"
+                      value={bannerForm.image}
+                      onChange={(url) => setBannerForm((p) => ({ ...p, image: url }))}
+                      hint="Recommended: 1200×400px (JPG, PNG, WebP)"
                     />
-                  ))}
+
+                    <FormField label="Link URL">
+                      <input
+                        type="text"
+                        value={bannerForm.link}
+                        onChange={(e) => setBannerForm((p) => ({ ...p, link: e.target.value }))}
+                        className={inputCls}
+                        placeholder="/shop or /product/slug"
+                      />
+                    </FormField>
+
+                    <div className="flex items-center gap-3 pt-1">
+                      <input
+                        type="checkbox"
+                        id="banner-is-active"
+                        checked={bannerForm.isActive}
+                        onChange={(e) => setBannerForm((p) => ({ ...p, isActive: e.target.checked }))}
+                        className="w-4 h-4 text-[#1F3A2E] rounded border-[#EFE9DD] focus:ring-[#1F3A2E] cursor-pointer"
+                      />
+                      <label htmlFor="banner-is-active" className="text-xs font-semibold text-slate-700 cursor-pointer">
+                        Display this banner on homepage (Active)
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="p-4 border-t border-[#EFE9DD] bg-[#F8F6F0] flex items-center justify-end gap-2.5">
+                    <button
+                      type="button"
+                      onClick={closeBannerModal}
+                      className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 bg-white border border-[#EFE9DD] rounded-xl hover:bg-slate-50 transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveBannerModal}
+                      disabled={saving}
+                      className="flex items-center gap-2 px-5 py-2 bg-[#1F3A2E] text-white text-xs font-bold rounded-xl hover:bg-[#15271F] transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                    >
+                      {saving ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Save className="w-3.5 h-3.5 text-[#D4A373]" />
+                      )}
+                      {editingBannerIndex !== null ? 'Save Changes' : 'Add Banner'}
+                    </button>
+                  </div>
                 </div>
-              )}
-              <SaveButton onClick={saveBanners} loading={saving} label="Save All Banners" />
-            </div>
-          </SettingsCard>
+              </div>
+            )}
+          </>
         );
 
       // ── Site Settings ─────────────────────────────────────────────────────────
