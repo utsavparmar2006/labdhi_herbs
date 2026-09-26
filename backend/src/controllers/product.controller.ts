@@ -195,19 +195,9 @@ const INITIAL_PRODUCTS = [
   },
 ];
 
-let isInitialProductsChecked = false;
-
 const ensureInitialProducts = async () => {
-  if (isInitialProductsChecked) return;
-  try {
-    const count = await Product.countDocuments();
-    if (count === 0) {
-      await Product.insertMany(INITIAL_PRODUCTS);
-    }
-    isInitialProductsChecked = true;
-  } catch (err) {
-    // If DB is temporarily busy, retry on next call
-  }
+  // Auto-seeding disabled so deleted products never re-appear on restart
+  return;
 };
 
 /**

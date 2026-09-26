@@ -5,79 +5,8 @@ import { Coupon, ICoupon } from '../models/Coupon.model.js';
  * Seed initial default coupons if none exist
  */
 export const seedDefaultCoupons = async () => {
-  try {
-    const count = await Coupon.countDocuments();
-    if (count === 0) {
-      const now = new Date();
-      const nextYear = new Date(now.getFullYear() + 2, 11, 31);
-
-      await Coupon.create([
-        {
-          code: 'HERBAL10',
-          type: 'percentage',
-          value: 10,
-          minimumRequirement: 'none',
-          minAmount: 0,
-          minQuantity: 0,
-          onlinePaymentOnly: false,
-          limitTotalUsage: false,
-          limitPerCustomer: false,
-          startDate: now,
-          endDate: nextYear,
-          status: 'active',
-          showInList: true,
-        },
-        {
-          code: 'WELCOME50',
-          type: 'fixed_amount',
-          value: 50,
-          minimumRequirement: 'amount',
-          minAmount: 299,
-          minQuantity: 0,
-          onlinePaymentOnly: false,
-          limitTotalUsage: false,
-          limitPerCustomer: true,
-          startDate: now,
-          endDate: nextYear,
-          status: 'active',
-          showInList: true,
-        },
-        {
-          code: 'AYURVEDA15',
-          type: 'percentage',
-          value: 15,
-          minimumRequirement: 'amount',
-          minAmount: 499,
-          minQuantity: 0,
-          onlinePaymentOnly: false,
-          limitTotalUsage: false,
-          limitPerCustomer: false,
-          startDate: now,
-          endDate: nextYear,
-          status: 'active',
-          showInList: true,
-        },
-        {
-          code: 'BIGBUY10',
-          type: 'percentage',
-          value: 10,
-          minimumRequirement: 'amount',
-          minAmount: 999,
-          minQuantity: 0,
-          onlinePaymentOnly: true,
-          limitTotalUsage: false,
-          limitPerCustomer: false,
-          startDate: now,
-          endDate: nextYear,
-          status: 'active',
-          showInList: true,
-        },
-      ]);
-      console.log('🌱 Initial promotional coupons seeded successfully');
-    }
-  } catch (error) {
-    console.error('Failed to seed default coupons:', error);
-  }
+  // Auto-seeding disabled so deleted coupons never re-appear on restart
+  return;
 };
 
 /**

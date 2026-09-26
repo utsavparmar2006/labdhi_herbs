@@ -89,62 +89,9 @@ const generateSlug = (text: string): string => {
     .replace(/^-+|-+$/g, '');
 };
 
-/**
- * Seed initial stories if collection is empty, or migrate existing records
- */
-let isStoriesSeeded = false;
-
 const ensureSeedStories = async () => {
-  if (isStoriesSeeded) return;
-  try {
-    const count = await Story.countDocuments();
-    if (count === 0) {
-      await Story.insertMany(INITIAL_STORIES);
-    } else {
-      // Migration: ensure records have storyType set
-      await Story.updateMany(
-        { storyType: { $exists: false } },
-        [
-          {
-            $set: {
-              storyType: {
-                $cond: [
-                  { $gt: [{ $strLenCP: { $ifNull: ['$videoUrl', ''] } }, 0] },
-                  'video',
-                  'photo',
-                ],
-              },
-            },
-          },
-        ]
-      );
-
-      // Seed default categories for existing initial records if missing
-      await Story.updateOne(
-        { id: 'priya-patel-hair-growth', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
-        { $set: { mainCategory: 'hair-care', subCategory: 'hair-oils' } }
-      );
-      await Story.updateOne(
-        { id: 'meera-kothari-acne-clearance', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
-        { $set: { mainCategory: 'skin-face-care', subCategory: 'face-packs' } }
-      );
-      await Story.updateOne(
-        { id: 'rajesh-shah-eczema-relief', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
-        { $set: { mainCategory: 'skin-face-care', subCategory: 'skin-ointments' } }
-      );
-      await Story.updateOne(
-        { id: 'aarav-mehta-scalp-vitality', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
-        { $set: { mainCategory: 'hair-care', subCategory: 'hair-oils' } }
-      );
-      await Story.updateOne(
-        { id: 'ananya-desai-acne-glow', $or: [{ mainCategory: '' }, { mainCategory: { $exists: false } }] },
-        { $set: { mainCategory: 'skin-face-care', subCategory: 'face-packs' } }
-      );
-    }
-    isStoriesSeeded = true;
-  } catch (err) {
-    // If DB is temporarily busy, retry on next call
-  }
+  // Auto-seeding disabled so deleted stories never re-appear on restart
+  return;
 };
 
 /**

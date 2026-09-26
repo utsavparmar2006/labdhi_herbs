@@ -7,9 +7,7 @@ dotenv.config();
 
 import app from './app.js';
 import { connectDB } from './config/db.js';
-import { seedDefaultCoupons } from './controllers/coupon.controller.js';
 import { seedSiteSettings } from './controllers/siteSettings.controller.js';
-import { seedDefaultReviews } from './controllers/review.controller.js';
 
 const PORT = process.env.PORT || 5000;
 
@@ -20,9 +18,7 @@ const startServer = async (): Promise<void> => {
   // 2. Safe initial seeder execution (after DB connection is confirmed)
   try {
     await Promise.allSettled([
-      seedDefaultCoupons(),
       seedSiteSettings(),
-      seedDefaultReviews(),
     ]);
   } catch (seedErr) {
     console.warn('[Server] Non-blocking initial seeder warning:', seedErr);

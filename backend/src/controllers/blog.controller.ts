@@ -149,36 +149,9 @@ const calculateReadTime = (content: string, excerpt: string): string => {
   return `${minutes} min read`;
 };
 
-let isBlogsSeeded = false;
-
-/**
- * Seed initial blogs if collection is empty, and ensure all initial 4 blogs exist
- */
 const ensureSeedBlogs = async () => {
-  if (isBlogsSeeded) return;
-  try {
-    const count = await Blog.countDocuments();
-    if (count === 0) {
-      await Blog.insertMany(INITIAL_BLOGS);
-      isBlogsSeeded = true;
-      return;
-    }
-
-    // Ensure 4th article exists if older DB had only 3
-    const hasFourth = await Blog.findOne({ id: 'ayurvedic-dinacharya-daily-wellness' });
-    if (!hasFourth) {
-      const fourth = INITIAL_BLOGS.find((b) => b.id === 'ayurvedic-dinacharya-daily-wellness');
-      if (fourth) {
-        await Blog.create(fourth);
-      }
-    }
-
-    // Ensure showOnHome is populated for existing docs
-    await Blog.updateMany({ showOnHome: { $exists: false } }, { $set: { showOnHome: true } });
-    isBlogsSeeded = true;
-  } catch (err) {
-    // If DB is temporarily busy, retry on next call
-  }
+  // Auto-seeding disabled so deleted blogs never re-appear on restart
+  return;
 };
 
 /**
