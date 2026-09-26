@@ -34,6 +34,9 @@ export default function BlogSection() {
   const sourceBlogs = homeEligible.length > 0 ? homeEligible : blogs;
 
   const featuredPost = sourceBlogs.find((b) => b.featured) || sourceBlogs[0] || BLOG_POSTS[0];
+  if (!featuredPost) {
+    return null;
+  }
   const secondaryPosts = sourceBlogs.filter((b) => (b._id || b.id) !== (featuredPost._id || featuredPost.id)).slice(0, 3);
 
   return (

@@ -18,6 +18,8 @@ export default function CategoryPills({
   onSelectMainCategory,
   onSelectSubCategory,
 }: CategoryPillsProps) {
+  if (MAIN_CATEGORIES.length === 0) return null;
+
   // Find current active main category object
   const currentMainCat = MAIN_CATEGORIES.find(
     (mc) => mc.slug.toLowerCase() === selectedMainCategory.toLowerCase()
