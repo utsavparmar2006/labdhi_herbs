@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -17,6 +16,25 @@ export default function SearchModal({ isOpen, onClose, onSelectProduct }: Search
   const [results, setResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
 
+  // Close on Escape key press
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Reset query and results when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setQuery('');
+      setResults([]);
+    }
+  }, [isOpen]);
+
+  // Debounced search query
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -36,9 +54,18 @@ export default function SearchModal({ isOpen, onClose, onSelectProduct }: Search
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Crucial: If modal is not open, do not render anything
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-[#F8F6F0] rounded-3xl overflow-hidden shadow-2xl border border-[#EFE9DD] animate-in zoom-in-95 duration-200">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-2xl bg-[#F8F6F0] rounded-3xl overflow-hidden shadow-2xl border border-[#EFE9DD] animate-in zoom-in-95 duration-200"
+      >
         
         {/* Search Input Bar */}
         <div className="p-4 border-b border-[#EFE9DD] bg-white flex items-center gap-3">
@@ -58,7 +85,7 @@ export default function SearchModal({ isOpen, onClose, onSelectProduct }: Search
           )}
           <button
             onClick={onClose}
-            className="px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-semibold text-slate-700 hover:bg-slate-200"
+            className="px-3 py-1.5 rounded-lg bg-slate-100 text-xs font-semibold text-slate-700 hover:bg-slate-200 cursor-pointer"
           >
             Esc
           </button>
@@ -80,6 +107,10 @@ export default function SearchModal({ isOpen, onClose, onSelectProduct }: Search
                   </button>
                 ))}
               </div>
+            </div>
+          ) : searching ? (
+            <div className="text-center py-8 text-xs text-slate-500 font-light">
+              Searching formulations...
             </div>
           ) : results.length === 0 ? (
             <div className="text-center py-8 text-xs text-slate-500">
