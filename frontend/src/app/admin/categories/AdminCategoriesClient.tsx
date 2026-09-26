@@ -162,8 +162,7 @@ export default function AdminCategoriesClient() {
       name: '',
       slug: '',
       description: '',
-      image:
-        'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=800',
+      image: '',
       status: 'active',
       order: categories.length + 1,
     });
@@ -254,8 +253,7 @@ export default function AdminCategoriesClient() {
       parentCategoryId: defaultParentId || (categories[0]?.id || ''),
       name: '',
       slug: '',
-      image:
-        'https://images.unsplash.com/photo-1596755389378-c31d21fd1273?auto=format&fit=crop&q=80&w=800',
+      image: '',
       description: '',
       itemCount: 0,
     });
