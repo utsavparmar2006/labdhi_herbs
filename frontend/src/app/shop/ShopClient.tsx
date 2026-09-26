@@ -23,20 +23,25 @@ export default function ShopClient() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  const [categories, setCategories] = useState<MainCategory[]>(
-    MAIN_CATEGORIES.filter((mc) => mc.id !== 'all')
-  );
+  const [categories, setCategories] = useState<MainCategory[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
     const fetchCats = async () => {
       try {
         const dynamicCats = await getCategories();
-        if (dynamicCats && dynamicCats.length > 0 && isMounted) {
-          setCategories(dynamicCats.filter((mc) => mc.id !== 'all'));
+        if (isMounted) {
+          if (dynamicCats && Array.isArray(dynamicCats)) {
+            setCategories(dynamicCats.filter((mc) => mc.id !== 'all'));
+          } else {
+            setCategories([]);
+          }
         }
       } catch (e) {
-        // Fallback to initial mock categories
+        if (isMounted) setCategories([]);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     };
     fetchCats();
@@ -77,50 +82,67 @@ export default function ShopClient() {
             </span>
           </div>
 
-          {/* Main Category Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-            {visibleCategories.map((mainCat, idx) => (
-              <motion.div
-                key={mainCat.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.35, delay: idx * 0.07 }}
-              >
-                <Link
-                  href={`/shop/${mainCat.id}`}
-                  className="group relative h-72 sm:h-80 rounded-3xl overflow-hidden flex flex-col justify-end cursor-pointer block border border-[#EFE9DD] hover:border-[#1F3A2E]/50 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+          {/* Main Category Cards Grid or Empty State */}
+          {loading ? (
+            <div className="py-20 text-center">
+              <div className="w-10 h-10 border-4 border-[#1F3A2E] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-slate-500 font-light">Loading categories...</p>
+            </div>
+          ) : visibleCategories.length === 0 ? (
+            <div className="py-16 px-6 text-center rounded-3xl border border-dashed border-[#EFE9DD] bg-white max-w-2xl mx-auto space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-full bg-[#1F3A2E]/10 flex items-center justify-center text-[#1F3A2E]">
+                <Layers className="w-6 h-6 text-[#1F3A2E]" />
+              </div>
+              <h3 className="font-serif text-xl font-bold text-[#1A201C]">No Categories Found</h3>
+              <p className="text-sm text-slate-500 font-light">
+                There are currently no categories available. Please create categories in the Admin Panel to display them here.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+              {visibleCategories.map((mainCat, idx) => (
+                <motion.div
+                  key={mainCat.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: idx * 0.07 }}
                 >
-                  {/* Background Image */}
-                  <div
-                    className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                    style={{ backgroundImage: `url(${mainCat.image})` }}
-                  />
+                  <Link
+                    href={`/shop/${mainCat.id}`}
+                    className="group relative h-72 sm:h-80 rounded-3xl overflow-hidden flex flex-col justify-end cursor-pointer block border border-[#EFE9DD] hover:border-[#1F3A2E]/50 hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]"
+                  >
+                    {/* Background Image */}
+                    <div
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                      style={{ backgroundImage: `url(${mainCat.image})` }}
+                    />
 
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#14261E] via-[#14261E]/60 to-black/10 opacity-90 group-hover:opacity-95 transition-opacity duration-300" />
+                    {/* Gradient Overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#14261E] via-[#14261E]/60 to-black/10 opacity-90 group-hover:opacity-95 transition-opacity duration-300" />
 
-                  {/* Sub-category count badge */}
-                  <div className="absolute top-4 right-4 z-20 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] font-bold border border-white/20">
-                    {mainCat.subCategories.filter(s => s.slug !== 'All').length} Sub-Categories
-                  </div>
-
-                  {/* Card Content */}
-                  <div className="relative z-10 p-6 text-white space-y-2">
-                    <h2 className="font-serif text-xl sm:text-2xl font-bold leading-tight group-hover:text-[#D4A373] transition-colors duration-300">
-                      {mainCat.name}
-                    </h2>
-                    <p className="text-xs text-emerald-100/75 font-light line-clamp-2 leading-relaxed">
-                      {mainCat.description}
-                    </p>
-                    <div className="pt-2 flex items-center gap-2 text-xs font-bold text-emerald-300 group-hover:text-[#D4A373] transition-colors group-hover:translate-x-1 duration-300">
-                      <span>Explore Formulations</span>
-                      <ArrowRight className="w-4 h-4" />
+                    {/* Sub-category count badge */}
+                    <div className="absolute top-4 right-4 z-20 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-white text-[10px] font-bold border border-white/20">
+                      {mainCat.subCategories ? mainCat.subCategories.filter(s => s.slug !== 'All').length : 0} Sub-Categories
                     </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
+
+                    {/* Card Content */}
+                    <div className="relative z-10 p-6 text-white space-y-2">
+                      <h2 className="font-serif text-xl sm:text-2xl font-bold leading-tight group-hover:text-[#D4A373] transition-colors duration-300">
+                        {mainCat.name}
+                      </h2>
+                      <p className="text-xs text-emerald-100/75 font-light line-clamp-2 leading-relaxed">
+                        {mainCat.description}
+                      </p>
+                      <div className="pt-2 flex items-center gap-2 text-xs font-bold text-emerald-300 group-hover:text-[#D4A373] transition-colors group-hover:translate-x-1 duration-300">
+                        <span>Explore Formulations</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </div>
+                    </div>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          )}
 
         </main>
 

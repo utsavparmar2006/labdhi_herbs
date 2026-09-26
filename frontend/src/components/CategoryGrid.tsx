@@ -1,15 +1,48 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { CATEGORIES } from '../services/mockData';
-import { ArrowRight, Leaf } from 'lucide-react';
+import { getCategories } from '../services/api';
+import { MainCategory } from '../types';
+import { ArrowRight } from 'lucide-react';
 
 interface CategoryGridProps {
   onSelectCategory?: (categorySlug: string) => void;
 }
 
 export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
+  const [categories, setCategories] = useState<MainCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    getCategories()
+      .then((cats) => {
+        if (isMounted) {
+          if (cats && Array.isArray(cats)) {
+            setCategories(cats.filter((c) => c.id !== 'all'));
+          } else {
+            setCategories([]);
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) setCategories([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // If loading or no categories in database, do not render dummy data
+  if (loading || categories.length === 0) {
+    return null;
+  }
+
   return (
     <section id="categories" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
       
@@ -25,8 +58,9 @@ export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
 
       {/* Categories Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {CATEGORIES.map((cat, idx) => {
-          const targetUrl = cat.href || `/shop/${cat.id}`;
+        {categories.map((cat, idx) => {
+          const targetUrl = `/shop/${cat.id}`;
+          const subCount = cat.subCategories ? cat.subCategories.filter((s) => s.slug !== 'All').length : 0;
           return (
             <motion.div
               key={cat.id}
@@ -38,14 +72,14 @@ export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
               <Link
                 href={targetUrl}
                 onClick={() => {
-                  if (onSelectCategory) onSelectCategory(cat.slug);
+                  if (onSelectCategory) onSelectCategory(cat.slug || cat.name);
                 }}
                 className="group relative h-80 rounded-2xl overflow-hidden cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 border border-[#EFE9DD] block"
               >
                 {/* Background Image with Zoom effect */}
                 <div
                   className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                  style={{ backgroundImage: `url(${cat.image})` }}
+                  style={{ backgroundImage: `url(${cat.image || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=800'})` }}
                 />
 
                 {/* Gradient Overlay */}
@@ -55,7 +89,7 @@ export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
                 <div className="absolute inset-0 p-6 flex flex-col justify-between z-10 text-white">
                   <div className="flex justify-between items-start">
                     <span className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[11px] font-semibold text-white tracking-wider border border-white/20">
-                      {cat.itemCount} Formulations
+                      {subCount} Sub-Categories
                     </span>
                   </div>
 

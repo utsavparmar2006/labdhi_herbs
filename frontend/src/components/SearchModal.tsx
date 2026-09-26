@@ -1,8 +1,8 @@
 'use me';
 'use client';
 
-import { useState } from 'react';
-import { PRODUCTS } from '../services/mockData';
+import { useState, useEffect } from 'react';
+import { getProducts } from '../services/api';
 import { Product } from '../types';
 import { Search, X, Star, ArrowRight } from 'lucide-react';
 
@@ -14,17 +14,27 @@ interface SearchModalProps {
 
 export default function SearchModal({ isOpen, onClose, onSelectProduct }: SearchModalProps) {
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Product[]>([]);
+  const [searching, setSearching] = useState(false);
 
-  if (!isOpen) return null;
-
-  const results = query.trim() === ''
-    ? []
-    : PRODUCTS.filter(
-        (p) =>
-          p.name.toLowerCase().includes(query.toLowerCase()) ||
-          p.category.toLowerCase().includes(query.toLowerCase()) ||
-          p.description.toLowerCase().includes(query.toLowerCase())
-      );
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await getProducts({ search: query.trim() });
+        setResults(res.success && Array.isArray(res.data) ? res.data : []);
+      } catch (err) {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">

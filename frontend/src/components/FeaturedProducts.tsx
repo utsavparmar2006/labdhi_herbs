@@ -28,11 +28,15 @@ export default function FeaturedProducts({
     const loadProducts = async () => {
       try {
         const res = await getProducts({ limit: 100 });
-        if (isMounted && res.success && Array.isArray(res.data) && res.data.length > 0) {
-          setProductList(res.data);
+        if (isMounted) {
+          if (res.success && Array.isArray(res.data)) {
+            setProductList(res.data);
+          } else {
+            setProductList([]);
+          }
         }
       } catch (err) {
-        console.warn('Using default featured products:', err);
+        if (isMounted) setProductList([]);
       }
     };
     loadProducts();
@@ -41,7 +45,12 @@ export default function FeaturedProducts({
     };
   }, []);
 
-  const sourceProducts = productList.length > 0 ? productList : PRODUCTS;
+  const sourceProducts = productList;
+
+  // If no products in database, do not show section
+  if (sourceProducts.length === 0) {
+    return null;
+  }
 
   // Filter only products marked as featured (show in this section on home page)
   const featuredOnly = sourceProducts.filter((p) => (p as any).featured === true);

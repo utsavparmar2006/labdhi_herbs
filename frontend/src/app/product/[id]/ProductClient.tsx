@@ -14,7 +14,6 @@ import CartDrawer from '../../../components/CartDrawer';
 import AuthModal from '../../../components/AuthModal';
 import SearchModal from '../../../components/SearchModal';
 import Footer from '../../../components/Footer';
-import { PRODUCTS, getProductByIdOrSlug } from '../../../services/mockData';
 import { getProductById } from '../../../services/api';
 import { useCart } from '../../../context/CartContext';
 import { Product, CartItem } from '../../../types';
@@ -47,7 +46,8 @@ export default function ProductClient({ productId }: ProductClientProps) {
     removeFromCart: handleRemoveCartItem,
   } = useCart();
 
-  const [product, setProduct] = useState<Product>(() => getProductByIdOrSlug(productId));
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -56,9 +56,13 @@ export default function ProductClient({ productId }: ProductClientProps) {
         const res = await getProductById(productId);
         if (res.success && res.data && isMounted) {
           setProduct(res.data);
+        } else if (isMounted) {
+          setProduct(null);
         }
       } catch (err) {
-        // Fallback remains active
+        if (isMounted) setProduct(null);
+      } finally {
+        if (isMounted) setLoading(false);
       }
     }
     fetchLatestProduct();
@@ -73,24 +77,9 @@ export default function ProductClient({ productId }: ProductClientProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isAddedSuccess, setIsAddedSuccess] = useState(false);
 
-  // Discount percentage calculation
-  const discountPercent = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : null;
-
-  const handleAddToCart = (targetProduct = product, qty = quantity) => {
-    addToCart(targetProduct, qty);
-    setIsAddedSuccess(true);
-    setTimeout(() => setIsAddedSuccess(false), 2000);
-  };
-
-  const handleBuyNow = () => {
-    addToCart(product, quantity);
-    router.push('/checkout');
-  };
-
   const handleRatingUpdate = useCallback((newRating: number, newCount: number) => {
     setProduct((prev) => {
+      if (!prev) return null;
       if (prev.rating === newRating && prev.reviewsCount === newCount) return prev;
       return {
         ...prev,
@@ -99,6 +88,65 @@ export default function ProductClient({ productId }: ProductClientProps) {
       };
     });
   }, []);
+
+  if (loading) {
+    return (
+      <SmoothScroll>
+        <div className="min-h-screen bg-[#F8F6F0] flex items-center justify-center">
+          <div className="text-center space-y-3">
+            <div className="w-10 h-10 border-4 border-[#1F3A2E] border-t-transparent rounded-full animate-spin mx-auto" />
+            <p className="text-sm text-slate-500 font-light">Loading formulation details...</p>
+          </div>
+        </div>
+      </SmoothScroll>
+    );
+  }
+
+  if (!product) {
+    return (
+      <SmoothScroll>
+        <div className="min-h-screen bg-[#F8F6F0] text-[#1A201C] flex flex-col justify-between">
+          <Header
+            cartCount={cartCount}
+            onOpenCart={() => setIsCartOpen(true)}
+            onOpenAuth={() => setIsAuthOpen(true)}
+            onOpenSearch={() => setIsSearchOpen(true)}
+          />
+          <div className="max-w-md mx-auto text-center py-28 px-4 space-y-4">
+            <h2 className="text-2xl font-serif font-bold text-[#1A201C]">Formulation Not Found</h2>
+            <p className="text-sm text-slate-500 font-light">
+              This herbal formulation is not available or has been removed.
+            </p>
+            <Link
+              href="/shop"
+              className="inline-block px-6 py-2.5 rounded-full bg-[#1F3A2E] text-white text-xs font-semibold hover:bg-[#14261E] transition-colors"
+            >
+              Explore Formulations
+            </Link>
+          </div>
+          <Footer />
+        </div>
+      </SmoothScroll>
+    );
+  }
+
+  // Discount percentage calculation
+  const discountPercent = product.originalPrice
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : null;
+
+  const handleAddToCart = (targetProduct = product, qty = quantity) => {
+    if (!targetProduct) return;
+    addToCart(targetProduct, qty);
+    setIsAddedSuccess(true);
+    setTimeout(() => setIsAddedSuccess(false), 2000);
+  };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    addToCart(product, quantity);
+    router.push('/checkout');
+  };
 
   return (
     <SmoothScroll>

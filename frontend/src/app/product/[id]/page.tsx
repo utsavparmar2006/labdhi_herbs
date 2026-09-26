@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
 import ProductClient from './ProductClient';
-import { PRODUCTS, getProductByIdOrSlug } from '../../../services/mockData';
+import { getProductById } from '../../../services/api';
+import { notFound } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateStaticParams() {
-  return PRODUCTS.map((product) => ({
-    id: String(product.id),
-  }));
+  return [];
 }
 
 interface ProductPageProps {
@@ -15,10 +16,17 @@ interface ProductPageProps {
 }
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
-  const product = getProductByIdOrSlug(params.id);
+  const res = await getProductById(params.id);
+  const product = res.data;
+
+  if (!product) {
+    return {
+      title: 'Product Not Found | Labdhi Herbs',
+    };
+  }
 
   return {
-    title: `${product.name} — Pure Ayurvedic ${product.category}`,
+    title: `${product.name} — Pure Ayurvedic ${product.category || 'Formulation'}`,
     description: product.description,
     alternates: {
       canonical: `https://labdhiherbs.com/product/${product.id}`,
@@ -37,8 +45,13 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
   };
 }
 
-export default function ProductPage({ params }: ProductPageProps) {
-  const product = getProductByIdOrSlug(params.id);
+export default async function ProductPage({ params }: ProductPageProps) {
+  const res = await getProductById(params.id);
+  const product = res.data;
+
+  if (!product) {
+    return notFound();
+  }
 
   const jsonLdProduct = {
     '@context': 'https://schema.org',
@@ -63,8 +76,8 @@ export default function ProductPage({ params }: ProductPageProps) {
     },
     aggregateRating: {
       '@type': 'AggregateRating',
-      ratingValue: product.rating,
-      reviewCount: product.reviewsCount,
+      ratingValue: product.rating || 5,
+      reviewCount: product.reviewsCount || 1,
     },
   };
 

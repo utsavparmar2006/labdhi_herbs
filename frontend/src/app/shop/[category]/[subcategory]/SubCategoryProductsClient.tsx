@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import SmoothScroll from '../../../../components/SmoothScroll';
 import Header from '../../../../components/Header';
@@ -11,7 +11,7 @@ import QuickViewModal from '../../../../components/QuickViewModal';
 import Footer from '../../../../components/Footer';
 import BrandDropdown from '../../../../components/BrandDropdown';
 import SortDropdown from '../../../../components/SortDropdown';
-import { PRODUCTS } from '../../../../services/mockData';
+import { getProducts } from '../../../../services/api';
 import { MainCategory, SubCategory, Product } from '../../../../types';
 import { useCart } from '../../../../context/CartContext';
 import {
@@ -42,10 +42,35 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [addedItemIds, setAddedItemIds] = useState<string[]>([]);
   const [visibleCount, setVisibleCount] = useState(8);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    getProducts({ limit: 100 })
+      .then((res) => {
+        if (isMounted) {
+          if (res.success && Array.isArray(res.data)) {
+            setAllProducts(res.data);
+          } else {
+            setAllProducts([]);
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) setAllProducts([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Filter products for this subcategory
   const filteredProducts = useMemo(() => {
-    let list = PRODUCTS.filter((p) => {
+    let list = allProducts.filter((p) => {
       const matchSub =
         p.subCategory?.toLowerCase() === subCategory.slug.toLowerCase() ||
         p.subCategory?.toLowerCase() === subCategory.name.toLowerCase() ||
