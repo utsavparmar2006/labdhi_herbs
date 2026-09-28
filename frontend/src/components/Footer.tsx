@@ -31,12 +31,35 @@ export default function Footer() {
     const checkSubscribed = () => {
       try {
         const saved = localStorage.getItem('labdhi_subscribed');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed?.subscribed) {
-            setIsAlreadySubscribed(true);
-            setSubscribedData(parsed);
-          }
+        if (!saved) return;
+
+        const parsed = JSON.parse(saved);
+        if (!parsed?.subscribed) return;
+
+        // Get the currently logged-in user (if any)
+        const userRaw = localStorage.getItem('user');
+        const loggedInUser = userRaw ? JSON.parse(userRaw) : null;
+        const loggedInEmail = loggedInUser?.email?.toLowerCase().trim();
+        const savedEmail = parsed?.email?.toLowerCase().trim();
+
+        // Only show the subscribed banner if:
+        // 1. The saved email matches the currently logged-in user's email, OR
+        // 2. There's no logged-in user but the subscription was just done this session
+        //    (checked via sessionStorage flag to avoid persisting across sessions)
+        const justSubscribed = sessionStorage.getItem('labdhi_just_subscribed') === 'true';
+
+        if (loggedInEmail && savedEmail && loggedInEmail === savedEmail) {
+          // Logged-in user's email matches the subscriber email
+          setIsAlreadySubscribed(true);
+          setSubscribedData(parsed);
+        } else if (!loggedInEmail && justSubscribed) {
+          // Not logged in but just subscribed in this session
+          setIsAlreadySubscribed(true);
+          setSubscribedData(parsed);
+        } else {
+          // Different user or new browser session — don't show subscribed state
+          setIsAlreadySubscribed(false);
+          setSubscribedData(null);
         }
       } catch (e) {
         // ignore
@@ -49,6 +72,7 @@ export default function Footer() {
       window.removeEventListener('labdhi_newsletter_subscribed', checkSubscribed);
     };
   }, []);
+
 
   const fullAddress = settings.address || profile.address || '40, Jay Ambe Society, Makkai Pool Rd, Adajan, Surat, Gujarat 395009';
   const phone = settings.supportPhone || profile.adminPhone || '+91 93283 49328';

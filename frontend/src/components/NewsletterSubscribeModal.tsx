@@ -130,6 +130,9 @@ export default function NewsletterSubscribeModal({
               subscribedAt: new Date().toISOString(),
             })
           );
+          // Mark this session as "just subscribed" so Footer can show the banner
+          // even if the user is not logged in (clears when tab/browser closes)
+          sessionStorage.setItem('labdhi_just_subscribed', 'true');
           window.dispatchEvent(new Event('labdhi_newsletter_subscribed'));
         } catch (e) {
           // ignore
