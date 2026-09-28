@@ -10,12 +10,14 @@ export interface ISiteSettings extends Document {
     country: string;
     state: string;
     city: string;
+    footerDescription?: string;
     profileImage: string;
     facebook: string;
     instagram: string;
     youtube: string;
     twitter: string;
   };
+  footerDescription?: string;
   // About Us
   aboutUs: {
     content: string;
@@ -119,6 +121,11 @@ const SiteSettingsSchema: Schema = new Schema(
       country: { type: String, default: 'India' },
       state: { type: String, default: 'Gujarat' },
       city: { type: String, default: 'Surat' },
+      footerDescription: {
+        type: String,
+        default:
+          'Pure Ayurvedic medicines, face packs, hair oils, skincare lotions, and authentic herbal wellness handcrafted in Surat, Gujarat.',
+      },
       profileImage: { type: String, default: '' },
       facebook: {
         type: String,

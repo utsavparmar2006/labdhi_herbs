@@ -69,6 +69,8 @@ export default function Footer() {
   // Dynamic logo check
   const darkLogo = settings.logoDark || settings.logoLight;
 
+  const footerDescription = profile.footerDescription || settings.footerDescription || `Pure Ayurvedic medicines, face packs, hair oils, skincare lotions, and authentic herbal wellness handcrafted in ${city}, ${state}.`;
+
   return (
     <footer className="bg-[#F8F6F0] text-[#1A201C] border-t border-[#EFE9DD] pt-12 sm:pt-16 pb-8 sm:pb-12 relative overflow-hidden">
       
@@ -170,7 +172,7 @@ export default function Footer() {
             </Link>
 
             <p className="text-xs text-slate-600 font-light leading-relaxed max-w-sm">
-              Pure Ayurvedic medicines, face packs, hair oils, skincare lotions, and authentic herbal wellness handcrafted in {city}, {state}.
+              {footerDescription}
             </p>
 
             <ul className="space-y-2.5 text-xs text-slate-700 font-light pt-1">

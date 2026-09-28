@@ -745,50 +745,54 @@ export default function AdminProductsClient() {
               })}
             </div>
           )}
+        </main>
+      </div>
 
-          {/* ========================================================================= */}
-          {/* CREATE / EDIT PRODUCT MODAL                                               */}
-          {/* ========================================================================= */}
-          <AnimatePresence>
-            {isModalOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                  className="bg-white rounded-3xl border border-[#EFE9DD] shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col my-8 overflow-hidden"
-                >
-                  {/* Modal Header */}
-                  <div className="p-6 border-b border-[#EFE9DD] flex items-center justify-between bg-[#F8F6F0]">
-                    <div>
-                      <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#B58A5A] uppercase tracking-wider mb-1">
-                        <Package className="w-3.5 h-3.5" />
-                        <span>
-                          {editingProduct ? 'Update Formulation' : 'Create New Product'}
-                        </span>
-                      </div>
-                      <h3 className="font-serif text-xl font-bold text-[#1A201C]">
-                        {editingProduct ? editingProduct.name : 'Add New Ayurvedic Formulation'}
-                      </h3>
-                      <p className="text-xs text-slate-500 font-light">
-                        Fill in formulation details, upload cover image from your computer folder, and save.
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => setIsModalOpen(false)}
-                      className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-white transition-colors cursor-pointer"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+      {/* ========================================================================= */}
+      {/* CREATE / EDIT PRODUCT MODAL (ROOT-LEVEL OVERLAY)                          */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/60 backdrop-blur-sm overflow-hidden">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white rounded-3xl border border-[#EFE9DD] shadow-2xl max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden"
+            >
+              {/* Modal Header */}
+              <div className="p-5 sm:p-6 border-b border-[#EFE9DD] flex items-center justify-between bg-[#F8F6F0] shrink-0">
+                <div>
+                  <div className="inline-flex items-center gap-1.5 text-xs font-bold text-[#B58A5A] uppercase tracking-wider mb-1">
+                    <Package className="w-3.5 h-3.5" />
+                    <span>
+                      {editingProduct ? 'Update Formulation' : 'Create New Product'}
+                    </span>
                   </div>
+                  <h3 className="font-serif text-xl font-bold text-[#1A201C]">
+                    {editingProduct ? editingProduct.name : 'Add New Ayurvedic Formulation'}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-light">
+                    Fill in formulation details, upload cover image from your computer folder, and save.
+                  </p>
+                </div>
 
-                  {/* Modal Form Content */}
-                  <form
-                    onSubmit={handleSubmitProduct}
-                    className="p-6 overflow-y-auto space-y-6 flex-1"
-                  >
-                    {/* Section 1: Basic Identification */}
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-white transition-colors cursor-pointer shrink-0"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Modal Form Content */}
+              <form
+                onSubmit={handleSubmitProduct}
+                className="flex flex-col flex-1 overflow-hidden min-h-0"
+              >
+                <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1">
+                  {/* Section 1: Basic Identification */}
                     <div className="space-y-4">
                       <h4 className="text-xs font-bold uppercase tracking-wider text-[#1F3A2E] flex items-center gap-1.5 border-b border-[#EFE9DD] pb-2">
                         <Info className="w-3.5 h-3.5 text-[#B58A5A]" />
@@ -1088,169 +1092,106 @@ export default function AdminProductsClient() {
                         />
                       </div>
 
-                      {/* How to Use - YouTube Video Embed Link */}
-                      <div className="space-y-2 p-4 rounded-2xl bg-[#F8F6F0] border border-[#EFE9DD]">
-                        <div className="flex items-center justify-between">
-                          <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                            <Youtube className="w-4 h-4 text-red-600" />
-                            <span>How to Use — YouTube Video Embed Link</span>
-                          </label>
-                          {formData.howToUseVideoUrl.trim() && (
-                            <div className="flex items-center gap-2">
-                              {isYouTubeUrl(formData.howToUseVideoUrl) ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                  Valid YouTube Link
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
-                                  <AlertCircle className="w-3 h-3 text-amber-600" />
-                                  Unrecognized URL format
-                                </span>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setFormData((prev) => ({ ...prev, howToUseVideoUrl: '' }))
-                                }
-                                className="text-slate-400 hover:text-red-600 text-xs flex items-center gap-0.5 cursor-pointer"
-                              >
-                                <X className="w-3 h-3" />
-                                <span>Clear</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-
-                        <p className="text-[11px] text-slate-500 font-light leading-relaxed">
-                          Paste any YouTube link (e.g., <code className="bg-white px-1 py-0.5 rounded border border-[#EFE9DD]">https://www.youtube.com/watch?v=...</code>, short link <code className="bg-white px-1 py-0.5 rounded border border-[#EFE9DD]">https://youtu.be/...</code>, Shorts link, or embed code). This replaces static steps on the live product page.
-                        </p>
-
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={formData.howToUseVideoUrl}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                howToUseVideoUrl: e.target.value,
-                              }))
-                            }
-                            placeholder="https://www.youtube.com/watch?v=kJQP7kiw5Fk"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                          />
-                          <Youtube className="w-4 h-4 text-red-500 absolute left-3 top-3" />
-                        </div>
-
-                        {/* Live Interactive Embed Preview if Valid */}
-                        {formData.howToUseVideoUrl.trim() &&
-                          isYouTubeUrl(formData.howToUseVideoUrl) && (
-                            <div className="mt-3 space-y-1.5 pt-2 border-t border-[#EFE9DD]">
-                              <span className="text-[11px] font-bold text-slate-600 flex items-center gap-1">
-                                <Play className="w-3 h-3 text-[#1F3A2E]" />
-                                Live Video Player Preview:
-                              </span>
-                              <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-sm border border-[#EFE9DD] bg-black">
-                                <iframe
-                                  src={formatYouTubeEmbedUrl(formData.howToUseVideoUrl) || ''}
-                                  title="Admin Video Preview"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
-                                  className="absolute inset-0 w-full h-full border-0"
-                                />
-                              </div>
-                            </div>
-                          )}
+                      {/* How to Use - Video Demonstration (Upload from Folder) */}
+                      <div className="pt-2">
+                        <VideoFolderPicker
+                          value={formData.howToUseVideoUrl}
+                          onChange={(url) =>
+                            setFormData((prev) => ({ ...prev, howToUseVideoUrl: url }))
+                          }
+                          label="How to Use — Video Demonstration"
+                          helperText="Upload an MP4, WebM, or MOV video file directly from your computer folder showcasing application ritual or how to use."
+                        />
                       </div>
                     </div>
 
-                    {/* Modal Bottom Actions */}
-                    <div className="pt-4 border-t border-[#EFE9DD] flex items-center justify-end gap-3 sticky bottom-0 bg-white py-2">
-                      <button
-                        type="button"
-                        onClick={() => setIsModalOpen(false)}
-                        className="px-5 py-2.5 rounded-xl border border-[#EFE9DD] hover:bg-[#F8F6F0] text-xs font-bold text-slate-700 transition-colors cursor-pointer"
-                      >
-                        Cancel
-                      </button>
+                </div>
 
-                      <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="px-6 py-2.5 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
-                      >
-                        {isSaving ? (
-                          <>
-                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Saving Product...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Check className="w-4 h-4 text-[#D4A373]" />
-                            <span>{editingProduct ? 'Update Formulation' : 'Save & Publish'}</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                </motion.div>
-              </div>
-            )}
-          </AnimatePresence>
+                {/* Modal Bottom Actions */}
+                <div className="p-4 sm:p-5 border-t border-[#EFE9DD] flex items-center justify-end gap-3 bg-white shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl border border-[#EFE9DD] hover:bg-[#F8F6F0] text-xs font-bold text-slate-700 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
 
-          {/* ========================================================================= */}
-          {/* DELETE CONFIRMATION MODAL                                                 */}
-          {/* ========================================================================= */}
-          <AnimatePresence>
-            {deletingProduct && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-3xl border border-[#EFE9DD] shadow-2xl max-w-md w-full p-6 space-y-5"
-                >
-                  <div className="flex items-center gap-3 text-red-600">
-                    <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center shrink-0">
-                      <AlertCircle className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-serif text-lg font-bold text-[#1A201C]">
-                        Delete Product?
-                      </h4>
-                      <p className="text-xs text-slate-500 font-light">
-                        This action cannot be undone.
-                      </p>
-                    </div>
-                  </div>
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="px-6 py-2.5 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white text-xs font-bold flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isSaving ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Saving Product...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-4 h-4 text-[#D4A373]" />
+                        <span>{editingProduct ? 'Update Formulation' : 'Save & Publish'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
-                  <p className="text-xs text-slate-600">
-                    Are you sure you want to permanently delete{' '}
-                    <span className="font-bold text-slate-900">"{deletingProduct.name}"</span> from
-                    the store catalog?
+      {/* ========================================================================= */}
+      {/* DELETE CONFIRMATION MODAL                                                 */}
+      {/* ========================================================================= */}
+      <AnimatePresence>
+        {deletingProduct && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl border border-[#EFE9DD] shadow-2xl max-w-md w-full p-6 space-y-5"
+            >
+              <div className="flex items-center gap-3 text-red-600">
+                <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-serif text-lg font-bold text-[#1A201C]">
+                    Delete Product?
+                  </h4>
+                  <p className="text-xs text-slate-500 font-light">
+                    This action cannot be undone.
                   </p>
-
-                  <div className="flex items-center justify-end gap-3 pt-2">
-                    <button
-                      onClick={() => setDeletingProduct(null)}
-                      className="px-4 py-2 rounded-xl border border-[#EFE9DD] hover:bg-[#F8F6F0] text-xs font-bold text-slate-700 transition-colors cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleConfirmDelete}
-                      disabled={isDeleting}
-                      className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
-                    >
-                      {isDeleting ? 'Deleting...' : 'Yes, Delete'}
-                    </button>
-                  </div>
-                </motion.div>
+                </div>
               </div>
-            )}
-          </AnimatePresence>
-        </main>
-      </div>
+
+              <p className="text-xs text-slate-600">
+                Are you sure you want to permanently delete{' '}
+                <span className="font-bold text-slate-900">"{deletingProduct.name}"</span> from
+                the store catalog?
+              </p>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setDeletingProduct(null)}
+                  className="px-4 py-2 rounded-xl border border-[#EFE9DD] hover:bg-[#F8F6F0] text-xs font-bold text-slate-700 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                  className="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

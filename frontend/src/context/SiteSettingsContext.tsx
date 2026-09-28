@@ -10,6 +10,7 @@ export interface AdminProfileData {
   country: string;
   state: string;
   city: string;
+  footerDescription?: string;
   profileImage: string;
   facebook: string;
   instagram: string;
@@ -76,6 +77,7 @@ export interface SiteSettingsData {
   state: string;
   pincode: string;
   googleMapsLink: string;
+  footerDescription?: string;
   social: {
     facebook: string;
     instagram: string;
@@ -105,6 +107,8 @@ const DEFAULT_PROFILE: AdminProfileData = {
   country: 'India',
   state: 'Gujarat',
   city: 'Surat',
+  footerDescription:
+    'Pure Ayurvedic medicines, face packs, hair oils, skincare lotions, and authentic herbal wellness handcrafted in Surat, Gujarat.',
   profileImage: '',
   facebook: 'https://www.facebook.com/Roopotkarsh-Vilepan-106128397412060/?ref=pages_you_manage',
   instagram: 'https://www.instagram.com/labdhiherbs/',

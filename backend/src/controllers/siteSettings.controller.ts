@@ -58,6 +58,9 @@ export const updateProfile = async (req: Request, res: Response) => {
     if (profileData.state) {
       updateObj.state = profileData.state;
     }
+    if (profileData.footerDescription !== undefined) {
+      updateObj.footerDescription = profileData.footerDescription;
+    }
     if (profileData.facebook || profileData.instagram || profileData.youtube || profileData.twitter) {
       updateObj.social = {
         facebook: profileData.facebook || '',

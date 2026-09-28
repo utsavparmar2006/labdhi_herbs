@@ -532,17 +532,7 @@ export default function Header({
                           {active && (
                             <span className="w-2 h-2 rounded-full bg-[#F4BA44] animate-pulse" />
                           )}
-                          <span>
-                            {item.name === 'Shop'
-                              ? 'Shop All Formulations'
-                              : item.name === 'Success Story'
-                              ? 'Success Stories & Gallery'
-                              : item.name === 'Blog'
-                              ? 'Herbal Wellness Blog'
-                              : item.name === 'About Us'
-                              ? 'About Labdhi Herbs'
-                              : item.name}
-                          </span>
+                          <span>{item.name}</span>
                         </span>
                         <ChevronRight
                           className={`w-4 h-4 ${active ? 'text-[#F4BA44]' : 'text-slate-400'}`}
@@ -550,29 +540,6 @@ export default function Header({
                       </Link>
                     );
                   })}
-
-                  <div className="pt-1.5 border-t border-[#EFE9DD]/70">
-                    <Link
-                      href="/track-order"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`py-3 px-3.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-between ${
-                        pathname === '/track-order' || pathname.startsWith('/track-order/')
-                          ? 'bg-[#1F3A2E] text-white shadow-xs font-bold'
-                          : 'text-[#1F3A2E] hover:bg-[#EFE9DD]/60 hover:text-[#F4BA44]'
-                      }`}
-                    >
-                      <span className="flex items-center gap-2.5">
-                        {(pathname === '/track-order' || pathname.startsWith('/track-order/')) && (
-                          <span className="w-2 h-2 rounded-full bg-[#F4BA44] animate-pulse" />
-                        )}
-                        <Truck className={`w-4 h-4 ${(pathname === '/track-order' || pathname.startsWith('/track-order/')) ? 'text-[#F4BA44]' : 'text-[#B58A5A]'}`} />
-                        <span>Track Order</span>
-                      </span>
-                      <ChevronRight
-                        className={`w-4 h-4 ${(pathname === '/track-order' || pathname.startsWith('/track-order/')) ? 'text-[#F4BA44]' : 'text-slate-400'}`}
-                      />
-                    </Link>
-                  </div>
                 </div>
               </div>
 
@@ -591,23 +558,31 @@ export default function Header({
                       <p className="text-[11px] text-slate-500 truncate">{user.email}</p>
                     </div>
 
-                    {/* My Profile & My Orders Buttons */}
-                    <div className="grid grid-cols-2 gap-2">
+                    {/* My Profile, My Orders, Track Order Buttons */}
+                    <div className="grid grid-cols-3 gap-2">
                       <Link
                         href="/profile"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white hover:bg-[#EFE9DD] text-[#1F3A2E] text-xs font-bold border border-[#EFE9DD] transition-all shadow-xs"
+                        className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-white hover:bg-[#EFE9DD] text-[#1F3A2E] text-[11px] font-bold border border-[#EFE9DD] transition-all shadow-xs text-center"
                       >
                         <User className="w-3.5 h-3.5 text-[#D4A373]" />
-                        <span>My Profile</span>
+                        <span>Profile</span>
                       </Link>
                       <Link
                         href="/orders"
                         onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white hover:bg-[#EFE9DD] text-[#1F3A2E] text-xs font-bold border border-[#EFE9DD] transition-all shadow-xs"
+                        className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-white hover:bg-[#EFE9DD] text-[#1F3A2E] text-[11px] font-bold border border-[#EFE9DD] transition-all shadow-xs text-center"
                       >
                         <Package className="w-3.5 h-3.5 text-[#D4A373]" />
-                        <span>My Orders</span>
+                        <span>Orders</span>
+                      </Link>
+                      <Link
+                        href="/track-order"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex flex-col items-center justify-center gap-1 py-2 px-1 rounded-xl bg-white hover:bg-[#EFE9DD] text-[#1F3A2E] text-[11px] font-bold border border-[#EFE9DD] transition-all shadow-xs text-center"
+                      >
+                        <Truck className="w-3.5 h-3.5 text-[#D4A373]" />
+                        <span>Track</span>
                       </Link>
                     </div>
 
@@ -636,16 +611,29 @@ export default function Header({
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      onOpenAuth();
-                    }}
-                    className="w-full py-3 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white font-bold text-xs tracking-wide shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
-                  >
-                    <User className="w-4 h-4 text-[#D4A373]" />
-                    <span>Sign In / Register Account</span>
-                  </button>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        onOpenAuth();
+                      }}
+                      className="w-full py-3 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white font-bold text-xs tracking-wide shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all"
+                    >
+                      <User className="w-4 h-4 text-[#D4A373]" />
+                      <span>Sign In / Register Account</span>
+                    </button>
+
+                    <div className="text-center pt-0.5">
+                      <Link
+                        href="/track-order"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1F3A2E] hover:underline"
+                      >
+                        <Truck className="w-3.5 h-3.5 text-[#B58A5A]" />
+                        <span>Track Order</span>
+                      </Link>
+                    </div>
+                  </div>
                 )}
 
                 {/* Support Helpline Footer */}

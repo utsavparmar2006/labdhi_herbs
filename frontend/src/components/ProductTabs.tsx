@@ -10,7 +10,7 @@ import {
   Play
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { formatYouTubeEmbedUrl, extractYouTubeVideoId } from '../utils/youtube';
+import { formatYouTubeEmbedUrl, extractYouTubeVideoId, isYouTubeUrl } from '../utils/youtube';
 
 interface ProductTabsProps {
   description: string;
@@ -30,9 +30,14 @@ export default function ProductTabs({
   const [activeTab, setActiveTab] = useState<'desc' | 'usage'>('desc');
   const [openMobileSection, setOpenMobileSection] = useState<string | null>('desc');
 
-  const embedUrl = howToUseVideoUrl ? formatYouTubeEmbedUrl(howToUseVideoUrl) : null;
-  const youtubeVideoId = howToUseVideoUrl ? extractYouTubeVideoId(howToUseVideoUrl) : null;
+  const hasVideo = !!howToUseVideoUrl?.trim();
+  const isYouTube = hasVideo && isYouTubeUrl(howToUseVideoUrl!);
+  const embedUrl = isYouTube ? formatYouTubeEmbedUrl(howToUseVideoUrl!) : null;
+  const youtubeVideoId = isYouTube ? extractYouTubeVideoId(howToUseVideoUrl!) : null;
   const youtubeDirectLink = youtubeVideoId ? `https://www.youtube.com/watch?v=${youtubeVideoId}` : null;
+  const directVideoSrc = hasVideo && !isYouTube
+    ? (howToUseVideoUrl!.startsWith('http') ? howToUseVideoUrl! : `http://localhost:5000${howToUseVideoUrl!}`)
+    : null;
 
   const toggleMobile = (section: string) => {
     setOpenMobileSection(openMobileSection === section ? null : section);
@@ -62,9 +67,9 @@ export default function ProductTabs({
           }`}
         >
           <span>How to Use</span>
-          {embedUrl && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 border border-red-200">
-              <Youtube className="w-3 h-3 text-red-600" />
+          {hasVideo && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#1F3A2E]/10 text-[#1F3A2E] border border-[#1F3A2E]/20">
+              <Play className="w-3 h-3 text-[#1F3A2E] fill-current" />
               <span>Video</span>
             </span>
           )}
@@ -100,12 +105,12 @@ export default function ProductTabs({
               exit={{ opacity: 0, y: -6 }}
               className="space-y-6"
             >
-              {embedUrl ? (
+              {hasVideo ? (
                 <div className="space-y-5">
                   {/* Video Header & Meta */}
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-2 border-b border-[#EFE9DD]">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                      <div className="w-8 h-8 rounded-full bg-[#1F3A2E]/10 flex items-center justify-center text-[#1F3A2E]">
                         <Play className="w-4 h-4 fill-current ml-0.5" />
                       </div>
                       <div>
@@ -132,16 +137,26 @@ export default function ProductTabs({
                     )}
                   </div>
 
-                  {/* Responsive 16:9 YouTube Video Player */}
+                  {/* Responsive 16:9 Video Player */}
                   <div className="relative w-full aspect-video rounded-2xl overflow-hidden shadow-lg border border-[#EFE9DD] bg-black">
-                    <iframe
-                      src={embedUrl}
-                      title="How to Use Product Guide"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      className="absolute inset-0 w-full h-full border-0"
-                      loading="lazy"
-                    />
+                    {directVideoSrc ? (
+                      <video
+                        controls
+                        playsInline
+                        preload="metadata"
+                        src={directVideoSrc}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : embedUrl ? (
+                      <iframe
+                        src={embedUrl}
+                        title="How to Use Product Guide"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full border-0"
+                        loading="lazy"
+                      />
+                    ) : null}
                   </div>
 
                   {/* Textual Usage Ritual Notes if present */}
@@ -225,9 +240,9 @@ export default function ProductTabs({
           >
             <div className="flex items-center gap-2">
               <span>How to Use</span>
-              {embedUrl && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700">
-                  <Youtube className="w-3 h-3 text-red-600" />
+              {hasVideo && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#1F3A2E]/10 text-[#1F3A2E]">
+                  <Play className="w-2.5 h-2.5 text-[#1F3A2E] fill-current" />
                   <span>Video</span>
                 </span>
               )}
@@ -236,17 +251,27 @@ export default function ProductTabs({
           </button>
           {openMobileSection === 'usage' && (
             <div className="p-4 space-y-4 border-t border-[#EFE9DD]">
-              {embedUrl ? (
+              {hasVideo ? (
                 <div className="space-y-3">
                   <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-md border border-[#EFE9DD] bg-black">
-                    <iframe
-                      src={embedUrl}
-                      title="How to Use Guide"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowFullScreen
-                      className="absolute inset-0 w-full h-full border-0"
-                      loading="lazy"
-                    />
+                    {directVideoSrc ? (
+                      <video
+                        controls
+                        playsInline
+                        preload="metadata"
+                        src={directVideoSrc}
+                        className="w-full h-full object-contain"
+                      />
+                    ) : embedUrl ? (
+                      <iframe
+                        src={embedUrl}
+                        title="How to Use Guide"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full border-0"
+                        loading="lazy"
+                      />
+                    ) : null}
                   </div>
 
                   {youtubeDirectLink && (

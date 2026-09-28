@@ -857,16 +857,16 @@ export default function AdminCategoriesClient() {
       {/* ========================================================================= */}
       <AnimatePresence>
         {isMainModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl max-w-lg w-full border border-[#EFE9DD] shadow-2xl my-8 overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white rounded-3xl max-w-lg w-full border border-[#EFE9DD] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col"
             >
-              <div className="p-6 border-b border-[#EFE9DD] flex items-center justify-between bg-[#F8F6F0]">
+              <div className="p-5 sm:p-6 border-b border-[#EFE9DD] flex items-center justify-between bg-[#F8F6F0] shrink-0">
                 <div>
-                  <h3 className="font-serif text-xl font-bold text-[#1A201C]">
+                  <h3 className="font-serif text-lg sm:text-xl font-bold text-[#1A201C]">
                     {editingMainCategory ? `Edit Main Category` : 'Create Main Category'}
                   </h3>
                   <p className="text-xs text-slate-500 font-light mt-0.5">
@@ -874,112 +874,115 @@ export default function AdminCategoriesClient() {
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setIsMainModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-white transition-colors cursor-pointer"
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-white transition-colors cursor-pointer shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmitMainCategory} className="p-6 space-y-5">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Category Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={mainFormData.name}
-                    onChange={(e) =>
-                      setMainFormData((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                        slug: generateSlug(e.target.value),
-                      }))
-                    }
-                    placeholder="e.g. Skin & Face Care"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-slate-700">
-                      URL Slug / Identifier <span className="text-red-500">*</span>
-                    </label>
-                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Auto-generated
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={mainFormData.slug}
-                    onChange={(e) =>
-                      setMainFormData((prev) => ({ ...prev, slug: generateSlug(e.target.value) }))
-                    }
-                    placeholder="e.g. skin-face-care"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] font-mono bg-slate-50/50"
-                  />
-                </div>
-
-                {/* Industry-Standard Folder / File Image Picker */}
-                <ImageFolderPicker
-                  value={mainFormData.image}
-                  onChange={(url) => setMainFormData((prev) => ({ ...prev, image: url }))}
-                  label="Category Cover Photography"
-                  helperText="Upload photo from your computer folder or drag & drop."
-                />
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Description</label>
-                  <textarea
-                    rows={2}
-                    value={mainFormData.description}
-                    onChange={(e) =>
-                      setMainFormData((prev) => ({ ...prev, description: e.target.value }))
-                    }
-                    placeholder="Brief description of formulations in this category..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+              <form onSubmit={handleSubmitMainCategory} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Status</label>
-                    <select
-                      value={mainFormData.status}
+                    <label className="text-xs font-bold text-slate-700">
+                      Category Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={mainFormData.name}
                       onChange={(e) =>
                         setMainFormData((prev) => ({
                           ...prev,
-                          status: e.target.value as 'active' | 'inactive',
+                          name: e.target.value,
+                          slug: generateSlug(e.target.value),
                         }))
                       }
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                    >
-                      <option value="active">Active (Visible)</option>
-                      <option value="inactive">Inactive (Draft)</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-700">Display Order</label>
-                    <input
-                      type="number"
-                      value={mainFormData.order}
-                      onChange={(e) =>
-                        setMainFormData((prev) => ({ ...prev, order: Number(e.target.value) || 0 }))
-                      }
+                      placeholder="e.g. Skin & Face Care"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
                     />
                   </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700">
+                        URL Slug / Identifier <span className="text-red-500">*</span>
+                      </label>
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        Auto-generated
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={mainFormData.slug}
+                      onChange={(e) =>
+                        setMainFormData((prev) => ({ ...prev, slug: generateSlug(e.target.value) }))
+                      }
+                      placeholder="e.g. skin-face-care"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] font-mono bg-slate-50/50"
+                    />
+                  </div>
+
+                  {/* Industry-Standard Folder / File Image Picker */}
+                  <ImageFolderPicker
+                    value={mainFormData.image}
+                    onChange={(url) => setMainFormData((prev) => ({ ...prev, image: url }))}
+                    label="Category Cover Photography"
+                    helperText="Upload photo from your computer folder or drag & drop."
+                  />
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">Description</label>
+                    <textarea
+                      rows={2}
+                      value={mainFormData.description}
+                      onChange={(e) =>
+                        setMainFormData((prev) => ({ ...prev, description: e.target.value }))
+                      }
+                      placeholder="Brief description of formulations in this category..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">Status</label>
+                      <select
+                        value={mainFormData.status}
+                        onChange={(e) =>
+                          setMainFormData((prev) => ({
+                            ...prev,
+                            status: e.target.value as 'active' | 'inactive',
+                          }))
+                        }
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                      >
+                        <option value="active">Active (Visible)</option>
+                        <option value="inactive">Inactive (Draft)</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-slate-700">Display Order</label>
+                      <input
+                        type="number"
+                        value={mainFormData.order}
+                        onChange={(e) =>
+                          setMainFormData((prev) => ({ ...prev, order: Number(e.target.value) || 0 }))
+                        }
+                        className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="pt-4 border-t border-[#EFE9DD] flex items-center justify-end gap-3">
+                <div className="p-4 sm:p-5 border-t border-[#EFE9DD] bg-white flex items-center justify-end gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsMainModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl border border-[#EFE9DD] text-xs font-bold text-slate-600 cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl border border-[#EFE9DD] hover:bg-[#F8F6F0] text-xs font-bold text-slate-600 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1008,16 +1011,16 @@ export default function AdminCategoriesClient() {
       {/* ========================================================================= */}
       <AnimatePresence>
         {isSubModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm overflow-y-auto">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm overflow-hidden">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl max-w-lg w-full border border-[#EFE9DD] shadow-2xl my-8 overflow-hidden"
+              initial={{ opacity: 0, scale: 0.95, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 15 }}
+              className="bg-white rounded-3xl max-w-lg w-full border border-[#EFE9DD] shadow-2xl overflow-hidden max-h-[92vh] flex flex-col"
             >
-              <div className="p-6 border-b border-[#EFE9DD] flex items-center justify-between bg-[#F8F6F0]">
+              <div className="p-5 sm:p-6 border-b border-[#EFE9DD] flex items-center justify-between bg-[#F8F6F0] shrink-0">
                 <div>
-                  <h3 className="font-serif text-xl font-bold text-[#1A201C]">
+                  <h3 className="font-serif text-lg sm:text-xl font-bold text-[#1A201C]">
                     {editingSubCategory ? `Edit Sub-Category` : 'Create Sub-Category'}
                   </h3>
                   <p className="text-xs text-slate-500 font-light mt-0.5">
@@ -1025,107 +1028,110 @@ export default function AdminCategoriesClient() {
                   </p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setIsSubModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-white transition-colors cursor-pointer"
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-white transition-colors cursor-pointer shrink-0"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmitSubCategory} className="p-6 space-y-5">
-                {/* Parent Category Selection */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Parent Main Category <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={subFormData.parentCategoryId}
-                    onChange={(e) =>
-                      setSubFormData((prev) => ({ ...prev, parentCategoryId: e.target.value }))
-                    }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] cursor-pointer"
-                  >
-                    <option value="" disabled>
-                      Select a parent category...
-                    </option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Sub-Category Name & Slug */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">
-                    Sub-Category Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={subFormData.name}
-                    onChange={(e) =>
-                      setSubFormData((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                        slug: generateSlug(e.target.value),
-                      }))
-                    }
-                    placeholder="e.g. Face Packs & Ubtan"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
+              <form onSubmit={handleSubmitSubCategory} className="flex flex-col flex-1 overflow-hidden min-h-0">
+                <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+                  {/* Parent Category Selection */}
+                  <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700">
-                      URL Slug / Identifier <span className="text-red-500">*</span>
+                      Parent Main Category <span className="text-red-500">*</span>
                     </label>
-                    <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                      Auto-generated
-                    </span>
+                    <select
+                      required
+                      value={subFormData.parentCategoryId}
+                      onChange={(e) =>
+                        setSubFormData((prev) => ({ ...prev, parentCategoryId: e.target.value }))
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] cursor-pointer"
+                    >
+                      <option value="" disabled>
+                        Select a parent category...
+                      </option>
+                      {categories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <input
-                    type="text"
-                    required
-                    value={subFormData.slug}
-                    onChange={(e) =>
-                      setSubFormData((prev) => ({ ...prev, slug: generateSlug(e.target.value) }))
-                    }
-                    placeholder="e.g. face-packs"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] font-mono bg-slate-50/50"
+
+                  {/* Sub-Category Name & Slug */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">
+                      Sub-Category Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={subFormData.name}
+                      onChange={(e) =>
+                        setSubFormData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                          slug: generateSlug(e.target.value),
+                        }))
+                      }
+                      placeholder="e.g. Face Packs & Ubtan"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-700">
+                        URL Slug / Identifier <span className="text-red-500">*</span>
+                      </label>
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        Auto-generated
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      value={subFormData.slug}
+                      onChange={(e) =>
+                        setSubFormData((prev) => ({ ...prev, slug: generateSlug(e.target.value) }))
+                      }
+                      placeholder="e.g. face-packs"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] font-mono bg-slate-50/50"
+                    />
+                  </div>
+
+                  {/* Industry-Standard Folder / File Image Picker */}
+                  <ImageFolderPicker
+                    value={subFormData.image}
+                    onChange={(url) => setSubFormData((prev) => ({ ...prev, image: url }))}
+                    label="Sub-Category Thumbnail Photography"
+                    helperText="Upload photo from your computer folder or drag & drop."
                   />
+
+                  {/* Description */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">Description</label>
+                    <textarea
+                      rows={2}
+                      value={subFormData.description}
+                      onChange={(e) =>
+                        setSubFormData((prev) => ({ ...prev, description: e.target.value }))
+                      }
+                      placeholder="Brief description of this sub-category..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                    />
+                  </div>
                 </div>
 
-                {/* Industry-Standard Folder / File Image Picker */}
-                <ImageFolderPicker
-                  value={subFormData.image}
-                  onChange={(url) => setSubFormData((prev) => ({ ...prev, image: url }))}
-                  label="Sub-Category Thumbnail Photography"
-                  helperText="Upload photo from your computer folder or drag & drop."
-                />
-
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-700">Description</label>
-                  <textarea
-                    rows={2}
-                    value={subFormData.description}
-                    onChange={(e) =>
-                      setSubFormData((prev) => ({ ...prev, description: e.target.value }))
-                    }
-                    placeholder="Brief description of this sub-category..."
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                  />
-                </div>
-
-                <div className="pt-4 border-t border-[#EFE9DD] flex items-center justify-end gap-3">
+                <div className="p-4 sm:p-5 border-t border-[#EFE9DD] bg-white flex items-center justify-end gap-3 shrink-0">
                   <button
                     type="button"
                     onClick={() => setIsSubModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl border border-[#EFE9DD] text-xs font-bold text-slate-600 cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl border border-[#EFE9DD] hover:bg-[#F8F6F0] text-xs font-bold text-slate-600 transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -1154,7 +1160,7 @@ export default function AdminCategoriesClient() {
       {/* ========================================================================= */}
       <AnimatePresence>
         {deletingMainCat && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1197,7 +1203,7 @@ export default function AdminCategoriesClient() {
         )}
 
         {deletingSubCat && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}

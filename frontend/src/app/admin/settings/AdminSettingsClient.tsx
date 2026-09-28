@@ -71,6 +71,7 @@ interface SiteSettings {
     country: string;
     state: string;
     city: string;
+    footerDescription?: string;
     profileImage: string;
     facebook: string;
     instagram: string;
@@ -599,6 +600,8 @@ export default function AdminSettingsClient() {
       country: 'India',
       state: 'Gujarat',
       city: 'Surat',
+      footerDescription:
+        'Pure Ayurvedic medicines, face packs, hair oils, skincare lotions, and authentic herbal wellness handcrafted in Surat, Gujarat.',
       profileImage: '',
       facebook: 'https://www.facebook.com/Roopotkarsh-Vilepan-106128397412060/?ref=pages_you_manage',
       instagram: 'https://www.instagram.com/labdhiherbs/',
@@ -1055,6 +1058,19 @@ export default function AdminSettingsClient() {
                     className={textareaCls}
                     placeholder="e.g. 40, Jay Ambe Society, Makkai Pool Rd, Adajan, Surat, Gujarat 395009"
                   />
+                </FormField>
+
+                <FormField label="Footer Brand Description">
+                  <textarea
+                    rows={3}
+                    value={settings.profile.footerDescription || ''}
+                    onChange={(e) => setProfileField('footerDescription', e.target.value)}
+                    className={textareaCls}
+                    placeholder="e.g. Pure Ayurvedic medicines, face packs, hair oils, skincare lotions, and authentic herbal wellness handcrafted in Surat, Gujarat."
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    This brand description is displayed under the logo in the website footer.
+                  </p>
                 </FormField>
 
                 <ImageUpload
