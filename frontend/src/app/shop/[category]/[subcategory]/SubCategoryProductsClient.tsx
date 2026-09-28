@@ -47,7 +47,7 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
 
   useEffect(() => {
     let isMounted = true;
-    getProducts({ limit: 100 })
+    getProducts({ limit: 500 })
       .then((res) => {
         if (isMounted) {
           if (res.success && Array.isArray(res.data)) {
@@ -68,18 +68,36 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
     };
   }, []);
 
+  // Normalize string: lowercase + replace hyphens with spaces for flexible matching
+  const normalize = (str: string) =>
+    str.toLowerCase().trim().replace(/-/g, ' ');
+
   // Filter products for this subcategory
   const filteredProducts = useMemo(() => {
+    const subNameNorm  = normalize(subCategory.name);
+    const subSlugNorm  = normalize(subCategory.slug || '');
+    const mainNameNorm = normalize(mainCategory.name);
+    const mainSlugNorm = normalize(mainCategory.slug || '');
+
     let list = allProducts.filter((p) => {
+      const pSub  = normalize(p.subCategory  || '');
+      const pMain = normalize(p.mainCategory || '');
+      const pCat  = normalize(p.category     || '');
+
+      // Match subcategory by name or slug (spaces & hyphens treated the same)
       const matchSub =
-        p.subCategory?.toLowerCase() === subCategory.slug.toLowerCase() ||
-        p.subCategory?.toLowerCase() === subCategory.name.toLowerCase() ||
-        p.category.toLowerCase() === subCategory.name.toLowerCase();
+        pSub !== '' &&
+        (pSub === subNameNorm || pSub === subSlugNorm);
 
+      // Match main category (fallback for products without a subCategory)
       const matchMain =
-        p.mainCategory?.toLowerCase() === mainCategory.slug.toLowerCase() ||
-        p.category.toLowerCase() === mainCategory.slug.toLowerCase();
+        pMain === mainNameNorm ||
+        pMain === mainSlugNorm ||
+        pCat  === mainNameNorm ||
+        pCat  === mainSlugNorm;
 
+      // Show product if it belongs to this subcategory,
+      // OR if it belongs to the main category and has no subcategory set
       return matchSub || (matchMain && !p.subCategory);
     });
 
@@ -98,7 +116,8 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
     else if (selectedSort === 'rating') list.sort((a, b) => b.rating - a.rating);
 
     return list;
-  }, [mainCategory, subCategory, selectedBrand, selectedSort]);
+  }, [mainCategory, subCategory, allProducts, selectedBrand, selectedSort]);
+
 
   const displayedProducts = filteredProducts.slice(0, visibleCount);
   const hasMore = visibleCount < filteredProducts.length;
