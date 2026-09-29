@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   subscribe,
+  checkSubscriptionStatus,
   getAllSubscribers,
   getNewsletterSettings,
   updateNewsletterSettings,
@@ -14,8 +15,9 @@ import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// Public route: Customer lead capture & subscription
+// Public routes: Customer lead capture & subscription status check
 router.post('/subscribe', subscribe);
+router.get('/status', checkSubscriptionStatus);
 
 // Admin protected routes: Management, Configuration, Export
 router.get('/', verifyJWT, verifyAdmin, getAllSubscribers);

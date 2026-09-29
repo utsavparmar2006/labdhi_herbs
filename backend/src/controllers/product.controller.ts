@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Product } from '../models/Product.model.js';
+import { Review } from '../models/Review.model.js';
 
 const INITIAL_PRODUCTS = [
   {
@@ -402,6 +403,11 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
+    const startingRating =
+      req.body.baseRating !== undefined && req.body.baseRating !== ''
+        ? Math.min(5, Math.max(1, Number(req.body.baseRating)))
+        : (req.body.rating !== undefined && req.body.rating !== '' ? Math.min(5, Math.max(1, Number(req.body.rating))) : 5.0);
+
     const newProduct = await Product.create({
       id: productId,
       name,
@@ -411,7 +417,8 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       subCategory: subCategory || 'Herbal Formulations',
       price: Number(price),
       originalPrice: originalPrice ? Number(originalPrice) : 0,
-      rating: rating ? Number(rating) : 5.0,
+      baseRating: startingRating,
+      rating: startingRating,
       reviewsCount: reviewsCount ? Number(reviewsCount) : 0,
       image,
       hoverImage: hoverImage || '',
@@ -463,18 +470,35 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
     }
 
     const updates = req.body;
+    let baseRatingChanged = false;
+    if (updates.baseRating !== undefined && updates.baseRating !== '') {
+      const parsed = Math.min(5, Math.max(1, Number(updates.baseRating)));
+      (product as any).baseRating = parsed;
+      baseRatingChanged = true;
+    } else if (updates.rating !== undefined && updates.rating !== '') {
+      const parsed = Math.min(5, Math.max(1, Number(updates.rating)));
+      (product as any).baseRating = parsed;
+      baseRatingChanged = true;
+    }
+
     Object.keys(updates).forEach((key) => {
-      if (key !== '_id') {
+      if (key !== '_id' && key !== 'baseRating' && key !== 'rating') {
         (product as any)[key] = updates[key];
       }
     });
 
     await product.save();
 
+    if (baseRatingChanged) {
+      await Review.calcAverageRating(product.id);
+    }
+
+    const updatedProduct = await Product.findOne({ id: product.id });
+
     res.status(200).json({
       success: true,
       message: 'Product updated successfully',
-      data: product,
+      data: updatedProduct || product,
     });
   } catch (error: any) {
     res.status(500).json({

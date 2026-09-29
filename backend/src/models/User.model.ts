@@ -14,6 +14,7 @@ export interface IUser extends Document {
   role: 'user' | 'admin';
   status: 'active' | 'inactive';
   isOnline: boolean;
+  isSubscribed?: boolean;
   lastLoginAt?: Date;
   refreshToken?: string;
   resetPasswordOtp?: string;
@@ -87,6 +88,10 @@ const userSchema = new Schema<IUser>(
       default: 'active',
     },
     isOnline: {
+      type: Boolean,
+      default: false,
+    },
+    isSubscribed: {
       type: Boolean,
       default: false,
     },

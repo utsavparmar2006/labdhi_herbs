@@ -254,7 +254,7 @@ export const getAdminBlogs = async (_req: Request, res: Response): Promise<void>
   try {
     await ensureSeedBlogs();
 
-    const blogs = await Blog.find().sort({ order: 1, createdAt: -1 });
+    const blogs = await Blog.find().sort({ order: 1, createdAt: -1 }).lean();
 
     const categoriesSet = new Set(blogs.map((b) => b.category).filter(Boolean));
 

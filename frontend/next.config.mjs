@@ -1,7 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  poweredByHeader: false,
   compress: true, // Industry Standard: Gzip/Brotli compression for fast delivery
+
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
+  },
 
   images: {
     formats: ['image/avif', 'image/webp'],

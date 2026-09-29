@@ -161,14 +161,16 @@ export const getAdminCategories = async (req: Request, res: Response): Promise<v
       ];
     }
 
-    const categories = await Category.find(filter).sort({ order: 1, createdAt: -1 });
+    const categories = await Category.find(filter).sort({ order: 1, createdAt: -1 }).lean();
 
     // Calculate summary statistics
-    const totalCategories = await Category.countDocuments();
-    const activeCategories = await Category.countDocuments({ status: 'active' });
-    const inactiveCategories = await Category.countDocuments({ status: 'inactive' });
+    const [totalCategories, activeCategories, inactiveCategories, allCats] = await Promise.all([
+      Category.countDocuments(),
+      Category.countDocuments({ status: 'active' }),
+      Category.countDocuments({ status: 'inactive' }),
+      Category.find({}, { subCategories: 1 }).lean(),
+    ]);
 
-    const allCats = await Category.find();
     let totalSubCategories = 0;
     allCats.forEach((c) => {
       totalSubCategories += c.subCategories?.length || 0;

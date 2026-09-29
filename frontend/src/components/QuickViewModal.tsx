@@ -8,7 +8,7 @@ import { useState } from 'react';
 interface QuickViewModalProps {
   product: Product | null;
   onClose: () => void;
-  onAddToCart: (product: Product, quantity: number) => void;
+  onAddToCart: (product: Product, quantity: number) => any;
 }
 
 export default function QuickViewModal({ product, onClose, onAddToCart }: QuickViewModalProps) {
@@ -18,12 +18,14 @@ export default function QuickViewModal({ product, onClose, onAddToCart }: QuickV
   if (!product) return null;
 
   const handleAdd = () => {
-    onAddToCart(product, quantity);
-    setIsAdded(true);
-    setTimeout(() => {
-      setIsAdded(false);
-      onClose();
-    }, 1200);
+    const res = onAddToCart(product, quantity);
+    if (res !== false) {
+      setIsAdded(true);
+      setTimeout(() => {
+        setIsAdded(false);
+        onClose();
+      }, 1200);
+    }
   };
 
   return (

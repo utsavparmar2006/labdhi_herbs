@@ -241,7 +241,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
           twitter: d.social?.twitter || d.profile?.twitter || '',
         };
 
-        setSettings({
+        const finalSettings = {
           ...DEFAULT_SETTINGS,
           ...d,
           supportPhone: activePhone,
@@ -261,7 +261,14 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
           banners: Array.isArray(d.banners) ? d.banners : [],
           copyrightText: d.copyrightText || DEFAULT_SETTINGS.copyrightText,
           profile: mergedProfile,
-        });
+        };
+
+        setSettings(finalSettings);
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('labdhi_cached_site_settings', JSON.stringify(finalSettings));
+          }
+        } catch (_) {}
       }
     } catch (_) {
       // Offline fallback
@@ -271,6 +278,20 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
   }, []);
 
   useEffect(() => {
+    // Instant hydration from cache to prevent layout shift
+    try {
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem('labdhi_cached_site_settings');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object') {
+            setSettings(parsed);
+            setLoading(false);
+          }
+        }
+      }
+    } catch (_) {}
+
     fetchSettings();
 
     const handleUpdate = () => {

@@ -196,8 +196,10 @@ export const getAdminStories = async (_req: Request, res: Response): Promise<voi
       }
     }
 
-    const stories = await Story.find(filter).sort({ order: 1, createdAt: -1 });
-    const allStories = type || catFilter || subCategory ? await Story.find() : stories;
+    const stories = await Story.find(filter).sort({ order: 1, createdAt: -1 }).lean();
+    const allStories = type || catFilter || subCategory
+      ? await Story.find({}, { status: 1, storyType: 1, videoUrl: 1, featured: 1 }).lean()
+      : stories;
 
     const stats = {
       totalStories: allStories.length,

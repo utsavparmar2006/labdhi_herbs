@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { User, IUser } from '../models/User.model.js';
+import Subscriber from '../models/Subscriber.model.js';
 import { AuthRequest } from '../middlewares/auth.middleware.js';
 
 // Helper function to generate Access & Refresh tokens and save Refresh Token to DB
@@ -59,12 +60,17 @@ export const registerUser = async (
       return;
     }
 
+    // Check if user has already subscribed with this email earlier
+    const existingSubscriber = await Subscriber.findOne({ email: email.toLowerCase() });
+    const isSubscribed = !!(existingSubscriber && existingSubscriber.status !== 'unsubscribed');
+
     const user = await User.create({
       name,
       email: email.toLowerCase(),
       password,
       phone: phone || '',
       role: 'user',
+      isSubscribed,
     });
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
@@ -93,6 +99,7 @@ export const registerUser = async (
             email: user.email,
             phone: user.phone,
             role: user.role,
+            isSubscribed: !!user.isSubscribed,
             createdAt: user.createdAt,
           },
           accessToken,
@@ -153,6 +160,16 @@ export const loginUser = async (
       return;
     }
 
+    // Sync subscription status with Subscriber collection
+    let isSubscribed = !!user.isSubscribed;
+    if (!isSubscribed) {
+      const existingSubscriber = await Subscriber.findOne({ email: user.email.toLowerCase() });
+      if (existingSubscriber && existingSubscriber.status !== 'unsubscribed') {
+        isSubscribed = true;
+        user.isSubscribed = true;
+      }
+    }
+
     user.lastLoginAt = new Date();
     user.isOnline = true;
     await user.save();
@@ -183,6 +200,7 @@ export const loginUser = async (
             email: user.email,
             phone: user.phone,
             role: user.role,
+            isSubscribed,
             createdAt: user.createdAt,
           },
           accessToken,
@@ -321,10 +339,28 @@ export const getCurrentUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    let isSubscribed = !!req.user.isSubscribed;
+    if (!isSubscribed && req.user.email) {
+      const existingSubscriber = await Subscriber.findOne({ email: req.user.email.toLowerCase() });
+      if (existingSubscriber && existingSubscriber.status !== 'unsubscribed') {
+        isSubscribed = true;
+        req.user.isSubscribed = true;
+        await req.user.save();
+      }
+    }
+
+    const userObj = req.user.toObject ? req.user.toObject() : { ...req.user };
+    userObj.isSubscribed = isSubscribed;
+
     res.status(200).json({
       success: true,
       data: {
-        user: req.user,
+        user: userObj,
       },
     });
   } catch (error) {

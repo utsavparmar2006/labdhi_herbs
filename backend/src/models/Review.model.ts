@@ -109,6 +109,12 @@ ReviewSchema.index({ productId: 1, status: 1, createdAt: -1 });
 // Static method to recalculate product average rating and count
 ReviewSchema.statics.calcAverageRating = async function (productId: string) {
   try {
+    const product = await Product.findOne({ id: productId });
+    const baseRating =
+      product && typeof product.baseRating === 'number' && !isNaN(product.baseRating)
+        ? product.baseRating
+        : (product && typeof product.rating === 'number' && !isNaN(product.rating) ? product.rating : 5.0);
+
     const stats = await this.aggregate([
       {
         $match: {
@@ -120,26 +126,29 @@ ReviewSchema.statics.calcAverageRating = async function (productId: string) {
         $group: {
           _id: '$productId',
           reviewsCount: { $sum: 1 },
-          avgRating: { $avg: '$rating' },
+          totalRatingSum: { $sum: '$rating' },
         },
       },
     ]);
 
-    if (stats.length > 0) {
-      const roundedRating = Math.round(stats[0].avgRating * 10) / 10;
+    if (stats.length > 0 && stats[0].reviewsCount > 0) {
+      const custCount = stats[0].reviewsCount;
+      const custSum = stats[0].totalRatingSum;
+      // Formula: (baseRating + customerRatingsSum) / (1 + customerCount)
+      const blendedRating = Math.round(((baseRating + custSum) / (1 + custCount)) * 10) / 10;
       await Product.findOneAndUpdate(
         { id: productId },
         {
-          rating: roundedRating,
-          reviewsCount: stats[0].reviewsCount,
+          rating: blendedRating,
+          reviewsCount: custCount,
         }
       );
     } else {
-      // If no approved reviews exist, maintain 5.0 default rating and 0 count
+      // If no approved reviews exist, maintain baseRating and 0 customer reviews count
       await Product.findOneAndUpdate(
         { id: productId },
         {
-          rating: 5.0,
+          rating: baseRating,
           reviewsCount: 0,
         }
       );

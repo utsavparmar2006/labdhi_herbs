@@ -22,6 +22,7 @@ import subscriberRoutes from './routes/subscriber.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app: Application = express();
+app.disable('x-powered-by');
 
 // Security HTTP Headers with cross-origin resource sharing for uploads
 app.use(
@@ -39,9 +40,16 @@ app.use(
   })
 );
 
-// Static uploads folder for serving uploaded images
+// Static uploads folder for serving uploaded images with 7-day browser caching
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
-app.use('/uploads', express.static(UPLOAD_DIR));
+app.use(
+  '/uploads',
+  express.static(UPLOAD_DIR, {
+    maxAge: '7d',
+    etag: true,
+    lastModified: true,
+  })
+);
 
 // HTTP Request Logger
 app.use(morgan('dev'));

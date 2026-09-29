@@ -173,6 +173,8 @@ export default function AdminSubscribersClient() {
             res.data.adminNotificationEmail || res.companyProfile?.adminEmail || prev.adminNotificationEmail,
           adminWhatsAppNumber:
             res.data.adminWhatsAppNumber || res.companyProfile?.whatsappNumber || prev.adminWhatsAppNumber,
+          smtpUser:
+            res.data.smtpUser || res.companyProfile?.adminEmail || prev.smtpUser,
         }));
         setSettingsLoaded(true);
       }
@@ -183,7 +185,8 @@ export default function AdminSubscribersClient() {
 
   useEffect(() => {
     fetchSubscribers();
-  }, [fetchSubscribers]);
+    fetchSettings();
+  }, [fetchSubscribers, fetchSettings]);
 
   useEffect(() => {
     if (activeTab === 'settings' && !settingsLoaded) {
@@ -251,7 +254,8 @@ export default function AdminSubscribersClient() {
 
   // Helper to open 1-click WhatsApp message to customer from Admin
   const openWhatsAppChat = (subscriber: SubscriberItem) => {
-    const rawDigits = subscriber.phone.replace(/\D/g, '');
+    let rawDigits = (subscriber.phone || '').replace(/\D/g, '');
+    if (rawDigits.startsWith('0')) rawDigits = rawDigits.substring(1);
     const formattedPhone = rawDigits.length === 10 ? `91${rawDigits}` : rawDigits;
 
     // Use the customized template configured by Admin!
@@ -263,10 +267,11 @@ export default function AdminSubscribersClient() {
       .replace(/\{name\}/gi, subscriber.name || 'Customer')
       .replace(/\{couponCode\}/gi, subscriber.discountCode || settings.defaultCouponCode || 'WELCOME10')
       .replace(/\{companyName\}/gi, 'Labdhi Herbs')
-      .replace(/\{phone\}/gi, subscriber.phone || '');
+      .replace(/\{phone\}/gi, subscriber.phone || '')
+      .replace(/\{adminPhone\}/gi, settings.adminWhatsAppNumber || '+91 93283 49328');
 
     window.open(`https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodeURIComponent(msg)}`, '_blank');
-    showToast(`WhatsApp message opened for ${subscriber.name}!`);
+    showToast(`WhatsApp chat opened for ${subscriber.name}!`);
   };
 
   // Test Email Handler
@@ -585,10 +590,14 @@ export default function AdminSubscribersClient() {
                               {/* WhatsApp & Email */}
                               <td className="py-3.5 px-4">
                                 <div className="space-y-1">
-                                  <div className="flex items-center gap-1.5 font-medium text-slate-800">
-                                    <Phone className="w-3 h-3 text-emerald-600" />
-                                    <span>{item.phone}</span>
-                                  </div>
+                                  <button
+                                    onClick={() => openWhatsAppChat(item)}
+                                    className="flex items-center gap-1.5 font-medium text-slate-800 hover:text-emerald-700 transition-colors cursor-pointer group"
+                                    title="Click to chat directly on WhatsApp"
+                                  >
+                                    <Phone className="w-3.5 h-3.5 text-emerald-600 group-hover:scale-110 transition-transform" />
+                                    <span className="font-semibold underline decoration-slate-300 underline-offset-2">{item.phone}</span>
+                                  </button>
                                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                                     <Mail className="w-3 h-3 text-slate-400" />
                                     <span>{item.email}</span>
@@ -642,20 +651,25 @@ export default function AdminSubscribersClient() {
                                   <button
                                     onClick={() => openWhatsAppChat(item)}
                                     className="px-2.5 py-1.5 rounded-lg bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs hover:shadow-sm"
-                                    title="Send WhatsApp welcome message to this customer"
+                                    title="Open WhatsApp chat with pre-filled message"
                                   >
                                     <MessageCircle className="w-3.5 h-3.5 fill-white" />
                                     <span>Send WhatsApp</span>
                                   </button>
 
-                                  {/* Re-send Auto Message */}
+                                  {/* Re-send Auto Email */}
                                   <button
                                     onClick={() => handleResend(item._id, item.name)}
                                     disabled={actionLoadingId === item._id}
-                                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
-                                    title="Re-dispatch welcome voucher message"
+                                    className="px-2.5 py-1.5 rounded-lg bg-[#14261E] hover:bg-[#1f3a2e] text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs hover:shadow-sm disabled:opacity-50"
+                                    title="Send / Re-send welcome email to this customer"
                                   >
-                                    <Send className="w-3.5 h-3.5" />
+                                    {actionLoadingId === item._id ? (
+                                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                      <Mail className="w-3.5 h-3.5 text-[#D4A373]" />
+                                    )}
+                                    <span>Send Email</span>
                                   </button>
 
                                   {/* Delete Lead */}

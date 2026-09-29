@@ -20,14 +20,16 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
       touchMultiplier: 2.0,
     });
 
+    let rafId: number;
     function raf(time: number) {
       lenis.raf(time);
-      requestAnimationFrame(raf);
+      rafId = requestAnimationFrame(raf);
     }
 
-    requestAnimationFrame(raf);
+    rafId = requestAnimationFrame(raf);
 
     return () => {
+      if (rafId) cancelAnimationFrame(rafId);
       lenis.destroy();
     };
   }, []);

@@ -137,15 +137,19 @@ export default function ProductClient({ productId }: ProductClientProps) {
 
   const handleAddToCart = (targetProduct = product, qty = quantity) => {
     if (!targetProduct) return;
-    addToCart(targetProduct, qty);
-    setIsAddedSuccess(true);
-    setTimeout(() => setIsAddedSuccess(false), 2000);
+    const added = addToCart(targetProduct, qty);
+    if (added) {
+      setIsAddedSuccess(true);
+      setTimeout(() => setIsAddedSuccess(false), 2000);
+    }
   };
 
   const handleBuyNow = () => {
     if (!product) return;
-    addToCart(product, quantity);
-    router.push('/checkout');
+    const added = addToCart(product, quantity);
+    if (added) {
+      router.push('/checkout');
+    }
   };
 
   return (
@@ -227,7 +231,9 @@ export default function ProductClient({ productId }: ProductClientProps) {
                     <span>{product.rating}</span>
                   </div>
                   <span className="text-slate-500 font-light group-hover:text-[#14261E] group-hover:underline transition-colors">
-                    Based on {product.reviewsCount} customer {product.reviewsCount === 1 ? 'review' : 'reviews'}
+                    {product.reviewsCount > 0
+                      ? `Based on ${product.reviewsCount} customer ${product.reviewsCount === 1 ? 'review' : 'reviews'}`
+                      : 'Authentic Formulation Rating'}
                   </span>
                 </a>
               </div>

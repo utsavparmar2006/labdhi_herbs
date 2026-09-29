@@ -186,6 +186,7 @@ export default function Header({
     if (typeof window !== 'undefined') {
       localStorage.removeItem('accessToken');
       localStorage.removeItem('user');
+      sessionStorage.removeItem('labdhi_just_subscribed');
       window.dispatchEvent(new Event('authChange'));
     }
     setUser(null);

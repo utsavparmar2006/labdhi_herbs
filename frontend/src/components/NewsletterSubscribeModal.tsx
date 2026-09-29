@@ -41,12 +41,30 @@ export default function NewsletterSubscribeModal({
   const [couponCode, setCouponCode] = useState('WELCOME10');
   const [copied, setCopied] = useState(false);
 
-  // Sync initialEmail when opened
+  // Reset and pre-populate when modal opens
   useEffect(() => {
-    if (initialEmail) {
-      setEmail(initialEmail);
+    if (isOpen) {
+      setIsSuccess(false);
+      setErrorMessage('');
+      setCopied(false);
+
+      let loggedInUser: any = null;
+      try {
+        const userRaw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+        if (userRaw) loggedInUser = JSON.parse(userRaw);
+      } catch (e) {
+        // ignore
+      }
+
+      // Priority 1: initialEmail from footer input, Priority 2: logged-in user email
+      const activeEmail = initialEmail || loggedInUser?.email || '';
+      setEmail(activeEmail);
+
+      // Name & Phone from logged-in user if available
+      setName(loggedInUser?.name || '');
+      setPhone(loggedInUser?.phone || '');
     }
-  }, [initialEmail]);
+  }, [isOpen, initialEmail]);
 
   // Handle ESC key to close
   useEffect(() => {
@@ -58,25 +76,6 @@ export default function NewsletterSubscribeModal({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
-
-  // Check if user is already subscribed when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      try {
-        const saved = localStorage.getItem('labdhi_subscribed');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed?.subscribed) {
-            setCouponCode(parsed.couponCode || 'WELCOME10');
-            setName(parsed.name || '');
-            setIsSuccess(true);
-          }
-        }
-      } catch (e) {
-        // ignore
-      }
-    }
-  }, [isOpen]);
 
   // Reset states when closed
   const handleModalClose = () => {
@@ -120,6 +119,7 @@ export default function NewsletterSubscribeModal({
         setIsSuccess(true);
 
         try {
+          // 1. Save subscription details
           localStorage.setItem(
             'labdhi_subscribed',
             JSON.stringify({
@@ -130,10 +130,21 @@ export default function NewsletterSubscribeModal({
               subscribedAt: new Date().toISOString(),
             })
           );
-          // Mark this session as "just subscribed" so Footer can show the banner
-          // even if the user is not logged in (clears when tab/browser closes)
+
+          // 2. Mark this session as just subscribed
           sessionStorage.setItem('labdhi_just_subscribed', 'true');
+
+          // 3. If a user is logged in, mark user.isSubscribed = true
+          const userRaw = localStorage.getItem('user');
+          if (userRaw) {
+            const u = JSON.parse(userRaw);
+            u.isSubscribed = true;
+            localStorage.setItem('user', JSON.stringify(u));
+          }
+
+          // 4. Notify app components
           window.dispatchEvent(new Event('labdhi_newsletter_subscribed'));
+          window.dispatchEvent(new Event('authChange'));
         } catch (e) {
           // ignore
         }

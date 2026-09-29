@@ -22,6 +22,7 @@ export interface Product {
   subCategory?: string;
   price: number;
   originalPrice?: number;
+  baseRating?: number;
   rating: number;
   reviewsCount: number;
   image: string;

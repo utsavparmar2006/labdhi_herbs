@@ -131,24 +131,50 @@ export async function updateHomePageConfig(
   }
 }
 
+let cachedCategories: { data: MainCategory[]; timestamp: number } | null = null;
+let pendingCategoriesPromise: Promise<MainCategory[]> | null = null;
+
+export function invalidateCategoriesCache() {
+  cachedCategories = null;
+  pendingCategoriesPromise = null;
+}
+
 /**
- * Fetch active Main Categories for public Shop page
+ * Fetch active Main Categories for public Shop page with request deduplication and caching
  */
-export async function getCategories(): Promise<MainCategory[]> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/v1/categories`, {
-      cache: 'no-store',
-    });
-
-    if (!res.ok) {
-      return [];
-    }
-
-    const data = await res.json();
-    return data.success ? data.data : [];
-  } catch (e) {
-    return [];
+export async function getCategories(forceRefresh = false): Promise<MainCategory[]> {
+  const now = Date.now();
+  if (!forceRefresh && cachedCategories && now - cachedCategories.timestamp < 30000) {
+    return cachedCategories.data;
   }
+  if (!forceRefresh && pendingCategoriesPromise) {
+    return pendingCategoriesPromise;
+  }
+
+  pendingCategoriesPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/v1/categories`, {
+        cache: 'no-store',
+      });
+
+      if (!res.ok) {
+        return cachedCategories?.data || [];
+      }
+
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        cachedCategories = { data: data.data, timestamp: Date.now() };
+        return data.data;
+      }
+      return cachedCategories?.data || [];
+    } catch (e) {
+      return cachedCategories?.data || [];
+    } finally {
+      pendingCategoriesPromise = null;
+    }
+  })();
+
+  return pendingCategoriesPromise;
 }
 
 /**
@@ -213,6 +239,7 @@ export async function createCategory(
     });
 
     const data = await res.json();
+    if (data.success) invalidateCategoriesCache();
     return data;
   } catch (error: any) {
     return {
@@ -242,6 +269,7 @@ export async function updateCategory(
     });
 
     const data = await res.json();
+    if (data.success) invalidateCategoriesCache();
     return data;
   } catch (error: any) {
     return {
@@ -268,6 +296,7 @@ export async function toggleCategoryStatus(
     });
 
     const data = await res.json();
+    if (data.success) invalidateCategoriesCache();
     return data;
   } catch (error: any) {
     return {
@@ -294,6 +323,7 @@ export async function deleteCategory(
     });
 
     const data = await res.json();
+    if (data.success) invalidateCategoriesCache();
     return data;
   } catch (error: any) {
     return {
@@ -1655,6 +1685,32 @@ export async function subscribeToNewsletter(payload: {
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+/**
+ * Public: Check if an email is already subscribed
+ */
+export async function checkSubscriberStatus(email: string): Promise<{
+  success: boolean;
+  subscribed?: boolean;
+  data?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    couponCode?: string;
+    subscribedAt?: string;
+  };
+  message?: string;
+}> {
+  const res: any = await apiRequest(`/v1/subscribers/status?email=${encodeURIComponent(email)}`, {
+    method: 'GET',
+  });
+  return {
+    success: !!res?.success,
+    subscribed: !!res?.subscribed,
+    data: res?.data,
+    message: res?.message,
+  };
 }
 
 /**

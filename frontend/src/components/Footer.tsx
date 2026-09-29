@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import OriginalTransparentLogo from './OriginalTransparentLogo';
 import NewsletterSubscribeModal from './NewsletterSubscribeModal';
+import AuthModal from './AuthModal';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MapPin, 
   Phone, 
@@ -17,8 +19,12 @@ import {
   ShieldCheck,
   CheckCircle2,
   Sparkles,
+  LogIn,
+  Lock,
+  X,
 } from 'lucide-react';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { checkSubscriberStatus } from '../services/api';
 
 export default function Footer() {
   const { settings, profile } = useSiteSettings();
@@ -27,37 +33,76 @@ export default function Footer() {
   const [isAlreadySubscribed, setIsAlreadySubscribed] = useState(false);
   const [subscribedData, setSubscribedData] = useState<{ name?: string; couponCode?: string } | null>(null);
 
+  // Login prompt popup states
+  const [isLoginPromptOpen, setIsLoginPromptOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [pendingSubscribeAfterLogin, setPendingSubscribeAfterLogin] = useState(false);
+
   useEffect(() => {
-    const checkSubscribed = () => {
+    let isCancelled = false;
+
+    const checkSubscribed = async () => {
       try {
-        const saved = localStorage.getItem('labdhi_subscribed');
-        if (!saved) return;
+        const justSubscribed = typeof window !== 'undefined' && sessionStorage.getItem('labdhi_just_subscribed') === 'true';
+        const saved = typeof window !== 'undefined' ? localStorage.getItem('labdhi_subscribed') : null;
+        const parsed = saved ? JSON.parse(saved) : null;
 
-        const parsed = JSON.parse(saved);
-        if (!parsed?.subscribed) return;
+        // If the user just completed subscription in this browser session, show the banner immediately!
+        if (justSubscribed && parsed?.subscribed) {
+          if (!isCancelled) {
+            setIsAlreadySubscribed(true);
+            setSubscribedData(parsed);
+          }
+          return;
+        }
 
-        // Get the currently logged-in user (if any)
-        const userRaw = localStorage.getItem('user');
+        const userRaw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
         const loggedInUser = userRaw ? JSON.parse(userRaw) : null;
         const loggedInEmail = loggedInUser?.email?.toLowerCase().trim();
-        const savedEmail = parsed?.email?.toLowerCase().trim();
 
-        // Only show the subscribed banner if:
-        // 1. The saved email matches the currently logged-in user's email, OR
-        // 2. There's no logged-in user but the subscription was just done this session
-        //    (checked via sessionStorage flag to avoid persisting across sessions)
-        const justSubscribed = sessionStorage.getItem('labdhi_just_subscribed') === 'true';
+        if (loggedInUser && loggedInEmail) {
+          // If local user data is already marked subscribed, show initial banner quickly
+          if (loggedInUser.isSubscribed) {
+            if (!isCancelled) {
+              setIsAlreadySubscribed(true);
+              setSubscribedData(
+                parsed?.email?.toLowerCase() === loggedInEmail
+                  ? parsed
+                  : { name: loggedInUser.name, couponCode: 'WELCOME10' }
+              );
+            }
+          }
 
-        if (loggedInEmail && savedEmail && loggedInEmail === savedEmail) {
-          // Logged-in user's email matches the subscriber email
-          setIsAlreadySubscribed(true);
-          setSubscribedData(parsed);
-        } else if (!loggedInEmail && justSubscribed) {
-          // Not logged in but just subscribed in this session
-          setIsAlreadySubscribed(true);
-          setSubscribedData(parsed);
+          // Verify with backend database
+          const statusRes = await checkSubscriberStatus(loggedInEmail);
+          if (isCancelled) return;
+
+          if (statusRes.success && statusRes.subscribed) {
+            setIsAlreadySubscribed(true);
+            setSubscribedData(statusRes.data || { name: loggedInUser.name, couponCode: 'WELCOME10' });
+
+            if (!loggedInUser.isSubscribed) {
+              loggedInUser.isSubscribed = true;
+              localStorage.setItem('user', JSON.stringify(loggedInUser));
+            }
+            localStorage.setItem(
+              'labdhi_subscribed',
+              JSON.stringify({
+                subscribed: true,
+                ...(statusRes.data || {}),
+              })
+            );
+          } else {
+            // Not subscribed in database
+            setIsAlreadySubscribed(false);
+            setSubscribedData(null);
+            if (loggedInUser.isSubscribed) {
+              loggedInUser.isSubscribed = false;
+              localStorage.setItem('user', JSON.stringify(loggedInUser));
+            }
+          }
         } else {
-          // Different user or new browser session — don't show subscribed state
+          // Guest visitor: Not subscribed
           setIsAlreadySubscribed(false);
           setSubscribedData(null);
         }
@@ -66,12 +111,31 @@ export default function Footer() {
       }
     };
 
+    const handleAuthChange = () => {
+      checkSubscribed();
+      try {
+        const userRaw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+        const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+        if (userRaw && token && pendingSubscribeAfterLogin) {
+          setPendingSubscribeAfterLogin(false);
+          setIsAuthModalOpen(false);
+          setTimeout(() => {
+            setIsSubscribeModalOpen(true);
+          }, 350);
+        }
+      } catch (e) {}
+    };
+
     checkSubscribed();
     window.addEventListener('labdhi_newsletter_subscribed', checkSubscribed);
+    window.addEventListener('authChange', handleAuthChange);
+
     return () => {
+      isCancelled = true;
       window.removeEventListener('labdhi_newsletter_subscribed', checkSubscribed);
+      window.removeEventListener('authChange', handleAuthChange);
     };
-  }, []);
+  }, [pendingSubscribeAfterLogin]);
 
 
   const fullAddress = settings.address || profile.address || '40, Jay Ambe Society, Makkai Pool Rd, Adajan, Surat, Gujarat 395009';
@@ -148,7 +212,15 @@ export default function Footer() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  setIsSubscribeModalOpen(true);
+                  const userRaw = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+                  const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+                  const isLoggedIn = !!(userRaw && token);
+
+                  if (!isLoggedIn) {
+                    setIsLoginPromptOpen(true);
+                  } else {
+                    setIsSubscribeModalOpen(true);
+                  }
                 }}
                 className="flex flex-col sm:flex-row w-full lg:w-auto max-w-md gap-2.5 sm:gap-2"
               >
@@ -170,12 +242,124 @@ export default function Footer() {
           )}
         </div>
 
-        {/* Modal Dialog for Lead Capture */}
+        {/* Modal Dialog for Lead Capture (for logged in members) */}
         <NewsletterSubscribeModal
           isOpen={isSubscribeModalOpen}
           onClose={() => setIsSubscribeModalOpen(false)}
           initialEmail={subscribeEmailInput}
           source="footer_newsletter"
+        />
+
+        {/* Login Required Popup Modal for Unauthenticated Users */}
+        <AnimatePresence>
+          {isLoginPromptOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsLoginPromptOpen(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+              />
+
+              {/* Modal Card */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="relative w-full max-w-md bg-[#F8F6F0] rounded-3xl shadow-2xl border border-[#EFE9DD] overflow-hidden z-10 my-8 text-left"
+              >
+                {/* Header Banner */}
+                <div className="bg-[#14261E] text-white px-6 sm:px-7 pt-6 pb-5 relative overflow-hidden">
+                  <div className="absolute -top-10 -right-10 w-36 h-36 bg-[#D4A373]/20 rounded-full blur-2xl pointer-events-none" />
+
+                  <button
+                    onClick={() => setIsLoginPromptOpen(false)}
+                    className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-[#D4A373] text-[11px] font-bold uppercase tracking-wider mb-2">
+                    <Lock className="w-3 h-3 text-[#D4A373]" />
+                    <span>Member Exclusive Benefit</span>
+                  </div>
+
+                  <h3 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-white leading-snug">
+                    Login Required to Subscribe 🌿
+                  </h3>
+                  <p className="text-xs text-emerald-100/75 mt-1 font-light leading-relaxed">
+                    Please log in or create an account to activate your subscription and unlock your 10% welcome discount.
+                  </p>
+                </div>
+
+                {/* Body Content */}
+                <div className="p-6 sm:p-7 space-y-5">
+                  <div className="space-y-2.5 text-xs text-slate-700 bg-white p-4 rounded-2xl border border-[#EFE9DD] shadow-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 font-bold text-xs">
+                        🎁
+                      </div>
+                      <span className="font-medium">Instant 10% OFF discount coupon voucher</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 font-bold text-xs">
+                        💬
+                      </div>
+                      <span className="font-medium">Herbal wellness advice &amp; offers on WhatsApp &amp; Email</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 font-bold text-xs">
+                        🌿
+                      </div>
+                      <span className="font-medium">Discount code linked safely to your personal account</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-slate-500 text-center leading-relaxed">
+                    Already registered or joining us for the first time? Click below to log in or create your free account in 30 seconds.
+                  </p>
+
+                  {/* Actions */}
+                  <div className="space-y-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsLoginPromptOpen(false);
+                        setPendingSubscribeAfterLogin(true);
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="w-full py-3.5 px-6 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white text-xs font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95"
+                    >
+                      <LogIn className="w-4 h-4 text-[#D4A373]" />
+                      <span>Login / Create Account Now</span>
+                      <ArrowRight className="w-4 h-4 text-[#D4A373]" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setIsLoginPromptOpen(false)}
+                      className="w-full py-2.5 rounded-xl text-slate-500 hover:text-slate-800 text-xs font-medium transition-colors cursor-pointer text-center"
+                    >
+                      Maybe Later
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        {/* Authentication Modal (Forwarded from Login Prompt) */}
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => {
+            setIsAuthModalOpen(false);
+            setPendingSubscribeAfterLogin(false);
+          }}
         />
 
         {/* 4-Column Footer Navigation */}

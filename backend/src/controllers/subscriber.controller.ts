@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
-import Subscriber from '../models/Subscriber.model';
-import SiteSettings from '../models/SiteSettings.model';
-import { sendEmail, verifyAndSendTestEmail } from '../utils/mailer';
-import { sendDirectWhatsAppMessage } from '../utils/whatsappGateway';
+import Subscriber from '../models/Subscriber.model.js';
+import { User } from '../models/User.model.js';
+import SiteSettings from '../models/SiteSettings.model.js';
+import { sendEmail, verifyAndSendTestEmail } from '../utils/mailer.js';
+import { sendDirectWhatsAppMessage } from '../utils/whatsappGateway.js';
 
 // Helper to replace template tags safely
 function replaceTemplateTags(template: string, vars: Record<string, string>): string {
@@ -231,11 +232,11 @@ export async function subscribe(req: Request, res: Response) {
         html: brandedEmailHtml,
         fromName: config.smtpSenderName || 'Labdhi Herbs Authentic Ayurveda',
         smtpConfig: {
-          host: config.smtpHost,
-          port: config.smtpPort,
-          user: config.smtpUser,
-          pass: config.smtpPass,
-          senderName: config.smtpSenderName,
+          host: config.smtpHost || process.env.SMTP_HOST || 'smtp.gmail.com',
+          port: config.smtpPort || Number(process.env.SMTP_PORT) || 587,
+          user: config.smtpUser || process.env.SMTP_USER || settings.supportEmail || config.adminNotificationEmail || '',
+          pass: config.smtpPass || process.env.SMTP_PASS || '',
+          senderName: config.smtpSenderName || 'Labdhi Herbs Authentic Ayurveda',
         },
       });
 
@@ -273,6 +274,16 @@ export async function subscribe(req: Request, res: Response) {
     }
     subscriber.whatsappStatus = whatsappStatus;
     await subscriber.save();
+
+    // Sync registered User account if email matches
+    try {
+      await User.findOneAndUpdate(
+        { email: cleanEmail },
+        { $set: { isSubscribed: true } }
+      );
+    } catch (e) {
+      console.error('[User Sync Error on Subscribe]', e);
+    }
 
     // 3. Notify Admin of New Lead
     if (config.notifyAdmin && config.adminNotificationEmail) {
@@ -521,20 +532,25 @@ export async function resendMessage(req: Request, res: Response) {
     const personalizedWhatsapp = replaceTemplateTags(config?.whatsappMessageTemplate || '', templateVars);
 
     // Send email
-    if (config?.smtpHost && config?.smtpUser) {
-      await sendEmail({
+    const smtpUser = config?.smtpUser || process.env.SMTP_USER || settings?.supportEmail || config?.adminNotificationEmail || '';
+    const smtpPass = config?.smtpPass || process.env.SMTP_PASS || '';
+    const smtpHost = config?.smtpHost || process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = config?.smtpPort || Number(process.env.SMTP_PORT) || 587;
+
+    if (smtpUser && smtpPass) {
+      const emailResult = await sendEmail({
         to: subscriber.email,
         subject: personalizedSubject,
         html: brandedHtml,
-        fromName: config?.smtpSenderName,
+        fromName: config?.smtpSenderName || 'Labdhi Herbs Authentic Ayurveda',
         smtpConfig: {
-          host: config?.smtpHost,
-          port: config?.smtpPort,
-          user: config?.smtpUser,
-          pass: config?.smtpPass,
+          host: smtpHost,
+          port: smtpPort,
+          user: smtpUser,
+          pass: smtpPass,
         },
       });
-      subscriber.emailStatus = 'sent';
+      subscriber.emailStatus = emailResult.success && !emailResult.simulated ? 'sent' : 'failed';
     }
 
     subscriber.lastContactedAt = new Date();
@@ -618,3 +634,41 @@ export async function testWhatsAppGateway(req: Request, res: Response) {
     return res.status(500).json({ success: false, message: err?.message || 'Failed to dispatch test WhatsApp' });
   }
 }
+
+/**
+ * Public Endpoint: Check if an email is already subscribed
+ */
+export async function checkSubscriptionStatus(req: Request, res: Response) {
+  try {
+    const { email } = req.query;
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return res.status(200).json({ success: true, subscribed: false });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const subscriber = await Subscriber.findOne({ email: cleanEmail });
+
+    if (subscriber && subscriber.status !== 'unsubscribed') {
+      return res.status(200).json({
+        success: true,
+        subscribed: true,
+        data: {
+          name: subscriber.name,
+          email: subscriber.email,
+          phone: subscriber.phone,
+          couponCode: subscriber.discountCode || 'WELCOME10',
+          subscribedAt: subscriber.createdAt,
+        },
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      subscribed: false,
+    });
+  } catch (err: any) {
+    console.error('[Check Subscription Status Error]', err);
+    return res.status(500).json({ success: false, message: 'Failed to verify subscription status' });
+  }
+}
+

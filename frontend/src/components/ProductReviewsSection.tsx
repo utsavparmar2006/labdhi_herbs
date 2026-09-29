@@ -250,7 +250,9 @@ export default function ProductReviewsSection({
             </div>
 
             <p className="text-xs text-slate-600 font-medium">
-              Based on {stats.totalReviews} customer {stats.totalReviews === 1 ? 'review' : 'reviews'}
+              {stats.totalReviews > 0
+                ? `Based on ${stats.totalReviews} customer ${stats.totalReviews === 1 ? 'review' : 'reviews'}`
+                : 'Authentic formulation base rating'}
             </p>
 
             {stats.totalReviews > 0 && (

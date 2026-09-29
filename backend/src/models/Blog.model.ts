@@ -59,5 +59,8 @@ const BlogSchema: Schema = new Schema(
   { timestamps: true, id: false }
 );
 
+BlogSchema.index({ status: 1, showOnHome: 1, order: 1, createdAt: -1 });
+BlogSchema.index({ status: 1, category: 1, order: 1, createdAt: -1 });
+
 export const Blog = mongoose.model<IBlog>('Blog', BlogSchema);
 export default Blog;

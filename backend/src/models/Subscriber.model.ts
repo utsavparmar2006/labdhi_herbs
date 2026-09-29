@@ -79,5 +79,6 @@ const SubscriberSchema: Schema = new Schema(
 // Helpful indexes for fast search and listing
 SubscriberSchema.index({ phone: 1 });
 SubscriberSchema.index({ createdAt: -1 });
+SubscriberSchema.index({ status: 1, createdAt: -1 });
 
 export default mongoose.model<ISubscriber>('Subscriber', SubscriberSchema);

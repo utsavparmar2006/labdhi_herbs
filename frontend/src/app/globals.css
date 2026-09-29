@@ -53,10 +53,16 @@ body {
 
 .animate-vertical-scroll-up {
   animation: verticalScrollUp 24s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 .animate-vertical-scroll-down {
   animation: verticalScrollDown 24s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
 }
 
 /* Fullscreen Lightbox - Ensure site header never bleeds through */

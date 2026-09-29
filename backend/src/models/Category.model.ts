@@ -59,6 +59,8 @@ const CategorySchema: Schema = new Schema(
   { timestamps: true, id: false }
 );
 
+CategorySchema.index({ status: 1, order: 1, createdAt: 1 });
+
 CategorySchema.pre('validate', function (next) {
   if (!this.id) {
     const raw = String(this.slug || this.name || this._id || '');

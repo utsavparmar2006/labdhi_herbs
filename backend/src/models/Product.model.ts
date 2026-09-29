@@ -9,6 +9,7 @@ export interface IProduct extends Document {
   subCategory: string; // e.g. "Face Packs & Ubtan"
   price: number;
   originalPrice?: number;
+  baseRating?: number;
   rating: number;
   reviewsCount: number;
   image: string;
@@ -37,6 +38,7 @@ const ProductSchema: Schema = new Schema(
     subCategory: { type: String, required: true, index: true },
     price: { type: Number, required: true, min: 0 },
     originalPrice: { type: Number, default: 0 },
+    baseRating: { type: Number, default: 5.0, min: 1, max: 5 },
     rating: { type: Number, default: 5.0, min: 0, max: 5 },
     reviewsCount: { type: Number, default: 0 },
     image: { type: String, required: true },

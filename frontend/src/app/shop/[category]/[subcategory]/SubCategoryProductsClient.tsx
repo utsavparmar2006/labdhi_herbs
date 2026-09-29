@@ -123,9 +123,11 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
   const hasMore = visibleCount < filteredProducts.length;
 
   const handleAddToCart = (product: Product, quantity = 1) => {
-    contextAddToCart(product, quantity);
-    setAddedItemIds((prev) => [...prev, product.id]);
-    setTimeout(() => setAddedItemIds((prev) => prev.filter((id) => id !== product.id)), 1500);
+    const added = contextAddToCart(product, quantity);
+    if (added !== false) {
+      setAddedItemIds((prev) => [...prev, product.id]);
+      setTimeout(() => setAddedItemIds((prev) => prev.filter((id) => id !== product.id)), 1500);
+    }
   };
 
   const bannerImage =
