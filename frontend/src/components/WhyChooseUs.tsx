@@ -1,8 +1,7 @@
-'use me';
 'use client';
 
 import { motion } from 'framer-motion';
-import { ShieldCheck, HeartHandshake, Leaf, Award } from 'lucide-react';
+import { ShieldCheck, HeartHandshake, Leaf, FlaskConical } from 'lucide-react';
 
 const VALUES = [
   {
@@ -21,9 +20,9 @@ const VALUES = [
     description: 'Direct relationships with ethical Indian herb growers to ensure pure, unadulterated raw ingredients.',
   },
   {
-    icon: Award,
-    title: 'Surat Quality Lab',
-    description: 'Handcrafted and quality-checked at our production facility in Surat, Gujarat before shipping.',
+    icon: FlaskConical,
+    title: 'Lab Tested',
+    description: 'Each batch being tested in Government Approved Ayush Laboratory.',
   },
 ];
 

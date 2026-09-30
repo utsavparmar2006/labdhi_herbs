@@ -10,6 +10,7 @@ import {
   updateLogos,
   updateBanners,
   updateGeneralSettings,
+  updatePageHeaders,
 } from '../controllers/siteSettings.controller.js';
 import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
 
@@ -28,5 +29,6 @@ router.put('/copyright', verifyJWT, verifyAdmin, updateCopyright);
 router.put('/logos', verifyJWT, verifyAdmin, updateLogos);
 router.put('/banners', verifyJWT, verifyAdmin, updateBanners);
 router.put('/general', verifyJWT, verifyAdmin, updateGeneralSettings);
+router.put('/page-headers', verifyJWT, verifyAdmin, updatePageHeaders);
 
 export default router;

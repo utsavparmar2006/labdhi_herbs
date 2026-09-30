@@ -65,10 +65,10 @@ export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
       {/* Section Header */}
       <div className="text-center max-w-3xl mx-auto space-y-3">
         <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#1A201C] tracking-tight">
-          Explore By Herbal Category
+          Explore By Category
         </h2>
         <p className="text-slate-600 text-sm sm:text-base font-light">
-          Targeted Ayurvedic remedies crafted for skin brilliance, scalp restoration, and joint vitality.
+          Targeted Ayurvedic care for your skin, scalp, hair, weight, and joints.
         </p>
       </div>
 

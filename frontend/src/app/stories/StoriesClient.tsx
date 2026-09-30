@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -15,6 +14,7 @@ import Footer from '../../components/Footer';
 import { Product, SuccessStory, MainCategory } from '../../types';
 import { getSuccessStories, getCategories } from '../../services/api';
 import { useCart } from '../../context/CartContext';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import {
   ChevronRight,
   ShieldCheck,
@@ -32,6 +32,8 @@ import {
 
 export default function StoriesClient() {
   const { cartCount, openCart, addToCart: handleAddToCart } = useCart();
+  const { settings } = useSiteSettings();
+  const storiesHeader = settings?.pageHeaders?.stories;
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -154,11 +156,11 @@ export default function StoriesClient() {
             </nav>
 
             <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight leading-tight">
-              Customer Stories &amp; Transformations
+              {storiesHeader?.title || 'Customer Stories & Transformations'}
             </h1>
 
             <p className="text-xs sm:text-base text-emerald-100/75 font-light max-w-2xl mx-auto leading-relaxed">
-              Discover authentic video journeys, customer before &amp; after results, and verified experiences of pure Gujarati Ayurveda.
+              {storiesHeader?.subtitle || 'Discover authentic video journeys, customer before & after results, and verified experiences of pure Gujarati Ayurveda.'}
             </p>
 
           </div>

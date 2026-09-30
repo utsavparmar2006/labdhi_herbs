@@ -104,6 +104,13 @@ export interface ISiteSettings extends Document {
     whatsappApiKey?: string;
     whatsappInstanceId?: string;
   };
+  pageHeaders?: {
+    shop: { title: string; subtitle: string };
+    subCategories: { title: string; subtitle: string };
+    stories: { title: string; subtitle: string };
+    blog: { title: string; subtitle: string };
+    about: { title: string; subtitle: string };
+  };
   updatedAt: Date;
   createdAt: Date;
 }
@@ -286,6 +293,48 @@ const SiteSettingsSchema: Schema = new Schema(
       whatsappApiUrl: { type: String, default: '' },
       whatsappApiKey: { type: String, default: '' },
       whatsappInstanceId: { type: String, default: '' },
+    },
+    pageHeaders: {
+      shop: {
+        title: { type: String, default: 'Explore Our Herbal Collection' },
+        subtitle: {
+          type: String,
+          default:
+            'Handcrafted with 100% pure botanical extracts from Surat, Gujarat. Free from artificial dyes, parabens, and harsh chemicals.',
+        },
+      },
+      subCategories: {
+        title: { type: String, default: 'Targeted Herbal Formulations' },
+        subtitle: {
+          type: String,
+          default:
+            'Explore specialized remedies crafted for your specific skin, scalp, and wellness needs.',
+        },
+      },
+      stories: {
+        title: { type: String, default: 'Customer Stories & Transformations' },
+        subtitle: {
+          type: String,
+          default:
+            'Discover authentic video journeys, customer before & after results, and verified experiences of pure Gujarati Ayurveda.',
+        },
+      },
+      blog: {
+        title: { type: String, default: 'Knowledge for a Healthier, More Natural Life' },
+        subtitle: {
+          type: String,
+          default:
+            'Explore time-tested Ayurvedic routines, botanical ingredient guides, and hair, skin, and joint care wisdom from our Surat herbalists.',
+        },
+      },
+      about: {
+        title: { type: String, default: 'Pure Herbal Wisdom Handcrafted in Surat' },
+        subtitle: {
+          type: String,
+          default:
+            'Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free hair, skin, and joint care formulations.',
+        },
+      },
     },
   },
   {

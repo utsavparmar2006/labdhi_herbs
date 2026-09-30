@@ -14,6 +14,7 @@ import SortDropdown from '../../../../components/SortDropdown';
 import { getProducts } from '../../../../services/api';
 import { MainCategory, SubCategory, Product } from '../../../../types';
 import { useCart } from '../../../../context/CartContext';
+import { useSiteSettings } from '../../../../context/SiteSettingsContext';
 import {
   ArrowLeft,
   Star,
@@ -34,6 +35,8 @@ interface Props {
 
 export default function SubCategoryProductsClient({ mainCategory, subCategory }: Props) {
   const { cartCount, openCart, addToCart: contextAddToCart } = useCart();
+  const { settings } = useSiteSettings();
+  const subCatHeader = settings?.pageHeaders?.subCategories;
   const [selectedBrand, setSelectedBrand] = useState('All');
   const [selectedSort, setSelectedSort] = useState('featured');
 
@@ -180,11 +183,9 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
               <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
                 {subCategory.name}
               </h1>
-              {subCategory.description && (
-                <p className="mt-2 text-xs sm:text-base text-emerald-100/75 font-light max-w-xl leading-relaxed">
-                  {subCategory.description}
-                </p>
-              )}
+              <p className="mt-2 text-xs sm:text-base text-emerald-100/75 font-light max-w-xl leading-relaxed">
+                {subCategory.description || subCatHeader?.subtitle || 'Explore specialized remedies crafted for your specific skin, scalp, and wellness needs.'}
+              </p>
             </div>
           </div>
         </section>

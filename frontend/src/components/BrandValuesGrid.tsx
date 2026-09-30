@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { ShieldCheck, Leaf, Sparkles, Heart } from 'lucide-react';

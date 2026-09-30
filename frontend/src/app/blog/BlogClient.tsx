@@ -17,11 +17,14 @@ import { BLOG_POSTS } from '../../services/mockData';
 import { getBlogPosts } from '../../services/api';
 import { Product, BlogPost } from '../../types';
 import { useCart } from '../../context/CartContext';
+import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { ChevronRight, ChevronDown, Leaf, Search, Mail, Calendar, Clock, X, ArrowRight, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function BlogClient() {
   const { cartCount, openCart, addToCart: handleAddToCart } = useCart();
+  const { settings } = useSiteSettings();
+  const blogHeader = settings?.pageHeaders?.blog;
   const [blogs, setBlogs] = useState<BlogPost[]>(BLOG_POSTS);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -119,11 +122,11 @@ export default function BlogClient() {
             </nav>
 
             <h1 className="font-serif text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight">
-              Knowledge for a Healthier, More Natural Life
+              {blogHeader?.title || 'Knowledge for a Healthier, More Natural Life'}
             </h1>
 
             <p className="text-xs sm:text-base text-emerald-100/75 font-light max-w-2xl mx-auto leading-relaxed">
-              Explore time-tested Ayurvedic routines, botanical ingredient guides, and hair, skin, and joint care wisdom from our Surat herbalists.
+              {blogHeader?.subtitle || 'Explore time-tested Ayurvedic routines, botanical ingredient guides, and hair, skin, and joint care wisdom from our Surat herbalists.'}
             </p>
 
             {/* Search Input Bar */}

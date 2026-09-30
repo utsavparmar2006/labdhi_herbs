@@ -6,10 +6,11 @@ import SiteSettings from '../models/SiteSettings.model.js';
  */
 export const getSiteSettings = async (req: Request, res: Response) => {
   try {
-    let settings = await SiteSettings.findOne();
+    let settings: any = await SiteSettings.findOne().lean();
     if (!settings) {
       settings = await SiteSettings.create({});
     }
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     res.status(200).json({ success: true, data: settings });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -261,6 +262,26 @@ export const updateGeneralSettings = async (req: Request, res: Response) => {
       { new: true, upsert: true }
     );
     res.status(200).json({ success: true, message: 'Site settings updated successfully', data: settings });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Update Page Headers & Banners configuration
+ */
+export const updatePageHeaders = async (req: Request, res: Response) => {
+  try {
+    const settings = await SiteSettings.findOneAndUpdate(
+      {},
+      { $set: { pageHeaders: req.body } },
+      { new: true, upsert: true }
+    );
+    res.status(200).json({
+      success: true,
+      message: 'Page headers updated successfully',
+      data: settings.pageHeaders,
+    });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }

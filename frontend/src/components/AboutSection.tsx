@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { motion } from 'framer-motion';
@@ -45,7 +44,7 @@ export default function AboutSection() {
                 <span className="font-semibold text-xs uppercase tracking-wider">Surat Heritage</span>
               </div>
               <p className="text-xs text-emerald-100/90 font-light leading-relaxed">
-                Formulated at Adajan, Surat, Gujarat with authentic Ayurvedic roots.
+                Formulated at Surat, Gujarat with authentic Ayurvedic processes.
               </p>
             </div>
           </motion.div>
@@ -70,7 +69,7 @@ export default function AboutSection() {
             </div>
 
             <p className="text-slate-600 text-xs sm:text-sm font-light leading-relaxed">
-              We carefully source wild turmeric, bhringraj, raw sandalwood, and fresh neem leaves to craft skin face packs, hair restoration oils, and joint-relieving balms. Every formulation is free from artificial preservatives, harsh parabens, and synthetic dyes.
+              We carefully source wild Jatamansi, Saffron, raw sandalwood, and fresh neem leaves to craft skin face packs, hair restoration oils, and joint-relieving remedies. Every formulation is free from artificial preservatives, harsh parabens, synthetic dyes &amp; added chemicals.
             </p>
 
             {/* Core Values checklist */}

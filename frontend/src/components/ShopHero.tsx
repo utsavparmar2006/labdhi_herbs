@@ -1,14 +1,26 @@
-'use me';
 'use client';
 
 import Link from 'next/link';
 import { ChevronRight, Leaf } from 'lucide-react';
+import { useSiteSettings } from '@/context/SiteSettingsContext';
 
 interface ShopHeroProps {
   activeCategory?: string;
 }
 
 export default function ShopHero({ activeCategory = 'All' }: ShopHeroProps) {
+  const { settings } = useSiteSettings();
+  const shopHeader = settings?.pageHeaders?.shop;
+
+  const displayTitle =
+    activeCategory && activeCategory !== 'All'
+      ? `${activeCategory} Collection`
+      : shopHeader?.title || 'Explore Our Herbal Collection';
+
+  const displaySubtitle =
+    shopHeader?.subtitle ||
+    'Handcrafted with 100% pure botanical extracts from Surat, Gujarat. Free from artificial dyes, parabens, and harsh chemicals.';
+
   return (
     <section className="relative w-full pt-32 pb-14 md:pt-40 md:pb-16 bg-[#14261E] text-white overflow-hidden">
       {/* Background glow accent */}
@@ -36,11 +48,11 @@ export default function ShopHero({ activeCategory = 'All' }: ShopHeroProps) {
         {/* Hero Title & Subtitle */}
         <div className="space-y-3 max-w-3xl">
           <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight leading-tight">
-            {activeCategory && activeCategory !== 'All' ? `${activeCategory} Collection` : 'Explore Our Herbal Collection'}
+            {displayTitle}
           </h1>
 
           <p className="text-xs sm:text-base text-emerald-100/75 font-light max-w-2xl mx-auto leading-relaxed">
-            Handcrafted with 100% pure botanical extracts from Surat, Gujarat. Free from artificial dyes, parabens, and harsh chemicals.
+            {displaySubtitle}
           </p>
         </div>
 

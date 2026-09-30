@@ -38,12 +38,13 @@ const DEFAULT_CONFIG = {
  */
 export const getHomePageConfig = async (_req: Request, res: Response): Promise<void> => {
   try {
-    let config = await HomePageConfig.findOne();
+    let config: any = await HomePageConfig.findOne().lean();
 
     if (!config) {
       config = await HomePageConfig.create(DEFAULT_CONFIG);
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     res.status(200).json({
       success: true,
       data: config,

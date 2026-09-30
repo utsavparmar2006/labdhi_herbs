@@ -11,6 +11,7 @@ import SearchModal from '../../../components/SearchModal';
 import Footer from '../../../components/Footer';
 import { MainCategory } from '../../../types';
 import { useCart } from '../../../context/CartContext';
+import { useSiteSettings } from '../../../context/SiteSettingsContext';
 import { ArrowLeft, ArrowRight, Layers } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -21,6 +22,8 @@ interface Props {
 export default function CategoryPageClient({ mainCategory }: Props) {
   const router = useRouter();
   const { cartCount, openCart } = useCart();
+  const { settings } = useSiteSettings();
+  const subCatHeader = settings?.pageHeaders?.subCategories;
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -69,7 +72,7 @@ export default function CategoryPageClient({ mainCategory }: Props) {
                 {mainCategory.name}
               </h1>
               <p className="mt-2 text-xs sm:text-base text-emerald-100/75 font-light max-w-xl leading-relaxed">
-                {mainCategory.description}
+                {mainCategory.description || subCatHeader?.subtitle || 'Explore specialized remedies crafted for your specific skin, scalp, and wellness needs.'}
               </p>
             </div>
           </div>

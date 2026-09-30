@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { motion } from 'framer-motion';
@@ -7,13 +6,13 @@ import { Leaf, Award, MapPin, ShieldCheck } from 'lucide-react';
 const BADGES = [
   {
     icon: Leaf,
-    title: '100% Pure & Herbal',
-    description: 'Zero synthetic parabens, sulfates, or artificial colors.',
+    title: '100% Chemical Free',
+    description: 'Made of herbs & natural materials only.',
   },
   {
     icon: Award,
     title: 'Ayurvedic Tradition',
-    description: 'Time-tested herbal recipes for holistic skin & hair wellness.',
+    description: 'Time-tested herbal recipes for holistic skin & hair wellness, weight management & joint care.',
   },
   {
     icon: MapPin,
@@ -23,7 +22,7 @@ const BADGES = [
   {
     icon: ShieldCheck,
     title: 'Direct Farm Sourced',
-    description: 'Pure wild turmeric, bhringraj, and rose petals from local farms.',
+    description: 'Pure wild Jatamansi, Tagar, avala, Vetiver, Rose petals from local farms.',
   },
 ];
 

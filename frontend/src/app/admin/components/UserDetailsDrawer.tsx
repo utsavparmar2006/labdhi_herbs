@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { X, Mail, Phone, Calendar, ShieldCheck, UserCheck, UserX, Clock, Tag } from 'lucide-react';

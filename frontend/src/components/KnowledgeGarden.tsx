@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { Sparkles, ArrowRight, Leaf, Heart, Shield, Activity } from 'lucide-react';

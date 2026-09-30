@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { useState } from 'react';
@@ -69,11 +68,11 @@ export default function AboutClient() {
             </nav>
 
             <h1 className="font-serif text-3xl sm:text-5xl md:text-6xl font-bold text-white tracking-tight leading-tight">
-              Pure Herbal Wisdom Handcrafted in Surat
+              {settings?.pageHeaders?.about?.title || 'Pure Herbal Wisdom Handcrafted in Surat'}
             </h1>
 
             <p className="text-xs sm:text-base text-emerald-100/75 font-light max-w-2xl mx-auto leading-relaxed">
-              Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free hair, skin, and joint care formulations.
+              {settings?.pageHeaders?.about?.subtitle || 'Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free hair, skin, and joint care formulations.'}
             </p>
 
           </div>

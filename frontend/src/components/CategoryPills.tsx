@@ -1,4 +1,3 @@
-'use me';
 'use client';
 
 import { MAIN_CATEGORIES } from '../services/mockData';

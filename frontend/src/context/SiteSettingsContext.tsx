@@ -97,6 +97,20 @@ export interface SiteSettingsData {
   metaTitle: string;
   metaDescription: string;
   metaKeywords: string;
+  pageHeaders?: PageHeadersData;
+}
+
+export interface PageHeaderItem {
+  title: string;
+  subtitle: string;
+}
+
+export interface PageHeadersData {
+  shop: PageHeaderItem;
+  subCategories: PageHeaderItem;
+  stories: PageHeaderItem;
+  blog: PageHeaderItem;
+  about: PageHeaderItem;
 }
 
 const DEFAULT_PROFILE: AdminProfileData = {
@@ -189,6 +203,33 @@ const DEFAULT_SETTINGS: SiteSettingsData = {
   metaDescription:
     '100% pure Ayurvedic formulations handcrafted in Surat, Gujarat. Chemical-free hair oils, face packs, and joint care remedies.',
   metaKeywords: 'Labdhi Herbs, Ayurvedic Hair Oil, Surat Gujarat, Herbal Face Pack',
+  pageHeaders: {
+    shop: {
+      title: 'Explore Our Herbal Collection',
+      subtitle:
+        'Handcrafted with 100% pure botanical extracts from Surat, Gujarat. Free from artificial dyes, parabens, and harsh chemicals.',
+    },
+    subCategories: {
+      title: 'Targeted Herbal Formulations',
+      subtitle:
+        'Explore specialized remedies crafted for your specific skin, scalp, and wellness needs.',
+    },
+    stories: {
+      title: 'Customer Stories & Transformations',
+      subtitle:
+        'Discover authentic video journeys, customer before & after results, and verified experiences of pure Gujarati Ayurveda.',
+    },
+    blog: {
+      title: 'Knowledge for a Healthier, More Natural Life',
+      subtitle:
+        'Explore time-tested Ayurvedic routines, botanical ingredient guides, and hair, skin, and joint care wisdom from our Surat herbalists.',
+    },
+    about: {
+      title: 'Pure Herbal Wisdom Handcrafted in Surat',
+      subtitle:
+        'Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free hair, skin, and joint care formulations.',
+    },
+  },
 };
 
 interface SiteSettingsContextType {
@@ -261,6 +302,13 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
           banners: Array.isArray(d.banners) ? d.banners : [],
           copyrightText: d.copyrightText || DEFAULT_SETTINGS.copyrightText,
           profile: mergedProfile,
+          pageHeaders: {
+            shop: { ...DEFAULT_SETTINGS.pageHeaders!.shop, ...(d.pageHeaders?.shop || {}) },
+            subCategories: { ...DEFAULT_SETTINGS.pageHeaders!.subCategories, ...(d.pageHeaders?.subCategories || {}) },
+            stories: { ...DEFAULT_SETTINGS.pageHeaders!.stories, ...(d.pageHeaders?.stories || {}) },
+            blog: { ...DEFAULT_SETTINGS.pageHeaders!.blog, ...(d.pageHeaders?.blog || {}) },
+            about: { ...DEFAULT_SETTINGS.pageHeaders!.about, ...(d.pageHeaders?.about || {}) },
+          },
         };
 
         setSettings(finalSettings);

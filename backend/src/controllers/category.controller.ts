@@ -124,6 +124,7 @@ export const getCategories = async (_req: Request, res: Response): Promise<void>
     await ensureInitialCategories();
     const categories = await Category.find({ status: 'active' }).sort({ order: 1, createdAt: 1 }).lean();
 
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     res.status(200).json({
       success: true,
       data: categories,

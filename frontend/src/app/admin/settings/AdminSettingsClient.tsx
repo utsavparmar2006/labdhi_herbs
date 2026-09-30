@@ -114,10 +114,18 @@ interface SiteSettings {
   metaTitle: string;
   metaDescription: string;
   metaKeywords: string;
+  pageHeaders?: {
+    shop: { title: string; subtitle: string };
+    subCategories: { title: string; subtitle: string };
+    stories: { title: string; subtitle: string };
+    blog: { title: string; subtitle: string };
+    about: { title: string; subtitle: string };
+  };
 }
 
 type ActiveTab =
   | 'profile'
+  | 'pageHeaders'
   | 'about'
   | 'terms'
   | 'privacy'
@@ -643,6 +651,33 @@ export default function AdminSettingsClient() {
     metaTitle: '',
     metaDescription: '',
     metaKeywords: '',
+    pageHeaders: {
+      shop: {
+        title: 'Explore Our Herbal Collection',
+        subtitle:
+          'Handcrafted with 100% pure botanical extracts from Surat, Gujarat. Free from artificial dyes, parabens, and harsh chemicals.',
+      },
+      subCategories: {
+        title: 'Targeted Herbal Formulations',
+        subtitle:
+          'Explore specialized remedies crafted for your specific skin, scalp, and wellness needs.',
+      },
+      stories: {
+        title: 'Customer Stories & Transformations',
+        subtitle:
+          'Discover authentic video journeys, customer before & after results, and verified experiences of pure Gujarati Ayurveda.',
+      },
+      blog: {
+        title: 'Knowledge for a Healthier, More Natural Life',
+        subtitle:
+          'Explore time-tested Ayurvedic routines, botanical ingredient guides, and hair, skin, and joint care wisdom from our Surat herbalists.',
+      },
+      about: {
+        title: 'Pure Herbal Wisdom Handcrafted in Surat',
+        subtitle:
+          'Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free hair, skin, and joint care formulations.',
+      },
+    },
   };
 
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
@@ -918,9 +953,33 @@ export default function AdminSettingsClient() {
       metaKeywords: settings.metaKeywords,
     });
 
+  const savePageHeaders = () =>
+    save('page-headers', settings.pageHeaders || defaultSettings.pageHeaders!);
+
+  const setPageHeaderField = useCallback(
+    (pageKey: 'shop' | 'subCategories' | 'stories' | 'blog' | 'about', field: 'title' | 'subtitle', val: string) => {
+      setSettings((prev) => ({
+        ...prev,
+        pageHeaders: {
+          shop: prev.pageHeaders?.shop || defaultSettings.pageHeaders!.shop,
+          subCategories: prev.pageHeaders?.subCategories || defaultSettings.pageHeaders!.subCategories,
+          stories: prev.pageHeaders?.stories || defaultSettings.pageHeaders!.stories,
+          blog: prev.pageHeaders?.blog || defaultSettings.pageHeaders!.blog,
+          about: prev.pageHeaders?.about || defaultSettings.pageHeaders!.about,
+          [pageKey]: {
+            ...(prev.pageHeaders?.[pageKey] || defaultSettings.pageHeaders![pageKey]),
+            [field]: val,
+          },
+        },
+      }));
+    },
+    []
+  );
+
   // Map tab → save action
   const saveActions: Record<ActiveTab, () => void> = {
     profile: saveProfile,
+    pageHeaders: savePageHeaders,
     about: saveAbout,
     terms: saveTerms,
     privacy: savePrivacy,
@@ -936,6 +995,7 @@ export default function AdminSettingsClient() {
   // Sidebar tabs config
   const tabs: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
     { id: 'profile', label: 'Profile', icon: User },
+    { id: 'pageHeaders', label: 'Page Banners & Headers', icon: Layout },
     { id: 'about', label: 'About Us', icon: Info },
     { id: 'terms', label: 'Terms & Conditions', icon: FileText },
     { id: 'privacy', label: 'Privacy Policy', icon: Shield },
@@ -944,7 +1004,7 @@ export default function AdminSettingsClient() {
     { id: 'faq', label: 'FAQ', icon: HelpCircle },
     { id: 'copyright', label: 'Copyrights', icon: Copyright },
     { id: 'logo', label: 'Logo', icon: Star },
-    { id: 'banners', label: 'Banners', icon: Layout },
+    { id: 'banners', label: 'Banners', icon: ImageIcon },
     { id: 'site', label: 'Site Setting', icon: Globe },
   ];
 
@@ -1201,6 +1261,233 @@ export default function AdminSettingsClient() {
                 </div>
               </div>
             </SettingsCard>
+          </div>
+        );
+
+      // ── Page Banners & Headers ───────────────────────────────────────────────
+      case 'pageHeaders':
+        const headers = settings.pageHeaders || defaultSettings.pageHeaders!;
+        return (
+          <div className="space-y-6">
+            <div className="bg-[#1F3A2E] text-white p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif text-lg font-bold">Page Header & Banner Manager</h3>
+                <p className="text-xs text-white/70 mt-1 max-w-xl">
+                  Customize the hero banner titles and subtitles displayed at the top of Shop, Sub-Categories, Success Stories, Blog, and About Us pages.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={savePageHeaders}
+                disabled={saving}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#D4A373] text-[#14261E] text-sm font-bold rounded-xl hover:bg-[#c69262] transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer shadow-md"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? 'Saving...' : 'Save All Headers'}
+              </button>
+            </div>
+
+            {/* 1. Shop Page Header */}
+            <SettingsCard title="1. Shop Page Banner (/shop)" icon={Layout}>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField label="Header Title" hint="Main title shown in the dark hero header on /shop">
+                    <input
+                      type="text"
+                      value={headers.shop?.title || ''}
+                      onChange={(e) => setPageHeaderField('shop', 'title', e.target.value)}
+                      className={inputCls}
+                      placeholder="e.g. Explore Our Herbal Collection"
+                    />
+                  </FormField>
+                  <FormField label="Subtitle / Tagline Description" hint="Subtext paragraph shown beneath the title">
+                    <textarea
+                      rows={2}
+                      value={headers.shop?.subtitle || ''}
+                      onChange={(e) => setPageHeaderField('shop', 'subtitle', e.target.value)}
+                      className={textareaCls}
+                      placeholder="e.g. Handcrafted with 100% pure botanical extracts from Surat, Gujarat..."
+                    />
+                  </FormField>
+                </div>
+
+                {/* Live Banner Preview */}
+                <div className="mt-4 pt-4 border-t border-[#EFE9DD]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Live Shop Banner Preview</p>
+                  <div className="rounded-xl bg-[#14261E] text-white p-6 text-center relative overflow-hidden border border-[#14261E]">
+                    <div className="text-[10px] uppercase tracking-widest text-[#D4A373] mb-1.5 font-semibold">Home &gt; Shop</div>
+                    <h4 className="font-serif text-2xl font-bold tracking-tight text-white mb-2">
+                      {headers.shop?.title || 'Explore Our Herbal Collection'}
+                    </h4>
+                    <p className="text-xs text-white/80 max-w-xl mx-auto line-clamp-2">
+                      {headers.shop?.subtitle || 'Handcrafted with 100% pure botanical extracts...'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
+
+            {/* 2. Sub-categories / Category Filter Page Header */}
+            <SettingsCard title="2. Sub-Categories Page Banner (/shop/[category])" icon={Layout}>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField label="Header Title" hint="Header title shown when browsing categories and subcategories">
+                    <input
+                      type="text"
+                      value={headers.subCategories?.title || ''}
+                      onChange={(e) => setPageHeaderField('subCategories', 'title', e.target.value)}
+                      className={inputCls}
+                      placeholder="e.g. Targeted Herbal Formulations"
+                    />
+                  </FormField>
+                  <FormField label="Subtitle / Tagline Description" hint="Description shown for categories and subcategories">
+                    <textarea
+                      rows={2}
+                      value={headers.subCategories?.subtitle || ''}
+                      onChange={(e) => setPageHeaderField('subCategories', 'subtitle', e.target.value)}
+                      className={textareaCls}
+                      placeholder="e.g. Explore specialized remedies crafted for your specific skin, scalp, and wellness needs."
+                    />
+                  </FormField>
+                </div>
+
+                {/* Live Banner Preview */}
+                <div className="mt-4 pt-4 border-t border-[#EFE9DD]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Live Category Banner Preview</p>
+                  <div className="rounded-xl bg-[#14261E] text-white p-6 text-center relative overflow-hidden border border-[#14261E]">
+                    <div className="text-[10px] uppercase tracking-widest text-[#D4A373] mb-1.5 font-semibold">Home &gt; Shop &gt; Category / Subcategory</div>
+                    <h4 className="font-serif text-2xl font-bold tracking-tight text-white mb-2">
+                      {headers.subCategories?.title || 'Targeted Herbal Formulations'}
+                    </h4>
+                    <p className="text-xs text-white/80 max-w-xl mx-auto line-clamp-2">
+                      {headers.subCategories?.subtitle || 'Explore specialized remedies crafted for your specific skin, scalp, and wellness needs.'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
+
+            {/* 3. Success Stories Page Header */}
+            <SettingsCard title="3. Success Stories Page Banner (/stories & /gallery)" icon={Layout}>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField label="Header Title" hint="Main title shown on the Success Stories / Video Gallery page">
+                    <input
+                      type="text"
+                      value={headers.stories?.title || ''}
+                      onChange={(e) => setPageHeaderField('stories', 'title', e.target.value)}
+                      className={inputCls}
+                      placeholder="e.g. Customer Stories & Transformations"
+                    />
+                  </FormField>
+                  <FormField label="Subtitle / Tagline Description" hint="Description shown under the stories header">
+                    <textarea
+                      rows={2}
+                      value={headers.stories?.subtitle || ''}
+                      onChange={(e) => setPageHeaderField('stories', 'subtitle', e.target.value)}
+                      className={textareaCls}
+                      placeholder="e.g. Discover authentic video journeys, customer before & after results, and verified experiences..."
+                    />
+                  </FormField>
+                </div>
+
+                {/* Live Banner Preview */}
+                <div className="mt-4 pt-4 border-t border-[#EFE9DD]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Live Stories Banner Preview</p>
+                  <div className="rounded-xl bg-[#14261E] text-white p-6 text-center relative overflow-hidden border border-[#14261E]">
+                    <div className="text-[10px] uppercase tracking-widest text-[#D4A373] mb-1.5 font-semibold">Home &gt; Stories & Reviews</div>
+                    <h4 className="font-serif text-2xl font-bold tracking-tight text-white mb-2">
+                      {headers.stories?.title || 'Customer Stories & Transformations'}
+                    </h4>
+                    <p className="text-xs text-white/80 max-w-xl mx-auto line-clamp-2">
+                      {headers.stories?.subtitle || 'Discover authentic video journeys, customer before & after results, and verified experiences...'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
+
+            {/* 4. Blog / Journal Page Header */}
+            <SettingsCard title="4. Blog Page Banner (/blog)" icon={Layout}>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField label="Header Title" hint="Main title on the Blog / Ayurvedic Journal page">
+                    <input
+                      type="text"
+                      value={headers.blog?.title || ''}
+                      onChange={(e) => setPageHeaderField('blog', 'title', e.target.value)}
+                      className={inputCls}
+                      placeholder="e.g. Knowledge for a Healthier, More Natural Life"
+                    />
+                  </FormField>
+                  <FormField label="Subtitle / Tagline Description" hint="Description under the blog hero title">
+                    <textarea
+                      rows={2}
+                      value={headers.blog?.subtitle || ''}
+                      onChange={(e) => setPageHeaderField('blog', 'subtitle', e.target.value)}
+                      className={textareaCls}
+                      placeholder="e.g. Explore time-tested Ayurvedic routines, botanical ingredient guides, and wellness wisdom..."
+                    />
+                  </FormField>
+                </div>
+
+                {/* Live Banner Preview */}
+                <div className="mt-4 pt-4 border-t border-[#EFE9DD]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Live Blog Banner Preview</p>
+                  <div className="rounded-xl bg-[#14261E] text-white p-6 text-center relative overflow-hidden border border-[#14261E]">
+                    <div className="text-[10px] uppercase tracking-widest text-[#D4A373] mb-1.5 font-semibold">Home &gt; Ayurvedic Journal</div>
+                    <h4 className="font-serif text-2xl font-bold tracking-tight text-white mb-2">
+                      {headers.blog?.title || 'Knowledge for a Healthier, More Natural Life'}
+                    </h4>
+                    <p className="text-xs text-white/80 max-w-xl mx-auto line-clamp-2">
+                      {headers.blog?.subtitle || 'Explore time-tested Ayurvedic routines, botanical ingredient guides, and wellness wisdom...'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
+
+            {/* 5. About Us Page Header */}
+            <SettingsCard title="5. About Us Page Banner (/about)" icon={Layout}>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4">
+                  <FormField label="Header Title" hint="Hero banner title at the top of the About Us page">
+                    <input
+                      type="text"
+                      value={headers.about?.title || ''}
+                      onChange={(e) => setPageHeaderField('about', 'title', e.target.value)}
+                      className={inputCls}
+                      placeholder="e.g. Pure Herbal Wisdom Handcrafted in Surat"
+                    />
+                  </FormField>
+                  <FormField label="Subtitle / Tagline Description" hint="Subtext paragraph shown on the About Us page hero">
+                    <textarea
+                      rows={2}
+                      value={headers.about?.subtitle || ''}
+                      onChange={(e) => setPageHeaderField('about', 'subtitle', e.target.value)}
+                      className={textareaCls}
+                      placeholder="e.g. Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free formulations..."
+                    />
+                  </FormField>
+                </div>
+
+                {/* Live Banner Preview */}
+                <div className="mt-4 pt-4 border-t border-[#EFE9DD]">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Live About Us Banner Preview</p>
+                  <div className="rounded-xl bg-[#14261E] text-white p-6 text-center relative overflow-hidden border border-[#14261E]">
+                    <div className="text-[10px] uppercase tracking-widest text-[#D4A373] mb-1.5 font-semibold">Home &gt; About Us</div>
+                    <h4 className="font-serif text-2xl font-bold tracking-tight text-white mb-2">
+                      {headers.about?.title || 'Pure Herbal Wisdom Handcrafted in Surat'}
+                    </h4>
+                    <p className="text-xs text-white/80 max-w-xl mx-auto line-clamp-2">
+                      {headers.about?.subtitle || 'Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free formulations...'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
+
+            <SaveButton onClick={savePageHeaders} loading={saving} label="Save All Page Headers" />
           </div>
         );
 
