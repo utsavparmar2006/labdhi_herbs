@@ -28,9 +28,9 @@ export default function ShopClient() {
 
   useEffect(() => {
     let isMounted = true;
-    const fetchCats = async () => {
+    const fetchCats = async (force = false) => {
       try {
-        const dynamicCats = await getCategories();
+        const dynamicCats = await getCategories(force);
         if (isMounted) {
           if (dynamicCats && Array.isArray(dynamicCats)) {
             setCategories(dynamicCats.filter((mc) => mc.id !== 'all'));
@@ -44,9 +44,22 @@ export default function ShopClient() {
         if (isMounted) setLoading(false);
       }
     };
+
     fetchCats();
+
+    const handleCategoryUpdate = () => {
+      fetchCats(true);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('category_updated', handleCategoryUpdate);
+    }
+
     return () => {
       isMounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('category_updated', handleCategoryUpdate);
+      }
     };
   }, []);
 

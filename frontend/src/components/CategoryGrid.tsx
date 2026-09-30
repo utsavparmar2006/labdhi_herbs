@@ -17,24 +17,40 @@ export default function CategoryGrid({ onSelectCategory }: CategoryGridProps) {
 
   useEffect(() => {
     let isMounted = true;
-    getCategories()
-      .then((cats) => {
-        if (isMounted) {
-          if (cats && Array.isArray(cats)) {
-            setCategories(cats.filter((c) => c.id !== 'all'));
-          } else {
-            setCategories([]);
+    const fetchCats = (force = false) => {
+      getCategories(force)
+        .then((cats) => {
+          if (isMounted) {
+            if (cats && Array.isArray(cats)) {
+              setCategories(cats.filter((c) => c.id !== 'all'));
+            } else {
+              setCategories([]);
+            }
           }
-        }
-      })
-      .catch(() => {
-        if (isMounted) setCategories([]);
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
-      });
+        })
+        .catch(() => {
+          if (isMounted) setCategories([]);
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
+    };
+
+    fetchCats();
+
+    const handleCategoryUpdate = () => {
+      fetchCats(true);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('category_updated', handleCategoryUpdate);
+    }
+
     return () => {
       isMounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('category_updated', handleCategoryUpdate);
+      }
     };
   }, []);
 

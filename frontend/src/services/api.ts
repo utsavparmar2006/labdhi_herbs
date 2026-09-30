@@ -137,6 +137,9 @@ let pendingCategoriesPromise: Promise<MainCategory[]> | null = null;
 export function invalidateCategoriesCache() {
   cachedCategories = null;
   pendingCategoriesPromise = null;
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('category_updated'));
+  }
 }
 
 /**
@@ -377,6 +380,7 @@ export async function createSubCategory(
       body: JSON.stringify(subData),
     });
     const data = await res.json();
+    if (data.success) invalidateCategoriesCache();
     return data;
   } catch (error: any) {
     return {
@@ -409,6 +413,7 @@ export async function updateSubCategory(
       }
     );
     const data = await res.json();
+    if (data.success) invalidateCategoriesCache();
     return data;
   } catch (error: any) {
     return {
@@ -438,6 +443,7 @@ export async function deleteSubCategory(
       }
     );
     const data = await res.json();
+    if (data.success) invalidateCategoriesCache();
     return data;
   } catch (error: any) {
     return {

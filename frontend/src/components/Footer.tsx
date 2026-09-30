@@ -24,7 +24,8 @@ import {
   X,
 } from 'lucide-react';
 import { useSiteSettings } from '../context/SiteSettingsContext';
-import { checkSubscriberStatus } from '../services/api';
+import { checkSubscriberStatus, getCategories } from '../services/api';
+import { MainCategory } from '../types';
 
 export default function Footer() {
   const { settings, profile } = useSiteSettings();
@@ -37,6 +38,44 @@ export default function Footer() {
   const [isLoginPromptOpen, setIsLoginPromptOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [pendingSubscribeAfterLogin, setPendingSubscribeAfterLogin] = useState(false);
+
+  // Dynamic Categories from Admin
+  const [categories, setCategories] = useState<MainCategory[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCats = (force = false) => {
+      getCategories(force)
+        .then((cats) => {
+          if (isMounted && Array.isArray(cats)) {
+            setCategories(cats.filter((c) => c.id !== 'all' && c.status !== 'inactive'));
+          }
+        })
+        .catch(() => {
+          if (isMounted) setCategories([]);
+        })
+        .finally(() => {
+          if (isMounted) setLoadingCategories(false);
+        });
+    };
+
+    fetchCats();
+
+    const handleCategoryUpdate = () => {
+      fetchCats(true);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('category_updated', handleCategoryUpdate);
+    }
+    return () => {
+      isMounted = false;
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('category_updated', handleCategoryUpdate);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -399,35 +438,39 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 2: Categories */}
+          {/* Column 2: Dynamic Categories */}
           <div className="col-span-1 space-y-3.5">
             <h4 className="font-serif text-sm sm:text-base font-bold text-[#1F3A2E] tracking-wide border-b border-[#EFE9DD] pb-2 min-h-[28px] sm:min-h-[32px] flex items-end">
               Herbal Care
             </h4>
             <ul className="space-y-2.5 text-xs text-slate-600">
-              <li>
-                <Link href="/shop/hair-care" className="hover:text-[#1F3A2E] transition-colors flex items-center gap-1.5 leading-snug">
-                  <Leaf className="w-3 h-3 text-[#B58A5A] shrink-0" /> Hair Care Oils
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop/skin-face-care" className="hover:text-[#1F3A2E] transition-colors flex items-center gap-1.5 leading-snug">
-                  <Leaf className="w-3 h-3 text-[#B58A5A] shrink-0" /> Skin &amp; Face Packs
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop/muscle-joint-care" className="hover:text-[#1F3A2E] transition-colors flex items-center gap-1.5 leading-snug">
-                  <Leaf className="w-3 h-3 text-[#B58A5A] shrink-0" /> Muscle &amp; Joint Balms
-                </Link>
-              </li>
-              <li>
-                <Link href="/shop/weight-loss" className="hover:text-[#1F3A2E] transition-colors flex items-center gap-1.5 leading-snug">
-                  <Leaf className="w-3 h-3 text-[#B58A5A] shrink-0" /> Ayurvedic Churna
-                </Link>
-              </li>
+              {categories.length > 0 ? (
+                categories.slice(0, 6).map((cat) => (
+                  <li key={cat.id || cat.slug}>
+                    <Link
+                      href={`/shop/${cat.id || cat.slug}`}
+                      className="hover:text-[#1F3A2E] transition-colors flex items-center gap-1.5 leading-snug group"
+                    >
+                      <Leaf className="w-3 h-3 text-[#B58A5A] shrink-0 group-hover:rotate-12 transition-transform" />
+                      <span className="truncate">{cat.name}</span>
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <>
+                  <li>
+                    <Link href="/shop" className="hover:text-[#1F3A2E] transition-colors flex items-center gap-1.5 leading-snug">
+                      <Leaf className="w-3 h-3 text-[#B58A5A] shrink-0" /> Herbal Formulations
+                    </Link>
+                  </li>
+                </>
+              )}
               <li className="pt-1">
-                <Link href="/shop" className="hover:text-[#1F3A2E] transition-colors flex items-center gap-1.5 font-bold text-[#B58A5A] leading-snug">
-                  <ArrowRight className="w-3 h-3 shrink-0" /> All Formulations
+                <Link
+                  href="/shop"
+                  className="hover:text-[#1F3A2E] transition-colors flex items-center gap-1.5 font-bold text-[#B58A5A] leading-snug group"
+                >
+                  <ArrowRight className="w-3 h-3 shrink-0 group-hover:translate-x-1 transition-transform" /> All Formulations
                 </Link>
               </li>
             </ul>
