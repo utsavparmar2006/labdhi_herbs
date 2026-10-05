@@ -26,10 +26,36 @@ export default function AdminInvoiceModal({ order, onClose, isOpen }: AdminInvoi
   const subtotal = order.pricing?.subtotal || 0;
   const discount = order.pricing?.discount || 0;
   const shipping = order.pricing?.shipping || 0;
-  const tax = order.pricing?.tax || 0;
-  const sgst = order.pricing?.sgst ?? Math.round((tax / 2) * 100) / 100;
-  const cgst = order.pricing?.cgst ?? Math.round((tax / 2) * 100) / 100;
-  const total = order.pricing?.total || 0;
+  const total = order.pricing?.total || Math.max(0, subtotal - discount + shipping);
+
+  const customerState = (order.shippingAddress?.state || '').trim().toLowerCase();
+  const isGujarat = customerState.includes('gujarat') || customerState === 'gj' || customerState === '';
+
+  // Backward inclusive GST calculation
+  let tax = order.pricing?.tax ?? 0;
+  let sgst = order.pricing?.sgst ?? 0;
+  let cgst = order.pricing?.cgst ?? 0;
+  let igst = order.pricing?.igst ?? 0;
+  let taxableAmount = order.pricing?.taxableAmount;
+
+  if (taxableAmount === undefined && total > 0) {
+    const effectiveRate = 18; // Default 18% inclusive GST
+    taxableAmount = Math.round((total / (1 + effectiveRate / 100)) * 100) / 100;
+    if (tax === 0) {
+      tax = Math.round((total - taxableAmount) * 100) / 100;
+      if (isGujarat) {
+        cgst = Math.round((tax / 2) * 100) / 100;
+        sgst = Math.round((tax - cgst) * 100) / 100;
+        igst = 0;
+      } else {
+        igst = tax;
+        cgst = 0;
+        sgst = 0;
+      }
+    }
+  } else if (taxableAmount === undefined) {
+    taxableAmount = 0;
+  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 print:p-0 print:bg-white print:static print:overflow-visible">
@@ -225,44 +251,66 @@ export default function AdminInvoiceModal({ order, onClose, isOpen }: AdminInvoi
               <p>Authentic Ayurvedic formulations manufactured in Surat, Gujarat. For support or returns, write to support@labdhiherbs.com.</p>
             </div>
 
-            <div className="w-full sm:w-64 space-y-2 text-xs">
+            <div className="w-full sm:w-72 space-y-2 text-xs">
               <div className="flex justify-between text-slate-600 py-1 border-b border-[#EFE9DD]/60">
-                <span>Sub Total:</span>
-                <span className="font-medium text-slate-800">₹{subtotal}</span>
+                <span>Gross Total (MRP):</span>
+                <span className="font-medium text-slate-800">₹{subtotal.toFixed(2)}</span>
               </div>
 
               {discount > 0 && (
                 <div className="flex justify-between text-emerald-700 py-1 border-b border-[#EFE9DD]/60 font-semibold">
                   <span>Discount {order.couponCode && `(${order.couponCode})`}:</span>
-                  <span>- ₹{discount}</span>
+                  <span>- ₹{discount.toFixed(2)}</span>
                 </div>
               )}
 
               <div className="flex justify-between text-slate-600 py-1 border-b border-[#EFE9DD]/60">
                 <span>Delivery / Shipping:</span>
                 <span className="font-medium text-slate-800">
-                  {shipping === 0 ? 'Free' : `₹${shipping}`}
+                  {shipping === 0 ? 'Free' : `₹${shipping.toFixed(2)}`}
                 </span>
+              </div>
+
+              <div className="flex justify-between text-slate-500 py-1 border-b border-[#EFE9DD]/60">
+                <span>Taxable Value (Excl. Tax):</span>
+                <span className="font-medium text-slate-700">₹{taxableAmount.toFixed(2)}</span>
               </div>
 
               {sgst > 0 && (
                 <div className="flex justify-between text-slate-500 text-[11px] py-0.5">
                   <span>SGST:</span>
-                  <span>₹{sgst}</span>
+                  <span>₹{sgst.toFixed(2)}</span>
                 </div>
               )}
 
               {cgst > 0 && (
-                <div className="flex justify-between text-slate-500 text-[11px] py-0.5 border-b border-[#EFE9DD]/60">
+                <div className="flex justify-between text-slate-500 text-[11px] py-0.5">
                   <span>CGST:</span>
-                  <span>₹{cgst}</span>
+                  <span>₹{cgst.toFixed(2)}</span>
+                </div>
+              )}
+
+              {igst > 0 && (
+                <div className="flex justify-between text-slate-500 text-[11px] py-0.5">
+                  <span>IGST:</span>
+                  <span>₹{igst.toFixed(2)}</span>
+                </div>
+              )}
+
+              {tax > 0 && (
+                <div className="flex justify-between text-slate-400 text-[10px] pb-1 border-b border-[#EFE9DD]/60 italic">
+                  <span>(Total GST Included):</span>
+                  <span>₹{tax.toFixed(2)}</span>
                 </div>
               )}
 
               <div className="flex justify-between font-bold text-base text-[#1F3A2E] pt-2 border-t-2 border-[#1F3A2E]">
                 <span>Total Amount:</span>
-                <span>₹{total}</span>
+                <span>₹{total.toFixed(2)}</span>
               </div>
+              <p className="text-[10px] text-right text-emerald-700 font-medium">
+                (Inclusive of all Taxes)
+              </p>
             </div>
           </div>
 

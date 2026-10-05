@@ -111,6 +111,15 @@ export interface ISiteSettings extends Document {
     blog: { title: string; subtitle: string };
     about: { title: string; subtitle: string };
   };
+  smtpConfig?: {
+    senderEmail: string;
+    senderName: string;
+    smtpHost: string;
+    smtpPort: number;
+    smtpUser: string;
+    smtpPass: string;
+    enableOrderEmails: boolean;
+  };
   updatedAt: Date;
   createdAt: Date;
 }
@@ -335,6 +344,15 @@ const SiteSettingsSchema: Schema = new Schema(
             'Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free hair, skin, and joint care formulations.',
         },
       },
+    },
+    smtpConfig: {
+      senderEmail: { type: String, default: 'support@labdhiherbs.com' },
+      senderName: { type: String, default: 'Labdhi Herbs Authentic Ayurveda' },
+      smtpHost: { type: String, default: 'smtp.gmail.com' },
+      smtpPort: { type: Number, default: 587 },
+      smtpUser: { type: String, default: '' },
+      smtpPass: { type: String, default: '' },
+      enableOrderEmails: { type: Boolean, default: true },
     },
   },
   {

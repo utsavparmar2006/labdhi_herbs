@@ -3,6 +3,8 @@ import { Order, IOrderItem } from '../models/Order.model.js';
 import { Coupon } from '../models/Coupon.model.js';
 import { AuthRequest } from '../middlewares/auth.middleware.js';
 import { getRazorpayConfig, getRazorpayInstance } from '../config/razorpay.js';
+import { calculateGstInclusive, sendOrderInvoiceEmail } from '../utils/orderInvoiceTemplate.js';
+import SiteSettings from '../models/SiteSettings.model.js';
 
 // Supported Promotional Coupons
 const VALID_COUPONS: Record<string, { type: 'percent' | 'flat'; value: number; minSubtotal: number }> = {
@@ -129,8 +131,28 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     }
 
     const shipping = 0; // Free all-India delivery
-    const tax = 0; // Inclusive of GST
     const total = Math.max(0, subtotal - discount + shipping);
+
+    // Calculate inclusive GST according to Admin Site Settings
+    let siteSettings: any = null;
+    try {
+      siteSettings = await SiteSettings.findOne().lean();
+    } catch (sErr) {
+      console.warn('SiteSettings lookup warning:', sErr);
+    }
+
+    const gstCalc = calculateGstInclusive({
+      amount: total,
+      state: shippingAddress?.state || 'Gujarat',
+      gstEnabled: siteSettings?.gstEnabled !== false,
+      igstRate: siteSettings?.igst ?? 18,
+      cgstRate: siteSettings?.cgst ?? 9,
+      sgstRate: siteSettings?.sgst ?? 9,
+    });
+
+    const tax = gstCalc.totalGst;
+    const sgst = gstCalc.sgst;
+    const cgst = gstCalc.cgst;
 
     const orderId = generateOrderNumber();
 
@@ -167,8 +189,10 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
         discount,
         shipping,
         tax,
-        sgst: Math.round((tax / 2) * 100) / 100,
-        cgst: Math.round((tax / 2) * 100) / 100,
+        sgst,
+        cgst,
+        igst: gstCalc.igst,
+        taxableAmount: gstCalc.taxableAmount,
         total,
       },
       couponCode: discount > 0 ? normalizedCoupon : '',
@@ -241,6 +265,13 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       } catch (cErr) {
         console.warn('Could not update coupon usage count:', cErr);
       }
+    }
+
+    // For COD orders, dispatch order confirmation invoice email immediately
+    if (!isOnline) {
+      sendOrderInvoiceEmail(newOrder).catch((e) =>
+        console.error('[Order Invoice Email COD Error]', e?.message || e)
+      );
     }
 
     res.status(201).json({

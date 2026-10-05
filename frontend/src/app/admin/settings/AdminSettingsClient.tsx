@@ -121,11 +121,21 @@ interface SiteSettings {
     blog: { title: string; subtitle: string };
     about: { title: string; subtitle: string };
   };
+  smtpConfig?: {
+    senderEmail: string;
+    senderName: string;
+    smtpHost: string;
+    smtpPort: number;
+    smtpUser: string;
+    smtpPass: string;
+    enableOrderEmails: boolean;
+  };
 }
 
 type ActiveTab =
   | 'profile'
   | 'pageHeaders'
+  | 'smtp'
   | 'about'
   | 'terms'
   | 'privacy'
@@ -581,6 +591,11 @@ export default function AdminSettingsClient() {
   const [updatingPassword, setUpdatingPassword] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Email & SMTP State
+  const [testEmailAddress, setTestEmailAddress] = useState('');
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+
   // Banner Modal State
   const [bannerModalOpen, setBannerModalOpen] = useState(false);
   const [editingBannerIndex, setEditingBannerIndex] = useState<number | null>(null);
@@ -677,6 +692,15 @@ export default function AdminSettingsClient() {
         subtitle:
           'Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free hair, skin, and joint care formulations.',
       },
+    },
+    smtpConfig: {
+      senderEmail: 'support@labdhiherbs.com',
+      senderName: 'Labdhi Herbs Authentic Ayurveda',
+      smtpHost: 'smtp.gmail.com',
+      smtpPort: 587,
+      smtpUser: '',
+      smtpPass: '',
+      enableOrderEmails: true,
     },
   };
 
@@ -956,6 +980,50 @@ export default function AdminSettingsClient() {
   const savePageHeaders = () =>
     save('page-headers', settings.pageHeaders || defaultSettings.pageHeaders!);
 
+  const saveSmtp = () =>
+    save('smtp', settings.smtpConfig || defaultSettings.smtpConfig!);
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress.trim() || !testEmailAddress.includes('@')) {
+      showToast('Please enter a valid email address to receive the test bill', 'error');
+      return;
+    }
+    setTestingEmail(true);
+    try {
+      const res = await fetch(`${API}/v1/site-settings/test-smtp`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          toEmail: testEmailAddress.trim(),
+          smtpConfig: settings.smtpConfig,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast(data.message || 'Test invoice email sent successfully!', 'success');
+      } else {
+        showToast(data.message || 'Failed to send test email. Check your SMTP credentials.', 'error');
+      }
+    } catch {
+      showToast('Network error while testing email connection', 'error');
+    } finally {
+      setTestingEmail(false);
+    }
+  };
+
+  const setSmtpField = useCallback(
+    (field: keyof NonNullable<SiteSettings['smtpConfig']>, val: any) => {
+      setSettings((prev) => ({
+        ...prev,
+        smtpConfig: {
+          ...(prev.smtpConfig || defaultSettings.smtpConfig!),
+          [field]: val,
+        },
+      }));
+    },
+    []
+  );
+
   const setPageHeaderField = useCallback(
     (pageKey: 'shop' | 'subCategories' | 'stories' | 'blog' | 'about', field: 'title' | 'subtitle', val: string) => {
       setSettings((prev) => ({
@@ -980,6 +1048,7 @@ export default function AdminSettingsClient() {
   const saveActions: Record<ActiveTab, () => void> = {
     profile: saveProfile,
     pageHeaders: savePageHeaders,
+    smtp: saveSmtp,
     about: saveAbout,
     terms: saveTerms,
     privacy: savePrivacy,
@@ -996,6 +1065,7 @@ export default function AdminSettingsClient() {
   const tabs: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'pageHeaders', label: 'Page Banners & Headers', icon: Layout },
+    { id: 'smtp', label: 'Email & Invoicing', icon: Mail },
     { id: 'about', label: 'About Us', icon: Info },
     { id: 'terms', label: 'Terms & Conditions', icon: FileText },
     { id: 'privacy', label: 'Privacy Policy', icon: Shield },
@@ -1488,6 +1558,269 @@ export default function AdminSettingsClient() {
             </SettingsCard>
 
             <SaveButton onClick={savePageHeaders} loading={saving} label="Save All Page Headers" />
+          </div>
+        );
+
+      // ── Email & SMTP Configuration ───────────────────────────────────────────
+      case 'smtp':
+        const smtp = settings.smtpConfig || defaultSettings.smtpConfig!;
+        return (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="bg-[#1F3A2E] text-white p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-serif text-lg font-bold">Order Confirmation Email &amp; Invoicing</h3>
+                <p className="text-xs text-white/70 mt-1 max-w-xl">
+                  Configure the outgoing email address and SMTP server used to send branded order bills, tax invoices, and payment receipts to customers.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={saveSmtp}
+                disabled={saving}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#D4A373] text-[#14261E] text-sm font-bold rounded-xl hover:bg-[#c69262] transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer shadow-md"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? 'Saving...' : 'Save Email Settings'}
+              </button>
+            </div>
+
+            {/* 1. Sender Identity & Automation Status */}
+            <SettingsCard title="1. Sender Identity &amp; Notification Rules" icon={Mail}>
+              <div className="space-y-5">
+                <div className="flex items-center justify-between pb-4 border-b border-[#EFE9DD]">
+                  <div>
+                    <p className="text-xs font-bold text-[#1A201C]">Automatic Order Bill Dispatch</p>
+                    <p className="text-[11px] text-slate-500">
+                      Instantly send itemized invoice email to customer upon placing COD order or completing online payment
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSmtpField('enableOrderEmails', !smtp.enableOrderEmails)}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      smtp.enableOrderEmails !== false ? 'bg-emerald-600 text-white' : 'bg-slate-400 text-white'
+                    }`}
+                  >
+                    {smtp.enableOrderEmails !== false ? 'Active (Auto-Send)' : 'Disabled'}
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    label="Sender Email Address"
+                    hint="The 'From' email address that customers see on their invoice"
+                  >
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="email"
+                        value={smtp.senderEmail || ''}
+                        onChange={(e) => setSmtpField('senderEmail', e.target.value)}
+                        className={`${inputCls} pl-9`}
+                        placeholder="e.g. orders@labdhiherbs.com"
+                      />
+                    </div>
+                  </FormField>
+
+                  <FormField
+                    label="Sender Display Name"
+                    hint="Brand title shown as the sender (e.g. Labdhi Herbs Authentic Ayurveda)"
+                  >
+                    <input
+                      type="text"
+                      value={smtp.senderName || ''}
+                      onChange={(e) => setSmtpField('senderName', e.target.value)}
+                      className={inputCls}
+                      placeholder="e.g. Labdhi Herbs Authentic Ayurveda"
+                    />
+                  </FormField>
+                </div>
+              </div>
+            </SettingsCard>
+
+            {/* 2. SMTP Server Credentials */}
+            <SettingsCard title="2. SMTP Mail Server Credentials" icon={Shield}>
+              <div className="space-y-5">
+                <p className="text-xs text-slate-500">
+                  Connect your mail server (Gmail, Google Workspace, AWS SES, Brevo, or cPanel SMTP) to send real delivery emails.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField label="SMTP Host / Server" hint="Default for Gmail is smtp.gmail.com">
+                    <input
+                      type="text"
+                      value={smtp.smtpHost || ''}
+                      onChange={(e) => setSmtpField('smtpHost', e.target.value)}
+                      className={inputCls}
+                      placeholder="smtp.gmail.com"
+                    />
+                  </FormField>
+
+                  <FormField label="SMTP Port" hint="Standard ports: 587 (TLS/STARTTLS) or 465 (SSL)">
+                    <input
+                      type="number"
+                      value={smtp.smtpPort || 587}
+                      onChange={(e) => setSmtpField('smtpPort', Number(e.target.value) || 587)}
+                      className={inputCls}
+                      placeholder="587"
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="SMTP Username / Account Email"
+                    hint="Your full login email (e.g. yourname@gmail.com)"
+                  >
+                    <input
+                      type="text"
+                      value={smtp.smtpUser || ''}
+                      onChange={(e) => setSmtpField('smtpUser', e.target.value)}
+                      className={inputCls}
+                      placeholder="e.g. labdhiherbs@gmail.com"
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="SMTP Password / App Password"
+                    hint="For Gmail, use a 16-character App Password (not your personal password)"
+                  >
+                    <div className="relative">
+                      <input
+                        type={showSmtpPassword ? 'text' : 'password'}
+                        value={smtp.smtpPass || ''}
+                        onChange={(e) => setSmtpField('smtpPass', e.target.value)}
+                        className={`${inputCls} pr-10`}
+                        placeholder="••••••••••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        title={showSmtpPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showSmtpPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </FormField>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 text-amber-900 text-xs space-y-1">
+                  <p className="font-semibold flex items-center gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                    How to get a Gmail App Password:
+                  </p>
+                  <p className="text-[11px] text-amber-800 leading-relaxed pl-5">
+                    1. Go to your <strong>Google Account Security</strong> settings (<a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="underline font-semibold">myaccount.google.com/security</a>).<br />
+                    2. Enable <strong>2-Step Verification</strong>.<br />
+                    3. Under 2-Step Verification, select <strong>App Passwords</strong>, name it &quot;Labdhi Herbs&quot;, and copy the generated 16-letter password here.
+                  </p>
+                </div>
+              </div>
+            </SettingsCard>
+
+            {/* 3. Live Email Test & Diagnostic */}
+            <SettingsCard title="3. Test Email Dispatch" icon={CheckCircle2}>
+              <div className="space-y-4">
+                <p className="text-xs text-slate-500">
+                  Send a test email to verify your SMTP configuration before enabling live customer dispatches.
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="flex-1 relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="email"
+                      value={testEmailAddress}
+                      onChange={(e) => setTestEmailAddress(e.target.value)}
+                      placeholder="Enter recipient email (e.g. your personal email)..."
+                      className={`${inputCls} pl-9`}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSendTestEmail}
+                    disabled={testingEmail}
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 bg-[#1F3A2E] text-white text-xs font-bold rounded-xl hover:bg-[#2d5441] transition-all disabled:opacity-50 cursor-pointer shrink-0 shadow-sm"
+                  >
+                    {testingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {testingEmail ? 'Sending Test...' : 'Send Test Bill'}
+                  </button>
+                </div>
+              </div>
+            </SettingsCard>
+
+            {/* 4. Live GST Bill & Inclusive Calculation Sample */}
+            <SettingsCard title="4. GST Breakdown & Inclusive Tax Logic Preview" icon={Globe}>
+              <div className="space-y-4">
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  As configured, all product prices on the storefront are <strong>GST inclusive</strong> (e.g. ₹499 is the final customer price). The invoice calculates backward to declare the taxable base and exact tax amounts without adding extra fees to the customer:
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {/* Gujarat Intra-state Sample */}
+                  <div className="p-4 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-[#EFE9DD] pb-2">
+                      <span className="text-xs font-bold text-[#14261E]">Gujarat Orders (CGST + SGST)</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Intra-State
+                      </span>
+                    </div>
+                    <div className="text-xs space-y-1 text-slate-600">
+                      <div className="flex justify-between">
+                        <span>Product MRP (Inclusive):</span>
+                        <strong className="text-slate-900">₹499.00</strong>
+                      </div>
+                      <div className="flex justify-between text-slate-500">
+                        <span>Taxable Base Value (499 / 1.18):</span>
+                        <span>₹422.88</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500">
+                        <span>CGST ({settings.cgst ?? 9}%):</span>
+                        <span>₹38.06</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500">
+                        <span>SGST ({settings.sgst ?? 9}%):</span>
+                        <span>₹38.06</span>
+                      </div>
+                      <div className="flex justify-between border-t border-[#EFE9DD] pt-1.5 font-bold text-[#14261E]">
+                        <span>Customer Bill Total:</span>
+                        <span>₹499.00</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Other States Inter-state Sample */}
+                  <div className="p-4 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-[#EFE9DD] pb-2">
+                      <span className="text-xs font-bold text-[#14261E]">Outside Gujarat (IGST)</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                        Inter-State
+                      </span>
+                    </div>
+                    <div className="text-xs space-y-1 text-slate-600">
+                      <div className="flex justify-between">
+                        <span>Product MRP (Inclusive):</span>
+                        <strong className="text-slate-900">₹499.00</strong>
+                      </div>
+                      <div className="flex justify-between text-slate-500">
+                        <span>Taxable Base Value (499 / 1.18):</span>
+                        <span>₹422.88</span>
+                      </div>
+                      <div className="flex justify-between text-slate-500">
+                        <span>IGST ({settings.igst ?? 18}%):</span>
+                        <span>₹76.12</span>
+                      </div>
+                      <div className="flex justify-between border-t border-[#EFE9DD] pt-1.5 font-bold text-[#14261E]">
+                        <span>Customer Bill Total:</span>
+                        <span>₹499.00</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
+
+            <SaveButton onClick={saveSmtp} loading={saving} label="Save Email &amp; Invoicing Settings" />
           </div>
         );
 

@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import SiteSettings from '../models/SiteSettings.model.js';
 
 interface SendMailOptions {
   to: string;
@@ -66,10 +67,28 @@ export async function sendEmail({
   smtpConfig,
 }: SendMailOptions): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
   try {
-    const user = smtpConfig?.user || process.env.SMTP_USER;
-    const sender = smtpConfig?.senderName || fromName;
+    let activeConfig = smtpConfig;
+    if (!activeConfig?.user || !activeConfig?.pass) {
+      try {
+        const settings = (await SiteSettings.findOne().lean()) as any;
+        if (settings?.smtpConfig?.smtpUser && settings?.smtpConfig?.smtpPass) {
+          activeConfig = {
+            host: settings.smtpConfig.smtpHost || 'smtp.gmail.com',
+            port: Number(settings.smtpConfig.smtpPort) || 587,
+            user: settings.smtpConfig.smtpUser,
+            pass: settings.smtpConfig.smtpPass,
+            senderName: settings.smtpConfig.senderName || settings.smtpConfig.senderEmail || fromName,
+          };
+        }
+      } catch (e) {
+        // continue to env fallback
+      }
+    }
 
-    const transporter = createMailerTransport(smtpConfig);
+    const user = activeConfig?.user || process.env.SMTP_USER;
+    const sender = activeConfig?.senderName || fromName;
+
+    const transporter = createMailerTransport(activeConfig);
 
     // If SMTP credentials are fully provided, deliver via actual SMTP transport
     if (transporter && user) {

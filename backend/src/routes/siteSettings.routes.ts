@@ -11,6 +11,8 @@ import {
   updateBanners,
   updateGeneralSettings,
   updatePageHeaders,
+  updateSmtpConfig,
+  sendTestSmtpEmail,
 } from '../controllers/siteSettings.controller.js';
 import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
 
@@ -30,5 +32,7 @@ router.put('/logos', verifyJWT, verifyAdmin, updateLogos);
 router.put('/banners', verifyJWT, verifyAdmin, updateBanners);
 router.put('/general', verifyJWT, verifyAdmin, updateGeneralSettings);
 router.put('/page-headers', verifyJWT, verifyAdmin, updatePageHeaders);
+router.put('/smtp', verifyJWT, verifyAdmin, updateSmtpConfig);
+router.post('/test-smtp', verifyJWT, verifyAdmin, sendTestSmtpEmail);
 
 export default router;

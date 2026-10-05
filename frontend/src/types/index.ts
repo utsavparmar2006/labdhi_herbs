@@ -198,6 +198,8 @@ export interface OrderPricing {
   tax: number;
   sgst?: number;
   cgst?: number;
+  igst?: number;
+  taxableAmount?: number;
   total: number;
 }
 

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import SiteSettings from '../models/SiteSettings.model.js';
+import { verifyAndSendTestEmail } from '../utils/mailer.js';
 
 /**
  * Get site settings (creates default if none exists)
@@ -284,6 +285,76 @@ export const updatePageHeaders = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Update SMTP / Sender Email settings
+ */
+export const updateSmtpConfig = async (req: Request, res: Response) => {
+  try {
+    const {
+      senderEmail,
+      senderName,
+      smtpHost,
+      smtpPort,
+      smtpUser,
+      smtpPass,
+      enableOrderEmails,
+    } = req.body;
+
+    const settings = await SiteSettings.findOneAndUpdate(
+      {},
+      {
+        $set: {
+          'smtpConfig.senderEmail': senderEmail,
+          'smtpConfig.senderName': senderName,
+          'smtpConfig.smtpHost': smtpHost || 'smtp.gmail.com',
+          'smtpConfig.smtpPort': Number(smtpPort) || 587,
+          'smtpConfig.smtpUser': smtpUser,
+          'smtpConfig.smtpPass': smtpPass,
+          'smtpConfig.enableOrderEmails': enableOrderEmails !== false,
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Email & SMTP settings saved successfully',
+      data: settings.smtpConfig,
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Send test SMTP email from admin panel
+ */
+export const sendTestSmtpEmail = async (req: Request, res: Response) => {
+  try {
+    const { toEmail, smtpConfig } = req.body;
+    const settings = await SiteSettings.findOne();
+    const activeConfig = smtpConfig || settings?.smtpConfig || {};
+
+    const targetEmail = toEmail || activeConfig.senderEmail || settings?.profile?.adminEmail || 'support@labdhiherbs.com';
+
+    const result = await verifyAndSendTestEmail(targetEmail, {
+      host: activeConfig.smtpHost || 'smtp.gmail.com',
+      port: Number(activeConfig.smtpPort) || 587,
+      user: activeConfig.smtpUser,
+      pass: activeConfig.smtpPass,
+      senderName: activeConfig.senderName || 'Labdhi Herbs',
+    });
+
+    if (result.success) {
+      res.status(200).json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

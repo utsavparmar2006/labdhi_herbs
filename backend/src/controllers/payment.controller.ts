@@ -5,6 +5,7 @@ import {
   getRazorpayInstance,
   verifyRazorpaySignature,
 } from '../config/razorpay.js';
+import { sendOrderInvoiceEmail } from '../utils/orderInvoiceTemplate.js';
 
 /**
  * @desc Get Public Razorpay Key ID & Status
@@ -185,6 +186,13 @@ export const verifyRazorpayPayment = async (req: Request, res: Response): Promis
         },
         { new: true }
       );
+
+      // Dispatch order confirmation invoice email upon verified payment
+      if (updatedOrder) {
+        sendOrderInvoiceEmail(updatedOrder).catch((err) =>
+          console.error('[Order Invoice Email Online Error]', err?.message || err)
+        );
+      }
     }
 
     res.status(200).json({

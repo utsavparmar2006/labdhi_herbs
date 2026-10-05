@@ -31,6 +31,8 @@ export interface IPricing {
   tax: number;
   sgst?: number;
   cgst?: number;
+  igst?: number;
+  taxableAmount?: number;
   total: number;
 }
 
@@ -118,6 +120,8 @@ const PricingSchema = new Schema<IPricing>(
     tax: { type: Number, default: 0, min: 0 },
     sgst: { type: Number, default: 0, min: 0 },
     cgst: { type: Number, default: 0, min: 0 },
+    igst: { type: Number, default: 0, min: 0 },
+    taxableAmount: { type: Number, default: 0, min: 0 },
     total: { type: Number, required: true, min: 0 },
   },
   { _id: false }
