@@ -6,12 +6,12 @@ const STAGES = [
   {
     step: '01',
     title: 'Ethical Sourcing',
-    text: 'Raw herbal roots, wild turmeric bark, and leaves sourced directly from certified organic farms.',
+    text: "Raw herbal roots, wild herbs' bark, and leaves sourced directly from organic farms.",
   },
   {
     step: '02',
     title: 'Cold-Pressed Extraction',
-    text: 'Botanical oils slow-extracted without high heat to preserve full therapeutic vitamins and active herbal compounds.',
+    text: 'Botanical oils slow-extracted without high heat to preserve full therapeutic properties and active herbal compounds.',
   },
   {
     step: '03',

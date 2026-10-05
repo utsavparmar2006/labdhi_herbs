@@ -97,7 +97,7 @@ export default function AboutClient() {
             {/* Old Website Core Quote */}
             <div className="p-6 sm:p-8 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm relative z-10 space-y-3">
               <blockquote className="font-serif italic text-sm sm:text-base text-emerald-100 font-light leading-relaxed border-l-2 border-[#D4A373] pl-4">
-                "To provide transparent, commission-free, fast, reliable and comprehensive information with a wide range of quality and value-for-money products and services, all under one roof — using resources and traditional wisdom that excite local artisan enterprise to thrive and develop a strong local herbal economy."
+                &ldquo;To provide transparent, commission-free, fast and reliable wide range of quality and value-for-money products and services, all under one roof.&rdquo;
               </blockquote>
               <p className="text-[11px] text-[#D4A373] font-semibold pl-4">
                 — Core Founding Charter, Labdhi Herbs Surat
@@ -159,10 +159,10 @@ export default function AboutClient() {
                 </div>
                 <h3 className="font-serif text-lg font-bold text-[#1A201C]">Skin &amp; Face Care</h3>
                 <p className="text-xs text-slate-500 font-light leading-relaxed">
-                  Includes the revered <strong>Roopotkarsh Vilepan</strong> and <strong>Beautiction Face Pack</strong>, designed to naturally detoxify, clarify, and revitalize facial complexion.
+                  Our face care essentials, including our face wash and face pack, are specifically formulated to control oil, target acne, diminish scars, smooth pits, and reduce tanning. For complete body care, our natural skincare line helps regulate excessive sweating, eliminate body odor, and provide long-lasting hydration against dryness.
                 </p>
                 <div className="pt-2 text-[11px] font-bold text-[#1F3A2E]">
-                  100% Herbal Face Packs &amp; Pastes
+                  100% herbal Face wash, Face pack &amp; body wash
                 </div>
               </div>
 
@@ -172,7 +172,7 @@ export default function AboutClient() {
                 </div>
                 <h3 className="font-serif text-lg font-bold text-[#1A201C]">Ayurvedic Hair Care</h3>
                 <p className="text-xs text-slate-500 font-light leading-relaxed">
-                  Infused with Bhringraj, Amla, and Brahmi, our <strong>Ayurvedic Hair Growth Oil</strong> works from follicular roots to combat hair fall, premature graying, and dry scalp.
+                  Infused with Jatamansi, Amla, and Tagar, our <strong>Ayurvedic Hair Growth Oil &amp; Hair Pack</strong> works from follicular roots to combat hair fall, premature graying, dandruff and dry scalp.
                 </p>
                 <div className="pt-2 text-[11px] font-bold text-[#1F3A2E]">
                   Cold-Pressed Botanical Oils
@@ -185,7 +185,7 @@ export default function AboutClient() {
                 </div>
                 <h3 className="font-serif text-lg font-bold text-[#1A201C]">Muscle &amp; Joint Care</h3>
                 <p className="text-xs text-slate-500 font-light leading-relaxed">
-                  Therapeutic formulation crafted with Mahanarayan and wintergreen extracts for natural pain alleviation, joint stiffness relief, and mobility restoration.
+                  Therapeutic formulation crafted with Camphor, Erand and Jyotishmati for natural pain alleviation, joint stiffness relief, and mobility restoration.
                 </p>
                 <div className="pt-2 text-[11px] font-bold text-[#1F3A2E]">
                   Deep Tissue Pain Relieving Herbs
@@ -242,7 +242,7 @@ export default function AboutClient() {
                   <span>Surat Headquarters &amp; Workshop</span>
                 </div>
                 <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#1A201C]">
-                  Authentic Origins in Adajan, Surat
+                  Authentic Origins in Surat
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 font-light leading-relaxed">
                   Every product is packaged and dispatched directly from our established workshop in Surat, Gujarat. We welcome personal inquiries, wholesale requests, and usage consultations.
