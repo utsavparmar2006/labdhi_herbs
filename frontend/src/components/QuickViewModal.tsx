@@ -74,7 +74,9 @@ export default function QuickViewModal({ product, onClose, onAddToCart }: QuickV
                 <div className="flex items-center gap-1.5 text-[#B58A5A] text-xs">
                   <Star className="w-4 h-4 fill-current" />
                   <span className="font-bold text-slate-800">{product.rating}</span>
-                  <span className="text-slate-400">({product.reviewsCount} reviews)</span>
+                  <span className="text-slate-400">
+                    ({product.reviewsCount !== undefined ? product.reviewsCount : ((product as any).baseReviewsCount ?? 0)} reviews)
+                  </span>
                 </div>
 
                 <div className="flex items-baseline gap-2">

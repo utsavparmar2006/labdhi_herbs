@@ -91,11 +91,16 @@ export const getProductReviews = async (req: Request, res: Response): Promise<vo
       }))
     );
 
-    const targetProduct = await Product.findOne({ id: productId }, { baseRating: 1, rating: 1 }).lean();
+    const targetProduct = await Product.findOne({ id: productId }, { baseRating: 1, baseReviewsCount: 1, rating: 1, reviewsCount: 1 }).lean();
     const productBaseRating =
       targetProduct && typeof targetProduct.baseRating === 'number' && !isNaN(targetProduct.baseRating)
         ? targetProduct.baseRating
         : (targetProduct && typeof targetProduct.rating === 'number' && !isNaN(targetProduct.rating) ? targetProduct.rating : 5.0);
+
+    const productBaseReviewsCount =
+      targetProduct && typeof (targetProduct as any).baseReviewsCount === 'number' && !isNaN((targetProduct as any).baseReviewsCount)
+        ? Math.max(0, (targetProduct as any).baseReviewsCount)
+        : 0;
 
     const baseStats = stats[0] || {
       totalReviews: 0,
@@ -108,35 +113,38 @@ export const getProductReviews = async (req: Request, res: Response): Promise<vo
       star1: 0,
     };
 
-    const totalCount = baseStats.totalReviews;
+    const organicCount = baseStats.totalReviews;
+    const totalEffectiveCount = productBaseReviewsCount + organicCount;
+
     let avgRating = productBaseRating;
-    if (totalCount > 0) {
-      const sumOfRatings = baseStats.avgRating * totalCount;
-      avgRating = Math.round(((productBaseRating + sumOfRatings) / (1 + totalCount)) * 10) / 10;
+    if (totalEffectiveCount > 0) {
+      const organicSum = baseStats.avgRating * organicCount;
+      const totalPoints = (productBaseRating * productBaseReviewsCount) + organicSum;
+      avgRating = Math.round((totalPoints / totalEffectiveCount) * 10) / 10;
     }
-    const recommendPercentage = totalCount > 0 ? Math.round((baseStats.recommendCount / totalCount) * 100) : 100;
+    const recommendPercentage = organicCount > 0 ? Math.round((baseStats.recommendCount / organicCount) * 100) : 100;
 
     const baseStarBucket = Math.min(5, Math.max(1, Math.round(productBaseRating)));
-    const totalEffectiveCount = totalCount + 1;
-    const star5Count = (baseStats.star5 || 0) + (baseStarBucket === 5 ? 1 : 0);
-    const star4Count = (baseStats.star4 || 0) + (baseStarBucket === 4 ? 1 : 0);
-    const star3Count = (baseStats.star3 || 0) + (baseStarBucket === 3 ? 1 : 0);
-    const star2Count = (baseStats.star2 || 0) + (baseStarBucket === 2 ? 1 : 0);
-    const star1Count = (baseStats.star1 || 0) + (baseStarBucket === 1 ? 1 : 0);
+    const star5Count = (baseStats.star5 || 0) + (baseStarBucket === 5 ? productBaseReviewsCount : 0);
+    const star4Count = (baseStats.star4 || 0) + (baseStarBucket === 4 ? productBaseReviewsCount : 0);
+    const star3Count = (baseStats.star3 || 0) + (baseStarBucket === 3 ? productBaseReviewsCount : 0);
+    const star2Count = (baseStats.star2 || 0) + (baseStarBucket === 2 ? productBaseReviewsCount : 0);
+    const star1Count = (baseStats.star1 || 0) + (baseStarBucket === 1 ? productBaseReviewsCount : 0);
 
+    const safeTotal = totalEffectiveCount > 0 ? totalEffectiveCount : 1;
     const breakdown = {
-      5: { count: star5Count, percentage: Math.round((star5Count / totalEffectiveCount) * 100) },
-      4: { count: star4Count, percentage: Math.round((star4Count / totalEffectiveCount) * 100) },
-      3: { count: star3Count, percentage: Math.round((star3Count / totalEffectiveCount) * 100) },
-      2: { count: star2Count, percentage: Math.round((star2Count / totalEffectiveCount) * 100) },
-      1: { count: star1Count, percentage: Math.round((star1Count / totalEffectiveCount) * 100) },
+      5: { count: star5Count, percentage: Math.round((star5Count / safeTotal) * 100) },
+      4: { count: star4Count, percentage: Math.round((star4Count / safeTotal) * 100) },
+      3: { count: star3Count, percentage: Math.round((star3Count / safeTotal) * 100) },
+      2: { count: star2Count, percentage: Math.round((star2Count / safeTotal) * 100) },
+      1: { count: star1Count, percentage: Math.round((star1Count / safeTotal) * 100) },
     };
 
     res.status(200).json({
       success: true,
       productId,
       stats: {
-        totalReviews: totalCount,
+        totalReviews: totalEffectiveCount,
         averageRating: avgRating,
         recommendPercentage,
         breakdown,

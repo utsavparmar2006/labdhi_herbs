@@ -10,6 +10,7 @@ export interface IProduct extends Document {
   price: number;
   originalPrice?: number;
   baseRating?: number;
+  baseReviewsCount?: number;
   rating: number;
   reviewsCount: number;
   image: string;
@@ -39,6 +40,7 @@ const ProductSchema: Schema = new Schema(
     price: { type: Number, required: true, min: 0 },
     originalPrice: { type: Number, default: 0 },
     baseRating: { type: Number, default: 5.0, min: 1, max: 5 },
+    baseReviewsCount: { type: Number, default: 0, min: 0 },
     rating: { type: Number, default: 5.0, min: 0, max: 5 },
     reviewsCount: { type: Number, default: 0 },
     image: { type: String, required: true },

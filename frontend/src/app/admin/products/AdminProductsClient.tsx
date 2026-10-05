@@ -38,6 +38,7 @@ import {
   XCircle,
   SlidersHorizontal,
   ChevronRight,
+  Users,
   ArrowUpDown,
   FileText,
   ListPlus,
@@ -69,6 +70,7 @@ interface ProductFormData {
   price: number | string;
   originalPrice: number | string;
   baseRating: number | string;
+  baseReviewsCount: number | string;
   image: string;
   images: string[];
   hoverImage: string;
@@ -93,6 +95,7 @@ const EMPTY_FORM: ProductFormData = {
   price: '',
   originalPrice: '',
   baseRating: 5.0,
+  baseReviewsCount: 1,
   image: '',
   images: [],
   hoverImage: '',
@@ -258,6 +261,7 @@ export default function AdminProductsClient() {
       price: prod.price,
       originalPrice: prod.originalPrice || '',
       baseRating: (prod as any).baseRating !== undefined ? (prod as any).baseRating : (prod.rating || 5.0),
+      baseReviewsCount: (prod as any).baseReviewsCount !== undefined ? (prod as any).baseReviewsCount : (prod.reviewsCount !== undefined ? prod.reviewsCount : 1),
       image: prod.image || initialImages[0] || '',
       images: initialImages,
       hoverImage: prod.hoverImage || initialImages[1] || '',
@@ -313,7 +317,9 @@ export default function AdminProductsClient() {
       price: Number(formData.price),
       originalPrice: formData.originalPrice ? Number(formData.originalPrice) : 0,
       baseRating: formData.baseRating !== '' ? Number(formData.baseRating) : 5.0,
+      baseReviewsCount: formData.baseReviewsCount !== '' ? Math.max(0, parseInt(String(formData.baseReviewsCount), 10) || 0) : 0,
       rating: formData.baseRating !== '' ? Number(formData.baseRating) : 5.0,
+      reviewsCount: formData.baseReviewsCount !== '' ? Math.max(0, parseInt(String(formData.baseReviewsCount), 10) || 0) : 0,
       image: primaryImage,
       images: resolvedImages,
       hoverImage: resolvedImages[1] || formData.hoverImage.trim() || primaryImage,
@@ -694,11 +700,13 @@ export default function AdminProductsClient() {
                           <div className="flex items-center gap-2">
                             <div
                               className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-bold"
-                              title={`Current rating: ${product.rating || 5.0} based on ${product.reviewsCount || 0} reviews (Base: ${(product as any).baseRating || product.rating || 5.0})`}
+                              title={`Current rating: ${product.rating || 5.0} based on ${product.reviewsCount !== undefined ? product.reviewsCount : ((product as any).baseReviewsCount ?? 0)} reviews (Base: ${(product as any).baseRating || product.rating || 5.0}, Base Count: ${(product as any).baseReviewsCount ?? 0})`}
                             >
                               <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
                               <span>{product.rating || (product as any).baseRating || 5.0}</span>
-                              <span className="text-[10px] text-amber-600/80 font-normal">({product.reviewsCount || 0})</span>
+                              <span className="text-[10px] text-amber-600/80 font-normal">
+                                ({product.reviewsCount !== undefined ? product.reviewsCount : ((product as any).baseReviewsCount ?? 0)})
+                              </span>
                             </div>
 
                             <Link
@@ -941,7 +949,7 @@ export default function AdminProductsClient() {
                         <span>3. Pricing, Rating & Inventory</span>
                       </h4>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold text-slate-700">
                             Selling Price (₹) <span className="text-red-500">*</span>
@@ -995,7 +1003,28 @@ export default function AdminProductsClient() {
                             className="w-full px-3.5 py-2.5 rounded-xl border border-amber-200 bg-amber-50/30 text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] font-bold text-[#14261E]"
                           />
                           <p className="text-[10px] text-slate-400 font-light leading-tight">
-                            Initial rating. New customer reviews will blend with this score.
+                            Initial rating score.
+                          </p>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5 text-blue-600" />
+                            <span>Review Members (Count)</span>
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={formData.baseReviewsCount}
+                            onChange={(e) =>
+                              setFormData((prev) => ({ ...prev, baseReviewsCount: e.target.value }))
+                            }
+                            placeholder="e.g. 1, 15, or 120"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50/30 text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] font-bold text-[#14261E]"
+                          />
+                          <p className="text-[10px] text-slate-400 font-light leading-tight">
+                            Initial members. New reviews add to this.
                           </p>
                         </div>
                       </div>

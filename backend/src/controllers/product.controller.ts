@@ -408,6 +408,13 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
         ? Math.min(5, Math.max(1, Number(req.body.baseRating)))
         : (req.body.rating !== undefined && req.body.rating !== '' ? Math.min(5, Math.max(1, Number(req.body.rating))) : 5.0);
 
+    const startingReviewsCount =
+      req.body.baseReviewsCount !== undefined && req.body.baseReviewsCount !== ''
+        ? Math.max(0, parseInt(String(req.body.baseReviewsCount), 10) || 0)
+        : (req.body.reviewsCount !== undefined && req.body.reviewsCount !== ''
+            ? Math.max(0, parseInt(String(req.body.reviewsCount), 10) || 0)
+            : 0);
+
     const newProduct = await Product.create({
       id: productId,
       name,
@@ -418,8 +425,9 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       price: Number(price),
       originalPrice: originalPrice ? Number(originalPrice) : 0,
       baseRating: startingRating,
+      baseReviewsCount: startingReviewsCount,
       rating: startingRating,
-      reviewsCount: reviewsCount ? Number(reviewsCount) : 0,
+      reviewsCount: startingReviewsCount,
       image,
       hoverImage: hoverImage || '',
       images: images || [image],
@@ -470,26 +478,42 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
     }
 
     const updates = req.body;
-    let baseRatingChanged = false;
+    let ratingRecalcNeeded = false;
     if (updates.baseRating !== undefined && updates.baseRating !== '') {
       const parsed = Math.min(5, Math.max(1, Number(updates.baseRating)));
       (product as any).baseRating = parsed;
-      baseRatingChanged = true;
+      ratingRecalcNeeded = true;
     } else if (updates.rating !== undefined && updates.rating !== '') {
       const parsed = Math.min(5, Math.max(1, Number(updates.rating)));
       (product as any).baseRating = parsed;
-      baseRatingChanged = true;
+      ratingRecalcNeeded = true;
+    }
+
+    if (updates.baseReviewsCount !== undefined && updates.baseReviewsCount !== '') {
+      const parsedCount = Math.max(0, parseInt(String(updates.baseReviewsCount), 10) || 0);
+      (product as any).baseReviewsCount = parsedCount;
+      ratingRecalcNeeded = true;
+    } else if (updates.reviewsCount !== undefined && updates.reviewsCount !== '' && updates.reviewsCount !== null) {
+      const parsedCount = Math.max(0, parseInt(String(updates.reviewsCount), 10) || 0);
+      (product as any).baseReviewsCount = parsedCount;
+      ratingRecalcNeeded = true;
     }
 
     Object.keys(updates).forEach((key) => {
-      if (key !== '_id' && key !== 'baseRating' && key !== 'rating') {
+      if (
+        key !== '_id' &&
+        key !== 'baseRating' &&
+        key !== 'rating' &&
+        key !== 'baseReviewsCount' &&
+        key !== 'reviewsCount'
+      ) {
         (product as any)[key] = updates[key];
       }
     });
 
     await product.save();
 
-    if (baseRatingChanged) {
+    if (ratingRecalcNeeded) {
       await Review.calcAverageRating(product.id);
     }
 

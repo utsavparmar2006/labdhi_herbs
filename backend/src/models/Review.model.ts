@@ -115,6 +115,11 @@ ReviewSchema.statics.calcAverageRating = async function (productId: string) {
         ? product.baseRating
         : (product && typeof product.rating === 'number' && !isNaN(product.rating) ? product.rating : 5.0);
 
+    const baseReviewsCount =
+      product && typeof (product as any).baseReviewsCount === 'number' && !isNaN((product as any).baseReviewsCount)
+        ? Math.max(0, (product as any).baseReviewsCount)
+        : 0;
+
     const stats = await this.aggregate([
       {
         $match: {
@@ -131,28 +136,24 @@ ReviewSchema.statics.calcAverageRating = async function (productId: string) {
       },
     ]);
 
-    if (stats.length > 0 && stats[0].reviewsCount > 0) {
-      const custCount = stats[0].reviewsCount;
-      const custSum = stats[0].totalRatingSum;
-      // Formula: (baseRating + customerRatingsSum) / (1 + customerCount)
-      const blendedRating = Math.round(((baseRating + custSum) / (1 + custCount)) * 10) / 10;
-      await Product.findOneAndUpdate(
-        { id: productId },
-        {
-          rating: blendedRating,
-          reviewsCount: custCount,
-        }
-      );
-    } else {
-      // If no approved reviews exist, maintain baseRating and 0 customer reviews count
-      await Product.findOneAndUpdate(
-        { id: productId },
-        {
-          rating: baseRating,
-          reviewsCount: 0,
-        }
-      );
+    const custCount = stats.length > 0 && stats[0].reviewsCount > 0 ? stats[0].reviewsCount : 0;
+    const custSum = stats.length > 0 && stats[0].totalRatingSum > 0 ? stats[0].totalRatingSum : 0;
+
+    const totalCount = baseReviewsCount + custCount;
+
+    let finalRating = baseRating;
+    if (totalCount > 0) {
+      const totalPoints = (baseRating * baseReviewsCount) + custSum;
+      finalRating = Math.round((totalPoints / totalCount) * 10) / 10;
     }
+
+    await Product.findOneAndUpdate(
+      { id: productId },
+      {
+        rating: Math.min(5, Math.max(1, finalRating)),
+        reviewsCount: totalCount,
+      }
+    );
   } catch (error) {
     console.error(`Error calculating average rating for product ${productId}:`, error);
   }

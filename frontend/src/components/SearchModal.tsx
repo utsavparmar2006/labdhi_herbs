@@ -143,6 +143,9 @@ export default function SearchModal({ isOpen, onClose, onSelectProduct }: Search
                         <span>•</span>
                         <span className="flex items-center gap-0.5 text-[#B58A5A]">
                           <Star className="w-3 h-3 fill-current" /> {product.rating}
+                          <span className="text-slate-400 font-normal">
+                            ({product.reviewsCount !== undefined ? product.reviewsCount : ((product as any).baseReviewsCount ?? 0)})
+                          </span>
                         </span>
                       </div>
                     </div>

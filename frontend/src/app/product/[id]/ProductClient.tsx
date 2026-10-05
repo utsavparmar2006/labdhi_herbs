@@ -226,13 +226,18 @@ export default function ProductClient({ productId }: ProductClientProps) {
                   className="inline-flex items-center gap-3 text-xs group cursor-pointer"
                   title="View customer reviews and ratings"
                 >
-                  <div className="flex items-center gap-1 bg-amber-50 group-hover:bg-amber-100 px-2.5 py-1 rounded-full border border-amber-200 text-amber-700 font-bold transition-colors">
+                  <div className="flex items-center gap-1.5 bg-amber-50 group-hover:bg-amber-100 px-3 py-1 rounded-full border border-amber-200 text-amber-700 font-bold transition-colors">
                     <Star className="w-3.5 h-3.5 fill-current text-amber-500" />
                     <span>{product.rating}</span>
+                    <span className="text-[11px] font-normal text-amber-600/90">
+                      ({product.reviewsCount !== undefined ? product.reviewsCount : ((product as any).baseReviewsCount ?? 0)})
+                    </span>
                   </div>
                   <span className="text-slate-500 font-light group-hover:text-[#14261E] group-hover:underline transition-colors">
-                    {product.reviewsCount > 0
-                      ? `Based on ${product.reviewsCount} customer ${product.reviewsCount === 1 ? 'review' : 'reviews'}`
+                    {(product.reviewsCount ?? (product as any).baseReviewsCount ?? 0) > 0
+                      ? `Based on ${product.reviewsCount ?? (product as any).baseReviewsCount} customer ${
+                          (product.reviewsCount ?? (product as any).baseReviewsCount) === 1 ? 'review' : 'reviews'
+                        }`
                       : 'Authentic Formulation Rating'}
                   </span>
                 </a>

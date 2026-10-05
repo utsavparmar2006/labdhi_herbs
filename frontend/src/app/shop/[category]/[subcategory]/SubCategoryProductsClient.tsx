@@ -280,7 +280,9 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
                             <div className="flex items-center gap-0.5 sm:gap-1 text-[#B58A5A] shrink-0">
                               <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-current" />
                               <span className="font-bold text-slate-800">{product.rating}</span>
-                              <span className="text-slate-400 hidden sm:inline">({product.reviewsCount})</span>
+                              <span className="text-slate-400 text-[10px] sm:text-[11px]">
+                                ({product.reviewsCount !== undefined ? product.reviewsCount : ((product as any).baseReviewsCount ?? 0)})
+                              </span>
                             </div>
                           </div>
 
