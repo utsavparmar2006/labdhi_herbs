@@ -19,6 +19,7 @@ import siteSettingsRoutes from './routes/siteSettings.routes.js';
 import paymentRoutes from './routes/payment.routes.js';
 import reviewRoutes from './routes/review.routes.js';
 import subscriberRoutes from './routes/subscriber.routes.js';
+import translateRoutes from './routes/translate.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app: Application = express();
@@ -85,6 +86,9 @@ app.use('/api/v1/reviews', reviewRoutes);
 app.use('/api/public/reviews', reviewRoutes);
 app.use('/api/v1/subscribers', subscriberRoutes);
 app.use('/api/public/subscribers', subscriberRoutes);
+app.use('/api/translate', translateRoutes);
+app.use('/api/v1/translate', translateRoutes);
+app.use('/api/public/translate', translateRoutes);
 
 // Root Route welcome message
 app.get('/', (_req: Request, res: Response) => {
