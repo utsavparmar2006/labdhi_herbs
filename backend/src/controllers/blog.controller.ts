@@ -163,7 +163,7 @@ export const getBlogs = async (req: Request, res: Response): Promise<void> => {
   try {
     await ensureSeedBlogs();
 
-    const { category, search, showOnHome } = req.query;
+    const { category, search, showOnHome, page, limit } = req.query;
     const filter: any = { status: 'published' };
 
     if (showOnHome !== undefined) {
@@ -184,18 +184,41 @@ export const getBlogs = async (req: Request, res: Response): Promise<void> => {
       ];
     }
 
-    const blogs = await Blog.find(filter)
+    const totalCount = await Blog.countDocuments(filter);
+
+    let pageNum: number | undefined;
+    let limitNum: number | undefined;
+
+    let query = Blog.find(filter)
       .sort({
         featured: -1,
         order: 1,
         createdAt: -1,
-      })
-      .lean();
+      });
+
+    if (page || limit) {
+      pageNum = Math.max(1, parseInt(String(page || 1)));
+      limitNum = Math.max(1, parseInt(String(limit || 9)));
+      const skip = (pageNum - 1) * limitNum;
+      query = query.skip(skip).limit(limitNum);
+    }
+
+    const blogs = await query.lean();
+    const totalPages = limitNum ? Math.ceil(totalCount / limitNum) || 1 : 1;
 
     res.status(200).json({
       success: true,
       count: blogs.length,
       data: blogs,
+      pagination: limitNum
+        ? {
+            totalBlogs: totalCount,
+            currentPage: pageNum,
+            totalPages,
+            limit: limitNum,
+            hasMore: (pageNum || 1) < totalPages,
+          }
+        : undefined,
     });
   } catch (error: any) {
     res.status(500).json({

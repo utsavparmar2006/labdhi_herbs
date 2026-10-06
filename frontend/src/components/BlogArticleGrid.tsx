@@ -1,9 +1,9 @@
-'use client';
-
+import { useState, useEffect, useCallback } from 'react';
 import { BLOG_POSTS } from '../services/mockData';
 import { BlogPost } from '../types';
-import { Calendar, Clock, ArrowRight, Leaf, BookOpen } from 'lucide-react';
+import { Calendar, Clock, ArrowRight, Leaf, BookOpen, Check, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
 interface BlogArticleGridProps {
   selectedCategory: string;
@@ -19,6 +19,13 @@ export default function BlogArticleGrid({
   posts,
 }: BlogArticleGridProps) {
   const sourcePosts = posts && posts.length > 0 ? posts : BLOG_POSTS;
+  const [visibleCount, setVisibleCount] = useState(6);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Reset pagination on filter or search changes
+  useEffect(() => {
+    setVisibleCount(6);
+  }, [selectedCategory, searchQuery]);
 
   const filteredPosts = sourcePosts.filter((post) => {
     const matchesCategory =
@@ -32,6 +39,26 @@ export default function BlogArticleGrid({
       post.category.toLowerCase().includes(searchQuery.toLowerCase());
 
     return matchesCategory && matchesSearch;
+  });
+
+  const displayedPosts = filteredPosts.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredPosts.length;
+
+  const handleLoadMore = useCallback(() => {
+    if (visibleCount < filteredPosts.length && !isLoadingMore) {
+      setIsLoadingMore(true);
+      setTimeout(() => {
+        setVisibleCount((prev) => Math.min(prev + 6, filteredPosts.length));
+        setIsLoadingMore(false);
+      }, 250);
+    }
+  }, [visibleCount, filteredPosts.length, isLoadingMore]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: handleLoadMore,
+    hasMore,
+    isLoading: isLoadingMore,
+    rootMargin: '250px',
   });
 
   return (
@@ -60,7 +87,7 @@ export default function BlogArticleGrid({
       ) : (
         <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           <AnimatePresence>
-            {filteredPosts.map((post) => (
+            {displayedPosts.map((post) => (
               <motion.article
                 key={post._id || post.id || post.slug}
                 layout
@@ -138,6 +165,23 @@ export default function BlogArticleGrid({
           </AnimatePresence>
         </motion.div>
       )}
+
+      {/* Infinite Scroll Sentinel & Status Indicator */}
+      <div ref={sentinelRef} className="pt-4 pb-2 text-center">
+        {isLoadingMore && (
+          <div className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-white border border-[#EFE9DD] shadow-md text-xs font-bold text-[#1F3A2E]">
+            <Loader2 className="w-4 h-4 text-[#D4A373] animate-spin" />
+            <span>Loading more wellness articles...</span>
+          </div>
+        )}
+
+        {!hasMore && filteredPosts.length > 0 && (
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#1F3A2E]/5 border border-[#1F3A2E]/10 text-xs text-slate-600 font-medium">
+            <Check className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Showing all {filteredPosts.length} journal articles</span>
+          </div>
+        )}
+      </div>
 
     </div>
   );

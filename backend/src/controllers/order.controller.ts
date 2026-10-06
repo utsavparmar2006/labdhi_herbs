@@ -407,6 +407,8 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
       deliveredOrders: 0,
     };
 
+    const totalPages = Math.ceil(totalCount / limitNum) || 1;
+
     res.status(200).json({
       success: true,
       data: orders,
@@ -414,8 +416,9 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
       pagination: {
         totalOrders: totalCount,
         currentPage: pageNum,
-        totalPages: Math.ceil(totalCount / limitNum),
+        totalPages,
         limit: limitNum,
+        hasMore: pageNum < totalPages,
       },
     });
   } catch (error: any) {

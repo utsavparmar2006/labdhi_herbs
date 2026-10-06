@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import SmoothScroll from '../../../../components/SmoothScroll';
 import Header from '../../../../components/Header';
@@ -15,6 +15,7 @@ import { getProducts } from '../../../../services/api';
 import { MainCategory, SubCategory, Product } from '../../../../types';
 import { useCart } from '../../../../context/CartContext';
 import { useSiteSettings } from '../../../../context/SiteSettingsContext';
+import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import {
   ArrowLeft,
   Star,
@@ -25,6 +26,7 @@ import {
   ChevronRight,
   RotateCcw,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -45,8 +47,14 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [addedItemIds, setAddedItemIds] = useState<string[]>([]);
   const [visibleCount, setVisibleCount] = useState(8);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Reset pagination count on filter change
+  useEffect(() => {
+    setVisibleCount(8);
+  }, [selectedBrand, selectedSort, subCategory.name]);
 
   useEffect(() => {
     let isMounted = true;
@@ -124,6 +132,23 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
 
   const displayedProducts = filteredProducts.slice(0, visibleCount);
   const hasMore = visibleCount < filteredProducts.length;
+
+  const handleLoadMore = useCallback(() => {
+    if (visibleCount < filteredProducts.length && !isLoadingMore) {
+      setIsLoadingMore(true);
+      setTimeout(() => {
+        setVisibleCount((prev) => Math.min(prev + 8, filteredProducts.length));
+        setIsLoadingMore(false);
+      }, 250);
+    }
+  }, [visibleCount, filteredProducts.length, isLoadingMore]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    onLoadMore: handleLoadMore,
+    hasMore,
+    isLoading: isLoadingMore || loading,
+    rootMargin: '250px',
+  });
 
   const handleAddToCart = (product: Product, quantity = 1) => {
     const added = contextAddToCart(product, quantity);
@@ -342,18 +367,22 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
             </motion.div>
           )}
 
-          {/* Load More */}
-          {hasMore && (
-            <div className="text-center pt-4">
-              <button
-                onClick={() => setVisibleCount((prev) => prev + 6)}
-                className="px-8 py-3.5 rounded-xl bg-white hover:bg-[#1F3A2E] text-[#1F3A2E] hover:text-white border border-[#EFE9DD] font-semibold text-xs tracking-wider uppercase transition-all shadow-xs inline-flex items-center gap-2 cursor-pointer"
-              >
-                <span>Load More Formulations</span>
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            </div>
-          )}
+          {/* Infinite Scroll Sentinel & Status Indicator */}
+          <div ref={sentinelRef} className="pt-8 pb-4 text-center">
+            {isLoadingMore && (
+              <div className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-white border border-[#EFE9DD] shadow-md text-xs font-bold text-[#1F3A2E]">
+                <Loader2 className="w-4 h-4 text-[#D4A373] animate-spin" />
+                <span>Loading more botanical formulations...</span>
+              </div>
+            )}
+
+            {!hasMore && filteredProducts.length > 0 && (
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#1F3A2E]/5 border border-[#1F3A2E]/10 text-xs text-slate-600 font-medium">
+                <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Showing all {filteredProducts.length} formulations in this collection</span>
+              </div>
+            )}
+          </div>
 
         </main>
 

@@ -134,18 +134,42 @@ export const getStories = async (_req: Request, res: Response): Promise<void> =>
       }
     }
 
-    const stories = await Story.find(filter)
+    const { page, limit } = _req.query;
+    const totalCount = await Story.countDocuments(filter);
+
+    let query = Story.find(filter)
       .sort({
         featured: -1,
         order: 1,
         createdAt: -1,
-      })
-      .lean();
+      });
+
+    let pageNum: number | undefined;
+    let limitNum: number | undefined;
+
+    if (page || limit) {
+      pageNum = Math.max(1, parseInt(String(page || 1)));
+      limitNum = Math.max(1, parseInt(String(limit || 12)));
+      const skip = (pageNum - 1) * limitNum;
+      query = query.skip(skip).limit(limitNum);
+    }
+
+    const stories = await query.lean();
+    const totalPages = limitNum ? Math.ceil(totalCount / limitNum) || 1 : 1;
 
     res.status(200).json({
       success: true,
       count: stories.length,
       data: stories,
+      pagination: limitNum
+        ? {
+            totalStories: totalCount,
+            currentPage: pageNum,
+            totalPages,
+            limit: limitNum,
+            hasMore: (pageNum || 1) < totalPages,
+          }
+        : undefined,
     });
   } catch (error: any) {
     res.status(500).json({

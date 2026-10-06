@@ -22,6 +22,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import WriteReviewModal from './WriteReviewModal';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 
 interface ReviewItem {
   _id: string;
@@ -125,7 +126,15 @@ export default function ProductReviewsSection({
 
       const data = await response.json();
       if (data.success) {
-        setReviews(data.reviews || []);
+        if (page === 1) {
+          setReviews(data.reviews || []);
+        } else {
+          setReviews((prev) => {
+            const existingIds = new Set(prev.map((r) => r._id));
+            const newReviews = (data.reviews || []).filter((r: ReviewItem) => !existingIds.has(r._id));
+            return [...prev, ...newReviews];
+          });
+        }
         if (data.stats) {
           setStats(data.stats);
           if (onRatingUpdateRef.current && data.stats.totalReviews > 0) {
@@ -146,9 +155,29 @@ export default function ProductReviewsSection({
     }
   }, [productId, page, ratingFilter, withPhotosFilter, sortBy]);
 
+  // Reset page to 1 on filters or sort change
+  useEffect(() => {
+    setPage(1);
+  }, [ratingFilter, withPhotosFilter, sortBy]);
+
   useEffect(() => {
     fetchReviews();
   }, [fetchReviews]);
+
+  // Auto on-scroll infinite pagination for reviews
+  const handleLoadMoreReviews = useCallback(() => {
+    if (page < totalPages && !isLoading && showDetailedReviews) {
+      setPage((prev) => prev + 1);
+    }
+  }, [page, totalPages, isLoading, showDetailedReviews]);
+
+  const { sentinelRef: reviewsSentinelRef } = useInfiniteScroll({
+    onLoadMore: handleLoadMoreReviews,
+    hasMore: page < totalPages,
+    isLoading,
+    rootMargin: '250px',
+    disabled: !showDetailedReviews,
+  });
 
   // Handle helpful vote
   const handleVoteHelpful = async (reviewId: string) => {
@@ -619,40 +648,32 @@ export default function ProductReviewsSection({
                 </div>
               )}
 
-              {/* Pagination Navigation */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 pt-6 border-t border-[#EFE9DD]">
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className="p-2 rounded-xl border border-[#EFE9DD] hover:bg-[#F8F6F0] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-slate-600"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
+              {/* Infinite Scroll Sentinel & Loading Indicator */}
+              <div ref={reviewsSentinelRef} className="py-4 text-center">
+                {isLoading && page > 1 && (
+                  <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#EFE9DD] shadow-xs text-xs font-bold text-[#14261E]">
+                    <Loader2 className="w-4 h-4 text-[#D4A373] animate-spin" />
+                    <span>Loading more customer reviews...</span>
+                  </div>
+                )}
 
-                  {Array.from({ length: totalPages }).map((_, i) => {
-                    const pageNumber = i + 1;
-                    return (
-                      <button
-                        key={pageNumber}
-                        onClick={() => setPage(pageNumber)}
-                        className={`w-9 h-9 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                          page === pageNumber
-                            ? 'bg-[#14261E] text-white shadow-xs'
-                            : 'border border-[#EFE9DD] hover:bg-[#F8F6F0] text-slate-600'
-                        }`}
-                      >
-                        {pageNumber}
-                      </button>
-                    );
-                  })}
+                {page >= totalPages && reviews.length > 0 && (
+                  <div className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#14261E]/5 text-xs text-slate-500 font-medium">
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Showing all {reviews.length} customer reviews</span>
+                  </div>
+                )}
+              </div>
 
+              {page < totalPages && !isLoading && (
+                <div className="pt-1 pb-4 text-center">
                   <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className="p-2 rounded-xl border border-[#EFE9DD] hover:bg-[#F8F6F0] disabled:opacity-40 disabled:pointer-events-none cursor-pointer text-slate-600"
+                    type="button"
+                    onClick={() => setPage((p) => p + 1)}
+                    className="px-6 py-2.5 rounded-xl bg-white hover:bg-[#14261E] text-[#14261E] hover:text-white border border-[#EFE9DD] font-semibold text-xs transition-all shadow-xs inline-flex items-center gap-2 cursor-pointer"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <span>Load More Reviews</span>
+                    <ChevronDown className="w-3.5 h-3.5" />
                   </button>
                 </div>
               )}

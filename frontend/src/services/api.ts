@@ -549,6 +549,7 @@ export async function getProducts(params?: {
     currentPage: number;
     totalPages: number;
     limit: number;
+    hasMore?: boolean;
   };
 }> {
   try {
@@ -884,16 +885,27 @@ export async function deleteSuccessStory(
  */
 export async function getBlogPosts(
   category?: string,
-  search?: string
+  search?: string,
+  page?: number,
+  limit?: number
 ): Promise<{
   success: boolean;
   data: BlogPost[];
   count?: number;
+  pagination?: {
+    totalBlogs: number;
+    currentPage: number;
+    totalPages: number;
+    limit: number;
+    hasMore: boolean;
+  };
 }> {
   try {
     const params = new URLSearchParams();
     if (category && category !== 'All') params.append('category', category);
     if (search && search.trim()) params.append('search', search.trim());
+    if (page) params.append('page', String(page));
+    if (limit) params.append('limit', String(limit));
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
     const res = await fetch(`${API_BASE_URL}/v1/blogs${queryString}`, {
@@ -903,7 +915,12 @@ export async function getBlogPosts(
       return { success: false, data: [] };
     }
     const data = await res.json();
-    return { success: data.success, data: data.data || [], count: data.count };
+    return {
+      success: data.success,
+      data: data.data || [],
+      count: data.count,
+      pagination: data.pagination,
+    };
   } catch (error) {
     return { success: false, data: [] };
   }

@@ -7,6 +7,7 @@ import AdminHeader from '../components/AdminHeader';
 import ImageFolderPicker from '../components/ImageFolderPicker';
 import MultiImageFolderPicker from '../components/MultiImageFolderPicker';
 import VideoFolderPicker from '../components/VideoFolderPicker';
+import { useInfiniteScroll } from '../../../hooks/useInfiniteScroll';
 import {
   getProducts,
   createProduct,
@@ -147,7 +148,7 @@ export default function AdminProductsClient() {
   // Fetch all products from API
   const fetchProductsList = useCallback(async () => {
     setIsLoading(true);
-    const res = await getProducts({ limit: 100 });
+    const res = await getProducts({ limit: 500 });
     if (res.success && Array.isArray(res.data)) {
       setProducts(res.data);
     }
@@ -202,6 +203,21 @@ export default function AdminProductsClient() {
       return matchesSearch && matchesCat && matchesStock;
     });
   }, [products, searchQuery, selectedCategoryFilter, stockFilter]);
+
+  // Infinite Scroll & Dynamic Batch Reveal for Large Product Catalogs
+  const [visibleCount, setVisibleCount] = useState(12);
+
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [searchQuery, selectedCategoryFilter, stockFilter]);
+
+  const { sentinelRef } = useInfiniteScroll({
+    hasMore: visibleCount < filteredProducts.length,
+    isLoading,
+    onLoadMore: () => {
+      setVisibleCount((prev) => prev + 12);
+    },
+  });
 
   // Quick 1-Click Toggle for Home Page Showcase
   const handleToggleFeatured = async (product: Product, e?: React.MouseEvent) => {
@@ -582,8 +598,9 @@ export default function AdminProductsClient() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => {
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.slice(0, visibleCount).map((product) => {
                 const discount =
                   product.originalPrice && product.originalPrice > product.price
                     ? Math.round(
@@ -768,6 +785,17 @@ export default function AdminProductsClient() {
                 );
               })}
             </div>
+
+              {visibleCount < filteredProducts.length && (
+                <div
+                  ref={sentinelRef}
+                  className="py-8 flex flex-col items-center justify-center gap-2 text-xs text-slate-500 font-medium"
+                >
+                  <div className="w-5 h-5 border-2 border-[#1F3A2E]/20 border-t-[#1F3A2E] rounded-full animate-spin" />
+                  <span>Loading more catalog formulations ({visibleCount} of {filteredProducts.length})...</span>
+                </div>
+              )}
+            </>
           )}
         </main>
       </div>

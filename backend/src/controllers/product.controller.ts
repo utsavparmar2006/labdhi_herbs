@@ -291,14 +291,17 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
       Product.countDocuments(filter),
     ]);
 
+    const totalPages = Math.ceil(totalCount / limitNum) || 1;
+
     res.status(200).json({
       success: true,
       data: products,
       pagination: {
         totalProducts: totalCount,
         currentPage: pageNum,
-        totalPages: Math.ceil(totalCount / limitNum),
+        totalPages,
         limit: limitNum,
+        hasMore: pageNum < totalPages,
       },
     });
   } catch (error: any) {
