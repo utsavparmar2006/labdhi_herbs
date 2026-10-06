@@ -199,7 +199,10 @@ export default function Footer() {
   const footerDescription = profile.footerDescription || settings.footerDescription || `Pure Ayurvedic medicines, face packs, hair oils, skincare lotions, and authentic herbal wellness handcrafted in ${city}, ${state}.`;
 
   return (
-    <footer className="bg-[#F8F6F0] text-[#1A201C] border-t border-[#EFE9DD] pt-12 sm:pt-16 pb-8 sm:pb-12 relative overflow-hidden">
+    <footer
+      className="notranslate bg-[#F8F6F0] text-[#1A201C] border-t border-[#EFE9DD] pt-12 sm:pt-16 pb-8 sm:pb-12 relative overflow-hidden"
+      translate="no"
+    >
       
       {/* Background Soft Glow Accent */}
       <div className="absolute bottom-0 left-1/3 w-96 h-96 bg-[#D4A373]/10 rounded-full blur-3xl pointer-events-none" />

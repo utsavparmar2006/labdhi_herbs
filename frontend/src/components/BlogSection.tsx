@@ -15,9 +15,14 @@ export default function BlogSection() {
     let isMounted = true;
     const fetchArticles = async () => {
       try {
-        const data = await getBlogPosts();
-        if (isMounted && data && Array.isArray(data) && data.length > 0) {
-          setBlogs(data);
+        const res: any = await getBlogPosts();
+        const articles = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        if (isMounted && articles.length > 0) {
+          setBlogs(articles);
         }
       } catch (err) {
         console.warn('Using default blog articles:', err);

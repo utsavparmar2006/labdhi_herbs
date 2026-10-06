@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import SmoothScroll from '../../components/SmoothScroll';
 import Header from '../../components/Header';
@@ -12,9 +12,11 @@ import CartDrawer from '../../components/CartDrawer';
 import AuthModal from '../../components/AuthModal';
 import SearchModal from '../../components/SearchModal';
 import NewsletterSubscribeModal from '../../components/NewsletterSubscribeModal';
+import BlogLanguageTranslator from '../../components/BlogLanguageTranslator';
 import Footer from '../../components/Footer';
 import { BLOG_POSTS } from '../../services/mockData';
 import { getBlogPosts } from '../../services/api';
+import { translateSingleArticle } from '../../utils/blogTranslator';
 import { Product, BlogPost } from '../../types';
 import { useCart } from '../../context/CartContext';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
@@ -26,6 +28,11 @@ export default function BlogClient() {
   const { settings } = useSiteSettings();
   const blogHeader = settings?.pageHeaders?.blog;
   const [blogs, setBlogs] = useState<BlogPost[]>(BLOG_POSTS);
+  const originalBlogsRef = useRef<BlogPost[]>([]);
+  const activeArticleOriginalRef = useRef<BlogPost | null>(null);
+  const [currentLang, setCurrentLang] = useState('en');
+  const [isTranslating, setIsTranslating] = useState(false);
+
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,13 +55,30 @@ export default function BlogClient() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+  // Lock body scroll and prevent background Lenis scroll when modal is active
+  useEffect(() => {
+    if (selectedArticle || fullScreenImage) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [selectedArticle, fullScreenImage]);
+
   useEffect(() => {
     let isMounted = true;
     const loadBlogs = async () => {
       try {
-        const data = await getBlogPosts();
-        if (isMounted && data && Array.isArray(data) && data.length > 0) {
-          setBlogs(data);
+        const res: any = await getBlogPosts();
+        const articles = Array.isArray(res)
+          ? res
+          : Array.isArray(res?.data)
+          ? res.data
+          : [];
+        if (isMounted && articles.length > 0) {
+          originalBlogsRef.current = articles;
+          setBlogs(articles);
         }
       } catch (err) {
         console.warn('Using default blog posts:', err);
@@ -68,6 +92,42 @@ export default function BlogClient() {
     };
   }, []);
 
+  // Language Change Handler strictly scoped to the active Blog Article being read
+  const handleLanguageChange = async (langCode: string) => {
+    setCurrentLang(langCode);
+    if (!selectedArticle) return;
+
+    // Use pristine English version of the active article (whether default or newly created)
+    const sourceArticle =
+      activeArticleOriginalRef.current ||
+      originalBlogsRef.current.find(
+        (b) => b.id === selectedArticle.id || (b as any)._id === (selectedArticle as any)._id
+      ) ||
+      selectedArticle;
+
+    if (langCode === 'en') {
+      setSelectedArticle(sourceArticle);
+      return;
+    }
+
+    setIsTranslating(true);
+    try {
+      const translatedItem = await translateSingleArticle(sourceArticle, langCode);
+      setSelectedArticle(translatedItem);
+    } catch (e) {
+      console.warn('Language switch error:', e);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  // Open Article reader modal
+  const handleOpenArticle = (post: BlogPost) => {
+    activeArticleOriginalRef.current = post;
+    setCurrentLang('en');
+    setSelectedArticle(post);
+  };
+
   // Deep-link to open article if URL contains ?id=... or #article-...
   useEffect(() => {
     if (typeof window !== 'undefined' && blogs.length > 0) {
@@ -78,7 +138,11 @@ export default function BlogClient() {
         const found = blogs.find(
           (b) => b.id === articleId || (b as any)._id === articleId || b.slug === articleId
         );
-        if (found) setSelectedArticle(found);
+        if (found) {
+          activeArticleOriginalRef.current = found;
+          setCurrentLang('en');
+          setSelectedArticle(found);
+        }
       }
     }
   }, [blogs]);
@@ -97,13 +161,15 @@ export default function BlogClient() {
     <SmoothScroll>
       <div className="min-h-screen bg-[#F8F6F0] text-[#1A201C] selection:bg-[#1F3A2E] selection:text-[#EFE9DD] font-sans">
         
-        {/* Header Navigation */}
-        <Header
-          cartCount={cartCount}
-          onOpenCart={openCart}
-          onOpenAuth={() => setIsAuthOpen(true)}
-          onOpenSearch={() => setIsSearchOpen(true)}
-        />
+        {/* Header Navigation (Protected from Google Translate) */}
+        <div className="notranslate" translate="no">
+          <Header
+            cartCount={cartCount}
+            onOpenCart={openCart}
+            onOpenAuth={() => setIsAuthOpen(true)}
+            onOpenSearch={() => setIsSearchOpen(true)}
+          />
+        </div>
 
         {/* Editorial Hero Banner (Clean Ayurvedic Deep Green Matching Policy Pages) */}
         <section className="relative pt-32 pb-14 md:pt-40 md:pb-20 bg-[#14261E] text-white overflow-hidden">
@@ -205,7 +271,7 @@ export default function BlogClient() {
               posts={blogs}
               selectedCategory={selectedCategory}
               searchQuery={searchQuery}
-              onSelectArticle={(post) => setSelectedArticle(post)}
+              onSelectArticle={(post) => handleOpenArticle(post)}
             />
           </section>
 
@@ -265,12 +331,19 @@ export default function BlogClient() {
         {/* Article Full Reader Modal */}
         <AnimatePresence>
           {selectedArticle && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-8">
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 md:p-8 overscroll-contain"
+              data-lenis-prevent="true"
+            >
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setSelectedArticle(null)}
+                onClick={() => {
+                  setSelectedArticle(null);
+                  setCurrentLang('en');
+                  activeArticleOriginalRef.current = null;
+                }}
                 className="absolute inset-0 bg-black/80 backdrop-blur-md"
               />
 
@@ -278,21 +351,37 @@ export default function BlogClient() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative max-w-3xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl z-10 border border-[#EFE9DD] max-h-[85vh] flex flex-col"
+                className="relative max-w-3xl w-full bg-white rounded-3xl overflow-hidden shadow-2xl z-10 border border-[#EFE9DD] h-[85vh] sm:h-[88vh] max-h-[88vh] flex flex-col"
+                data-lenis-prevent="true"
               >
-                <div className="p-6 border-b border-[#EFE9DD] flex items-center justify-between bg-[#F8F6F0]">
-                  <span className="px-3 py-1 rounded-full bg-[#1F3A2E] text-[#D4A373] text-[10px] font-bold uppercase tracking-wider">
-                    {selectedArticle.category}
-                  </span>
+                <div className="p-4 sm:p-6 border-b border-[#EFE9DD] flex items-center justify-between bg-[#F8F6F0] shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <span className="px-3 py-1 rounded-full bg-[#1F3A2E] text-[#D4A373] text-[10px] font-bold uppercase tracking-wider">
+                      {selectedArticle.category}
+                    </span>
+                    <BlogLanguageTranslator
+                      variant="compact"
+                      selectedLang={currentLang}
+                      onLanguageChange={handleLanguageChange}
+                      isTranslating={isTranslating}
+                    />
+                  </div>
                   <button
-                    onClick={() => setSelectedArticle(null)}
+                    onClick={() => {
+                      setSelectedArticle(null);
+                      setCurrentLang('en');
+                      activeArticleOriginalRef.current = null;
+                    }}
                     className="p-2 rounded-full hover:bg-slate-200 text-slate-600 transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
-                <div className="p-6 sm:p-8 space-y-6 overflow-y-auto font-sans text-slate-700">
+                <div
+                  className="p-6 sm:p-8 space-y-6 flex-1 min-h-0 overflow-y-auto overscroll-contain custom-scrollbar font-sans text-slate-700"
+                  data-lenis-prevent="true"
+                >
                   <div className="space-y-2">
                     <div className="flex items-center gap-3 text-xs text-slate-400">
                       <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5 text-[#B58A5A]" /> {selectedArticle.date}</span>
@@ -353,7 +442,7 @@ export default function BlogClient() {
                   </div>
                 </div>
 
-                <div className="p-4 border-t border-[#EFE9DD] bg-[#F8F6F0] flex items-center justify-between text-xs">
+                <div className="p-4 border-t border-[#EFE9DD] bg-[#F8F6F0] flex items-center justify-between text-xs shrink-0">
                   <span className="text-slate-500">Enjoyed this guide? Explore our formulations in the shop.</span>
                   <Link href="/shop" className="px-4 py-2 rounded-xl bg-[#1F3A2E] text-white font-bold hover:bg-[#15271F] transition-colors">
                     Shop Formulations
@@ -399,28 +488,32 @@ export default function BlogClient() {
           )}
         </AnimatePresence>
 
-        {/* Footer */}
-        <Footer />
+        {/* Footer (Protected from Google Translate) */}
+        <div className="notranslate" translate="no">
+          <Footer />
+        </div>
 
-        {/* Modals & Drawers */}
-        <QuickViewModal
-          product={quickViewProduct}
-          onClose={() => setQuickViewProduct(null)}
-          onAddToCart={handleAddToCart}
-        />
+        {/* Modals & Drawers (Protected from Google Translate) */}
+        <div className="notranslate" translate="no">
+          <QuickViewModal
+            product={quickViewProduct}
+            onClose={() => setQuickViewProduct(null)}
+            onAddToCart={handleAddToCart}
+          />
 
-        <CartDrawer />
+          <CartDrawer />
 
-        <AuthModal
-          isOpen={isAuthOpen}
-          onClose={() => setIsAuthOpen(false)}
-        />
+          <AuthModal
+            isOpen={isAuthOpen}
+            onClose={() => setIsAuthOpen(false)}
+          />
 
-        <SearchModal
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
-          onSelectProduct={(p) => setQuickViewProduct(p)}
-        />
+          <SearchModal
+            isOpen={isSearchOpen}
+            onClose={() => setIsSearchOpen(false)}
+            onSelectProduct={(p) => setQuickViewProduct(p)}
+          />
+        </div>
 
       </div>
     </SmoothScroll>

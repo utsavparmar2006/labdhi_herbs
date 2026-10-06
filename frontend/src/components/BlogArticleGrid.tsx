@@ -28,15 +28,21 @@ export default function BlogArticleGrid({
   }, [selectedCategory, searchQuery]);
 
   const filteredPosts = sourcePosts.filter((post) => {
+    const selected = (selectedCategory || 'All').trim().toLowerCase();
+    const postCat = (post.category || '').trim().toLowerCase();
     const matchesCategory =
-      selectedCategory === 'All' ||
-      post.category.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-      selectedCategory.toLowerCase().includes(post.category.toLowerCase());
+      selected === 'all' ||
+      postCat === selected ||
+      postCat.includes(selected) ||
+      selected.includes(postCat);
 
+    const query = (searchQuery || '').trim().toLowerCase();
     const matchesSearch =
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.category.toLowerCase().includes(searchQuery.toLowerCase());
+      !query ||
+      (post.title || '').toLowerCase().includes(query) ||
+      (post.excerpt || '').toLowerCase().includes(query) ||
+      (post.category || '').toLowerCase().includes(query) ||
+      (Array.isArray(post.tags) && post.tags.some((t: string) => t.toLowerCase().includes(query)));
 
     return matchesCategory && matchesSearch;
   });
