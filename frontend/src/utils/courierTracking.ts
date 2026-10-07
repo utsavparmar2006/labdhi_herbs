@@ -157,7 +157,7 @@ export function buildDispatchWhatsAppUrl(params: {
 
   const trackingLink = `https://labdhiherbs.com/track-order?id=${params.orderId}`;
 
-  const message = `🌿 *Namaste ${params.customerName} ji!*\n\nGood news! Aapka *Labdhi Herbs* order *#${params.orderId}* dispatch ho gaya hai! 🎉\n\n📦 *Delivery Partner:* ${params.deliveryName || 'Postal / Express'}\n🔖 *Tracking / AWB No:* ${params.deliveryTrackId}\n\n🔍 *Live Order Tracking:* ${trackingLink}\n\nAuthentic Ayurvedic wellness chunne ke liye dhanyawad!\n\n_Labdhi Herbs, Surat, Gujarat_`;
+  const message = `🌿 *Namaste ${params.customerName} ji!*\n\nGood news! Aapka *Labdhi Herbs* order *#${params.orderId}* dispatch ho gaya hai! 🎉\n\n📦 *Delivery Partner:* ${params.deliveryName || 'Postal / Express'}\n🔖 *AWB Number:* ${params.deliveryTrackId}\n\n🔍 *Order Status:* ${trackingLink}\n\nAuthentic Ayurvedic wellness chunne ke liye dhanyawad!\n\n_Labdhi Herbs, Surat, Gujarat_`;
 
   return `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(message)}`;
 }

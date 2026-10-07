@@ -570,7 +570,7 @@ export default function OrdersClient() {
                                 </div>
                                 {order.deliveryTrackId && (
                                   <p className="text-[10px] text-slate-600 font-mono mt-0.5">
-                                    Tracking ID: <span className="font-bold text-[#1F3A2E]">{order.deliveryTrackId}</span>
+                                    AWB No: <span className="font-bold text-[#1F3A2E]">{order.deliveryTrackId}</span>
                                   </p>
                                 )}
                               </div>

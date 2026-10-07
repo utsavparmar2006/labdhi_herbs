@@ -311,7 +311,7 @@ export default function AdminInvoiceModal({ order, onClose, isOpen }: AdminInvoi
               {order.deliveryTrackId && (
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">
-                    AWB Tracking ID
+                    AWB Number
                   </span>
                   <span className="font-mono font-bold text-slate-900 text-xs">
                     {order.deliveryTrackId}

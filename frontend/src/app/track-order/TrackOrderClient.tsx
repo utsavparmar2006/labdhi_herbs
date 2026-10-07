@@ -32,9 +32,9 @@ import {
   Sparkles,
   Copy,
   Check,
+  X,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getDirectTrackingUrl } from '../../utils/courierTracking';
 
 export default function TrackOrderClient() {
   const router = useRouter();
@@ -93,6 +93,17 @@ export default function TrackOrderClient() {
       handleTrack(initialTrackingQuery);
     }
   }, [initialTrackingQuery]);
+
+  // Auto-search if a customer pastes or types a full Order ID (e.g. LH-261007-4946)
+  useEffect(() => {
+    const trimmed = orderInput.trim();
+    if (trimmed.startsWith('LH-') && trimmed.length >= 12) {
+      const timer = setTimeout(() => {
+        handleTrack(trimmed);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [orderInput]);
 
   const getStatusText = (status?: string) => {
     switch (status) {
@@ -221,43 +232,48 @@ export default function TrackOrderClient() {
           </h1>
 
           <p className="text-xs sm:text-base text-emerald-100/75 font-light max-w-xl mx-auto leading-relaxed">
-            Enter your <strong>Order ID</strong> or <strong>Courier Tracking / AWB Number</strong> to check live dispatch status, delivery partner details, and download your official invoice.
+            Enter your <strong>Order ID</strong> or <strong>AWB Number</strong> to check live order status, dispatch details, and download your official invoice.
           </p>
 
           {/* Search Box */}
-          <div className="max-w-xl mx-auto pt-4">
+          <div className="max-w-xl mx-auto pt-4 w-full">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 handleTrack();
               }}
-              className="flex items-center bg-white rounded-2xl p-1.5 shadow-xl border border-white/20"
+              className="flex items-center bg-white rounded-2xl p-1.5 shadow-xl border border-white/20 relative"
             >
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <div className="relative flex-1 flex items-center">
+                <Search className="w-4 h-4 text-slate-400 absolute left-4 pointer-events-none" />
                 <input
                   type="text"
                   value={orderInput}
                   onChange={(e) => setOrderInput(e.target.value)}
-                  placeholder="Enter Order ID or Courier Tracking / AWB No."
-                  className="w-full pl-10 pr-3 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-mono"
+                  placeholder="Enter Order ID (e.g. LH-261007-4946) or AWB Number, press Enter..."
+                  className="w-full pl-11 pr-10 py-3 text-xs text-slate-800 placeholder-slate-400 focus:outline-none font-mono rounded-2xl"
                   required
                 />
-              </div>
-              <button
-                type="submit"
-                disabled={isSearching}
-                className="px-5 py-2.5 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white text-xs font-bold transition-colors cursor-pointer shadow-xs disabled:opacity-50 inline-flex items-center gap-1.5"
-              >
-                {isSearching ? (
-                  <span>Searching...</span>
-                ) : (
-                  <>
-                    <span>Track</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#D4A373]" />
-                  </>
+                {isSearching && (
+                  <div className="absolute right-3.5">
+                    <span className="w-4 h-4 border-2 border-[#1F3A2E] border-t-transparent rounded-full animate-spin block" />
+                  </div>
                 )}
-              </button>
+                {!isSearching && orderInput && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrderInput('');
+                      setOrderData(null);
+                      setErrorMessage('');
+                    }}
+                    className="absolute right-3 p-1 rounded-full hover:bg-slate-100 text-slate-400 transition-colors cursor-pointer"
+                    title="Clear"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </div>
@@ -377,8 +393,8 @@ export default function TrackOrderClient() {
                       <div className="space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-2 bg-white px-3.5 py-2.5 rounded-xl border border-[#EFE9DD]">
                           <div>
-                            <span className="text-[10px] uppercase font-bold text-slate-400 block">
-                              Consignment / Tracking Number
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                              AWB Number
                             </span>
                             <span className="font-mono font-bold text-[#1F3A2E] text-sm tracking-wide">
                               {orderData.deliveryTrackId}
@@ -404,42 +420,19 @@ export default function TrackOrderClient() {
                             ) : (
                               <>
                                 <Copy className="w-3.5 h-3.5 text-slate-500" />
-                                <span>Copy</span>
+                                <span>Copy AWB</span>
                               </>
                             )}
                           </button>
                         </div>
 
-                        {/* Live Direct Tracking Button */}
-                        {getDirectTrackingUrl(orderData.deliveryName, orderData.deliveryTrackId) && (
-                          <a
-                            href={getDirectTrackingUrl(orderData.deliveryName, orderData.deliveryTrackId)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="w-full py-2.5 px-4 rounded-xl bg-[#1F3A2E] hover:bg-[#15271F] text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs"
-                          >
-                            <span>Track Live on Official Courier Portal</span>
-                            <ExternalLink className="w-3.5 h-3.5 text-[#D4A373]" />
-                          </a>
-                        )}
-
-                        {/* Informative Note for India Post or Local Couriers */}
-                        {(() => {
-                          const nameLower = (orderData.deliveryName || '').toLowerCase();
-                          const isPost = nameLower.includes('post') || nameLower.includes('dak');
-                          if (isPost) {
-                            return (
-                              <p className="text-[11px] text-slate-500 leading-snug">
-                                ℹ️ <strong>India Post Note:</strong> Consignment status is updated on the Bharatiya Dak system after counter scanning. Click the button above to check live dispatch details on indiapost.gov.in.
-                              </p>
-                            );
-                          }
-                          return (
-                            <p className="text-[11px] text-slate-500 leading-snug">
-                              ℹ️ Real-time updates for shipments handled by {orderData.deliveryName || 'local courier'} are available on their official portal above.
-                            </p>
-                          );
-                        })()}
+                        {/* Informative Note for Courier Tracking with AWB */}
+                        <div className="p-3 rounded-xl bg-white/70 border border-[#EFE9DD] text-[11px] text-slate-600 leading-relaxed flex items-start gap-2">
+                          <span className="text-base leading-none">📦</span>
+                          <span>
+                            <strong>Note:</strong> Aap is <strong>AWB Number ({orderData.deliveryTrackId})</strong> ka upyog karke {orderData.deliveryName || 'courier partner'} ki official website par ya helpline se parcel ko track kar sakte hain.
+                          </span>
+                        </div>
                       </div>
                     )}
                   </div>

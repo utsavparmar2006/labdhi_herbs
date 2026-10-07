@@ -753,55 +753,24 @@ export default function AdminOrdersClient() {
                           />
                         </div>
 
-                        {/* Tracking Id / Consignment Number */}
+                        {/* AWB Number */}
                         <div className="space-y-1">
-                          {(() => {
-                            const matchedProvider = COURIER_PROVIDERS.find(
-                              (p) =>
-                                p.name.toLowerCase() === editDeliveryName.trim().toLowerCase() ||
-                                (editDeliveryName && p.name.toLowerCase().includes(editDeliveryName.trim().toLowerCase()))
-                            );
-                            const placeholder = matchedProvider
-                              ? matchedProvider.placeholder
-                              : 'e.g. Consignment / AWB Number';
-
-                            return (
-                              <>
-                                <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
-                                  <span>Tracking / Consignment ID:</span>
-                                  {matchedProvider && (
-                                    <span className="text-[10px] text-emerald-700 font-semibold">
-                                      {matchedProvider.badge}
-                                    </span>
-                                  )}
-                                </label>
-                                <input
-                                  type="text"
-                                  value={editDeliveryTrackId}
-                                  onChange={(e) => setEditDeliveryTrackId(e.target.value)}
-                                  placeholder={placeholder}
-                                  className="w-full px-3 py-2 rounded-xl border border-[#EFE9DD] text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-[#1F3A2E]"
-                                />
-                              </>
-                            );
-                          })()}
+                          <label className="text-[11px] font-bold text-slate-700 flex items-center justify-between">
+                            <span>AWB Number:</span>
+                            <span className="text-[10px] text-slate-400 font-normal">Air Waybill / Consignment No</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={editDeliveryTrackId}
+                            onChange={(e) => setEditDeliveryTrackId(e.target.value)}
+                            placeholder="Enter AWB Number (e.g. 123456789 / Consignment No)"
+                            className="w-full px-3 py-2 rounded-xl border border-[#EFE9DD] text-xs font-mono font-bold bg-white focus:ring-2 focus:ring-[#1F3A2E]"
+                          />
                         </div>
 
-                        {/* Direct Tracking Portal Link & WhatsApp Dispatch Action */}
+                        {/* WhatsApp Dispatch Action */}
                         {editDeliveryTrackId.trim() && (
                           <div className="space-y-2 pt-1">
-                            {/* Live portal verification link */}
-                            {getDirectTrackingUrl(editDeliveryName, editDeliveryTrackId) && (
-                              <a
-                                href={getDirectTrackingUrl(editDeliveryName, editDeliveryTrackId)}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full py-2 px-3 rounded-xl border border-[#1F3A2E]/20 bg-[#1F3A2E]/5 hover:bg-[#1F3A2E]/10 text-[#1F3A2E] text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                              >
-                                <ExternalLink className="w-3.5 h-3.5 text-[#B58A5A]" />
-                                <span>Verify on {editDeliveryName || 'Courier'} Portal ↗</span>
-                              </a>
-                            )}
 
                             {/* 1-Click WhatsApp Alert to Customer */}
                             {(() => {
