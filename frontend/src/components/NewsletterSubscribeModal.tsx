@@ -168,40 +168,41 @@ export default function NewsletterSubscribeModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-        {/* Backdrop */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={handleModalClose}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-        />
+      <div className="fixed inset-0 z-[100] overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-3 sm:p-6 text-center">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleModalClose}
+            className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
+          />
 
-        {/* Modal Dialog */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="relative w-full max-w-lg bg-[#F8F6F0] rounded-3xl shadow-2xl border border-[#EFE9DD] overflow-hidden z-10 my-8"
-        >
-          {/* Header Visual Bar */}
-          <div className="bg-[#14261E] text-white px-6 sm:px-8 pt-7 pb-6 relative overflow-hidden">
-            <div className="absolute -top-12 -right-12 w-44 h-44 bg-[#D4A373]/20 rounded-full blur-2xl pointer-events-none" />
+          {/* Modal Dialog */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="relative w-full max-w-lg bg-[#F8F6F0] rounded-3xl shadow-2xl border border-[#EFE9DD] overflow-hidden z-10 my-6 text-left"
+          >
+            {/* Header Visual Bar */}
+            <div className="bg-[#14261E] text-white px-5 sm:px-8 pt-6 sm:pt-7 pb-5 sm:pb-6 relative overflow-hidden">
+              <div className="absolute -top-12 -right-12 w-44 h-44 bg-[#D4A373]/20 rounded-full blur-2xl pointer-events-none" />
 
-            <button
-              onClick={handleModalClose}
-              className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors"
-              title="Close"
-            >
-              <X className="w-4 h-4" />
-            </button>
+              <button
+                onClick={handleModalClose}
+                className="absolute top-3.5 right-3.5 sm:top-4 sm:right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/90 hover:text-white transition-colors cursor-pointer z-20"
+                title="Close"
+              >
+                <X className="w-4 h-4" />
+              </button>
 
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-[#D4A373] text-[11px] font-bold uppercase tracking-wider mb-2">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Labdhi Herbal Club</span>
-            </div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 text-[#D4A373] text-[11px] font-bold uppercase tracking-wider mb-2">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Labdhi Herbal Club</span>
+              </div>
 
             <h3 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-white leading-snug">
               {isSuccess ? 'Welcome to Our Herbal Family! 🌿' : 'Subscribe for Special Herbal Offers & Wellness Tips'}
@@ -382,6 +383,7 @@ export default function NewsletterSubscribeModal({
             )}
           </div>
         </motion.div>
+        </div>
       </div>
     </AnimatePresence>
   );

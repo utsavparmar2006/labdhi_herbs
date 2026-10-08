@@ -211,7 +211,7 @@ export default function FeaturedStoryVideo({
           }`}
         />
 
-        {/* ── SIDE VIDEO NAVIGATION BUTTONS (Visible on both desktop & mobile) ── */}
+        {/* ── SIDE VIDEO NAVIGATION BUTTONS (Desktop: Floating Chevrons) ── */}
         {hasMultiple && (
           <>
             {/* Left Button (Previous Video) */}
@@ -220,7 +220,7 @@ export default function FeaturedStoryVideo({
               onClick={handlePrev}
               aria-label="Previous Video Story"
               title="Previous Video"
-              className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-black/65 hover:bg-[#14261E] border-2 border-[#D4A373]/80 hover:border-[#D4A373] text-[#D4A373] hover:text-white flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer group/nav focus:outline-none ring-0"
+              className="hidden sm:flex absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-black/65 hover:bg-[#14261E] border-2 border-[#D4A373]/80 hover:border-[#D4A373] text-[#D4A373] hover:text-white items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer group/nav focus:outline-none ring-0"
             >
               <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.5] group-hover/nav:-translate-x-0.5 transition-transform" />
               <span className="sr-only">Previous Video</span>
@@ -236,7 +236,7 @@ export default function FeaturedStoryVideo({
               onClick={handleNext}
               aria-label="Next Video Story"
               title="Next Video"
-              className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-black/65 hover:bg-[#14261E] border-2 border-[#D4A373]/80 hover:border-[#D4A373] text-[#D4A373] hover:text-white flex items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer group/nav focus:outline-none ring-0"
+              className="hidden sm:flex absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 sm:w-14 sm:h-14 rounded-full bg-black/65 hover:bg-[#14261E] border-2 border-[#D4A373]/80 hover:border-[#D4A373] text-[#D4A373] hover:text-white items-center justify-center backdrop-blur-md shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 cursor-pointer group/nav focus:outline-none ring-0"
             >
               <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.5] group-hover/nav:translate-x-0.5 transition-transform" />
               <span className="sr-only">Next Video</span>
@@ -248,62 +248,64 @@ export default function FeaturedStoryVideo({
           </>
         )}
 
-        {/* Top-Right Badge: Multi-Video Count Badge */}
-        {hasMultiple && (
-          <div className="absolute top-4 right-4 z-25 flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-[#D4A373]/50 text-[#D4A373] text-xs font-bold shadow-lg">
-            <Film className="w-3.5 h-3.5 text-[#D4A373]" />
-            <span>
-              Video {currentDisplayIndex + 1} of {totalCount}
-            </span>
-          </div>
-        )}
-
         {/* Default Blurred State Overlay Content (Fades out softly on hover) */}
         <div
-          className={`relative z-10 max-w-4xl mx-auto px-14 sm:px-20 py-10 text-center space-y-6 transition-all duration-500 ${
+          className={`relative z-10 max-w-4xl mx-auto px-4 sm:px-20 pt-6 sm:pt-10 pb-16 sm:pb-10 text-center space-y-4 sm:space-y-6 transition-all duration-500 ${
             isHovered ? 'opacity-20 scale-95 pointer-events-none' : 'opacity-100 scale-100'
           }`}
         >
-          {/* Eyebrow Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#D4A373] text-xs font-bold uppercase tracking-wider">
-            <ShieldCheck className="w-4 h-4 text-[#D4A373]" />
-            <span>Featured Customer Story • {locationText}</span>
+          {/* Top Badges Row (Zero Overlap Responsive Header) */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[#D4A373] text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#D4A373]" />
+              <span>Featured Customer Story • {locationText}</span>
+            </div>
+
+            {hasMultiple && (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 sm:py-1.5 rounded-full bg-black/70 backdrop-blur-md border border-[#D4A373]/50 text-[#D4A373] text-[10px] sm:text-xs font-bold shadow-md">
+                <Film className="w-3.5 h-3.5 text-[#D4A373]" />
+                <span>
+                  Video {currentDisplayIndex + 1} of {totalCount}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Heading Title */}
-          <h3 className="font-serif text-3xl sm:text-5xl font-bold text-white tracking-tight leading-tight drop-shadow-md">
+          <h3 className="font-serif text-2xl sm:text-5xl font-bold text-white tracking-tight leading-snug drop-shadow-md px-1">
             {storyTitle}
           </h3>
 
           {/* Testimonial Quote */}
-          <div className="max-w-2xl mx-auto space-y-2">
-            <Quote className="w-8 h-8 text-[#D4A373]/60 mx-auto" />
-            <p className="text-sm sm:text-base font-serif italic text-emerald-100/90 leading-relaxed drop-shadow-sm">
+          <div className="max-w-2xl mx-auto space-y-1.5 sm:space-y-2 px-2">
+            <Quote className="w-6 h-6 sm:w-8 sm:h-8 text-[#D4A373]/60 mx-auto" />
+            <p className="text-xs sm:text-base font-serif italic text-emerald-100/90 leading-relaxed drop-shadow-sm">
               &ldquo;{commentText}&rdquo;
             </p>
           </div>
 
           {/* Customer Meta Info & Rating */}
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-2 text-xs">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 pt-1 sm:pt-2 text-[11px] sm:text-xs">
             <div className="flex items-center gap-1 text-amber-400 font-bold">
               {[...Array(ratingValue)].map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-current" />
+                <Star key={i} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
               ))}
               <span className="ml-1 text-white">{ratingValue}.0 Rating</span>
             </div>
 
             <span className="text-emerald-200/80 font-light">Formulation: {formulationName}</span>
             {isVerified && (
-              <span className="px-3 py-1 rounded-full bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 font-semibold">
+              <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-emerald-900/60 border border-emerald-500/30 text-emerald-300 font-semibold text-[10px] sm:text-xs">
                 Verified Buyer
               </span>
             )}
           </div>
 
-          {/* Hover Prompt Callout */}
-          <div className="pt-4 flex items-center justify-center gap-2 text-xs font-bold text-[#D4A373] uppercase tracking-wider animate-pulse">
-            <Play className="w-4 h-4 fill-current" />
-            <span>Hover Mouse To Play Video • Click For Fullscreen Sound</span>
+          {/* Hover / Tap Prompt Callout */}
+          <div className="pt-2 sm:pt-4 flex items-center justify-center gap-2 text-[10px] sm:text-xs font-bold text-[#D4A373] uppercase tracking-wider animate-pulse">
+            <Play className="w-3.5 h-3.5 fill-current" />
+            <span className="sm:hidden">Tap To Play With Fullscreen Sound</span>
+            <span className="hidden sm:inline">Hover Mouse To Play Video • Click For Fullscreen Sound</span>
           </div>
         </div>
 
@@ -324,9 +326,47 @@ export default function FeaturedStoryVideo({
           </div>
         </div>
 
-        {/* Bottom Pagination Dots for Multiple Videos */}
+        {/* Mobile Navigation Controls (Bottom row, NO text overlap) */}
+        {hasMultiple && (
+          <div className="sm:hidden absolute bottom-3 left-0 right-0 z-30 flex items-center justify-between px-4 pointer-events-auto">
+            <button
+              type="button"
+              onClick={handlePrev}
+              aria-label="Previous Video Story"
+              className="w-10 h-10 rounded-full bg-black/80 border-2 border-[#D4A373] text-[#D4A373] flex items-center justify-center active:scale-90 shadow-xl backdrop-blur-md cursor-pointer"
+            >
+              <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
+            </button>
+
+            {totalCount > 1 && (
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10">
+                {Array.from({ length: totalCount }).map((_, i) => (
+                  <span
+                    key={i}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      i === currentDisplayIndex
+                        ? 'w-5 bg-[#D4A373]'
+                        : 'w-1.5 bg-white/40'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleNext}
+              aria-label="Next Video Story"
+              className="w-10 h-10 rounded-full bg-black/80 border-2 border-[#D4A373] text-[#D4A373] flex items-center justify-center active:scale-90 shadow-xl backdrop-blur-md cursor-pointer"
+            >
+              <ChevronRight className="w-5 h-5 stroke-[2.5]" />
+            </button>
+          </div>
+        )}
+
+        {/* Desktop Bottom Pagination Dots for Multiple Videos */}
         {hasMultiple && totalCount > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 pointer-events-none">
+          <div className="hidden sm:flex absolute bottom-3 left-1/2 -translate-x-1/2 z-20 items-center gap-2 pointer-events-none">
             {Array.from({ length: totalCount }).map((_, i) => (
               <span
                 key={i}

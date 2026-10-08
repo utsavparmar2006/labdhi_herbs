@@ -330,6 +330,103 @@ export const updateSmtpConfig = async (req: Request, res: Response) => {
 };
 
 /**
+ * Update Delivery Charges (Gujarat vs Outside Gujarat)
+ */
+export const updateDeliveryCharges = async (req: Request, res: Response) => {
+  try {
+    const {
+      enabled,
+      gujaratCharge,
+      outsideGujaratCharge,
+      freeDeliveryThreshold,
+      estimatedDeliveryGujarat,
+      estimatedDeliveryOutsideGujarat,
+    } = req.body;
+
+    const settings = await SiteSettings.findOneAndUpdate(
+      {},
+      {
+        $set: {
+          'deliveryCharges.enabled': enabled !== false,
+          'deliveryCharges.gujaratCharge': Math.max(0, Number(gujaratCharge) || 0),
+          'deliveryCharges.outsideGujaratCharge': Math.max(0, Number(outsideGujaratCharge) || 0),
+          'deliveryCharges.freeDeliveryThreshold': Math.max(0, Number(freeDeliveryThreshold) || 0),
+          'deliveryCharges.estimatedDeliveryGujarat': (estimatedDeliveryGujarat || '2-3 business days').trim(),
+          'deliveryCharges.estimatedDeliveryOutsideGujarat': (estimatedDeliveryOutsideGujarat || '4-7 business days').trim(),
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Delivery charges updated successfully',
+      data: settings.deliveryCharges,
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Update Currencies and conversion rates
+ */
+export const updateCurrencies = async (req: Request, res: Response) => {
+  try {
+    const { currencies } = req.body;
+    if (!Array.isArray(currencies)) {
+      return res.status(400).json({ success: false, message: 'Currencies must be an array' });
+    }
+
+    const settings = await SiteSettings.findOneAndUpdate(
+      {},
+      { $set: { currencies } },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Currency settings saved successfully',
+      data: settings.currencies,
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+/**
+ * Update International Shipping Configuration & Zones
+ */
+export const updateInternationalShipping = async (req: Request, res: Response) => {
+  try {
+    const { enabled, defaultCharge, defaultFreeThreshold, zones } = req.body;
+
+    const settings = await SiteSettings.findOneAndUpdate(
+      {},
+      {
+        $set: {
+          'internationalShipping.enabled': enabled !== false,
+          'internationalShipping.defaultCharge': Math.max(0, Number(defaultCharge) || 0),
+          'internationalShipping.defaultFreeThreshold': Math.max(0, Number(defaultFreeThreshold) || 0),
+          'internationalShipping.zones': Array.isArray(zones) ? zones : [],
+        },
+      },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'International shipping zones saved successfully',
+      data: settings.internationalShipping,
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+
+
+/**
  * Send test SMTP email from admin panel
  */
 export const sendTestSmtpEmail = async (req: Request, res: Response) => {

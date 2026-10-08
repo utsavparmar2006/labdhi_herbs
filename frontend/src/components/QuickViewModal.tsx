@@ -1,6 +1,7 @@
 'use client';
 
 import { Product } from '../types';
+import { useCurrency } from '../context/CurrencyContext';
 import { X, Star, ShoppingBag, Check, ShieldCheck, Leaf } from 'lucide-react';
 import { useState } from 'react';
 
@@ -11,6 +12,7 @@ interface QuickViewModalProps {
 }
 
 export default function QuickViewModal({ product, onClose, onAddToCart }: QuickViewModalProps) {
+  const { formatPrice } = useCurrency();
   const [quantity, setQuantity] = useState(1);
   const [isAdded, setIsAdded] = useState(false);
 
@@ -28,7 +30,7 @@ export default function QuickViewModal({ product, onClose, onAddToCart }: QuickV
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
       
       {/* Modal Card */}
       <div className="relative w-full max-w-3xl bg-[#F8F6F0] rounded-3xl overflow-hidden shadow-2xl border border-[#EFE9DD] animate-in zoom-in-95 duration-200">
@@ -80,9 +82,9 @@ export default function QuickViewModal({ product, onClose, onAddToCart }: QuickV
                 </div>
 
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-[#1F3A2E]">₹{product.price}</span>
+                  <span className="text-2xl font-bold text-[#1F3A2E]">{formatPrice(product.price)}</span>
                   {product.originalPrice && (
-                    <span className="text-xs text-slate-400 line-through">₹{product.originalPrice}</span>
+                    <span className="text-xs text-slate-400 line-through">{formatPrice(product.originalPrice)}</span>
                   )}
                 </div>
               </div>
@@ -128,7 +130,7 @@ export default function QuickViewModal({ product, onClose, onAddToCart }: QuickV
                 ) : (
                   <>
                     <ShoppingBag className="w-4 h-4 text-[#D4A373]" />
-                    <span>Add {quantity} to Bag • ₹{product.price * quantity}</span>
+                    <span>Add {quantity} to Bag • {formatPrice(product.price * quantity)}</span>
                   </>
                 )}
               </button>

@@ -16,9 +16,12 @@ import { loadRazorpayScript } from '../../utils/loadRazorpay';
 import OriginalTransparentLogo from '../../components/OriginalTransparentLogo';
 import AuthModal from '../../components/AuthModal';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
+import { useCurrency } from '../../context/CurrencyContext';
+import { GLOBAL_COUNTRIES, COUNTRIES_BY_NAME, CountryInfo } from '../../utils/geoCurrency';
 import {
   ShieldCheck,
   Truck,
+  Globe,
   CheckCircle2,
   Lock,
   ArrowRight,
@@ -83,6 +86,12 @@ export default function CheckoutClient() {
   const router = useRouter();
   const { items, totalAmount, clearCart } = useCart();
   const { settings, profile } = useSiteSettings();
+  const {
+    currentCurrency,
+    formatPrice,
+    customerCountry: detectedCountry,
+    setCustomerCountry,
+  } = useCurrency();
   const supportPhone = settings.supportPhone || profile.adminPhone || '+91 93283 49328';
 
   // Form State
@@ -94,6 +103,7 @@ export default function CheckoutClient() {
     landmark: '',
     city: 'Surat',
     state: 'Gujarat',
+    country: 'India',
     pincode: '',
     notes: '',
   });
@@ -190,10 +200,96 @@ export default function CheckoutClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Delivery Charges configuration from Admin Site Settings
+  const deliveryConfig = settings?.deliveryCharges || {
+    enabled: true,
+    gujaratCharge: 50,
+    outsideGujaratCharge: 100,
+    freeDeliveryThreshold: 0,
+    estimatedDeliveryGujarat: '2-3 business days',
+    estimatedDeliveryOutsideGujarat: '4-7 business days',
+  };
+
+  // Auto-detect foreign country if detectedCountry from CurrencyContext is international
+  useEffect(() => {
+    if (detectedCountry && detectedCountry.name && detectedCountry.name !== 'India') {
+      setFormData((prev) => {
+        if (!prev.country || prev.country === 'India') {
+          return {
+            ...prev,
+            country: detectedCountry.name,
+            state: 'Outside India',
+            city: '',
+          };
+        }
+        return prev;
+      });
+    }
+  }, [detectedCountry]);
+
+  // Determine destination country & state
+  const customerCountry = (formData.country || 'India').trim();
+  const isIndia = customerCountry.toLowerCase() === 'india';
+  const isGujarat = isIndia && (formData.state || 'Gujarat').trim().toLowerCase() === 'gujarat';
+
+  // Enforce online payment for international orders (COD disabled)
+  useEffect(() => {
+    if (!isIndia && paymentMethod === 'cod') {
+      setPaymentMethod('online');
+    }
+  }, [isIndia, paymentMethod]);
+
+  const isFreeShippingCoupon =
+    appliedCoupon?.description?.toLowerCase().includes('free shipping') || false;
+  const freeThreshold = Number(deliveryConfig.freeDeliveryThreshold) || 0;
+  const isFreeThresholdMet = freeThreshold > 0 && totalAmount >= freeThreshold;
+
+  let shipping = 0;
+  if (isFreeShippingCoupon) {
+    shipping = 0;
+  } else if (isIndia) {
+    if (deliveryConfig.enabled === false || isFreeThresholdMet) {
+      shipping = 0;
+    } else {
+      shipping = isGujarat
+        ? Number(deliveryConfig.gujaratCharge ?? 50)
+        : Number(deliveryConfig.outsideGujaratCharge ?? 100);
+    }
+  } else {
+    // International Shipping Calculation via Zone Matching
+    const intlConfig = settings?.internationalShipping;
+    if (intlConfig && intlConfig.enabled !== false) {
+      const destCountry = customerCountry.toLowerCase();
+      const matchedZone = intlConfig.zones?.find(
+        (z) =>
+          z.isActive !== false &&
+          Array.isArray(z.countries) &&
+          z.countries.some((c) => c.toLowerCase() === destCountry)
+      );
+
+      if (matchedZone) {
+        const zoneFreeThreshold = Number(matchedZone.freeDeliveryThreshold) || 0;
+        if (zoneFreeThreshold > 0 && totalAmount >= zoneFreeThreshold) {
+          shipping = 0;
+        } else {
+          shipping = Number(matchedZone.deliveryCharge ?? 1500);
+        }
+      } else {
+        const defaultFree = Number(intlConfig.defaultFreeThreshold) || 0;
+        if (defaultFree > 0 && totalAmount >= defaultFree) {
+          shipping = 0;
+        } else {
+          shipping = Number(intlConfig.defaultCharge ?? 2200);
+        }
+      }
+    } else {
+      shipping = 0;
+    }
+  }
+
   // Calculations
   const subtotal = totalAmount;
   const discount = appliedCoupon ? appliedCoupon.discountAmount : 0;
-  const shipping = 0; // Free express delivery across India
   const finalTotal = Math.max(0, subtotal - discount + shipping);
 
   // Form Input Change Handler
@@ -201,6 +297,19 @@ export default function CheckoutClient() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    if (name === 'pincode') {
+      const cleanPin = value.replace(/\D/g, '').slice(0, 6);
+      // Auto-detect Gujarat if pincode starts with 36, 37, 38, 39
+      if (cleanPin.length >= 2) {
+        const prefix = cleanPin.slice(0, 2);
+        if (['36', '37', '38', '39'].includes(prefix) && (!formData.state || formData.state === 'Gujarat')) {
+          setFormData((prev) => ({ ...prev, pincode: cleanPin, state: 'Gujarat' }));
+          return;
+        }
+      }
+      setFormData((prev) => ({ ...prev, pincode: cleanPin }));
+      return;
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -289,10 +398,18 @@ export default function CheckoutClient() {
       return;
     }
 
-    const cleanPhone = formData.phone.replace(/\D/g, '');
-    if (cleanPhone.length !== 10) {
-      setErrorMessage('Please enter a valid 10-digit Indian mobile number');
-      return;
+    const cleanPhone = formData.phone.replace(/[^\d+]/g, '');
+    if (isIndia) {
+      const pureDigits = cleanPhone.replace(/\D/g, '');
+      if (pureDigits.length !== 10) {
+        setErrorMessage('Please enter a valid 10-digit Indian mobile number');
+        return;
+      }
+    } else {
+      if (cleanPhone.length < 6) {
+        setErrorMessage('Please enter a valid mobile number with country dial code');
+        return;
+      }
     }
 
     if (!formData.email.trim() || !formData.email.includes('@')) {
@@ -310,9 +427,22 @@ export default function CheckoutClient() {
       return;
     }
 
-    const cleanPincode = formData.pincode.replace(/\D/g, '');
-    if (cleanPincode.length !== 6) {
-      setErrorMessage('Please enter a valid 6-digit postal PIN code');
+    const cleanPincode = formData.pincode.trim();
+    if (isIndia) {
+      const numericPin = cleanPincode.replace(/\D/g, '');
+      if (numericPin.length !== 6) {
+        setErrorMessage('Please enter a valid 6-digit postal PIN code');
+        return;
+      }
+    } else {
+      if (!cleanPincode) {
+        setErrorMessage('Please enter your postal / ZIP code');
+        return;
+      }
+    }
+
+    if (!isIndia && paymentMethod === 'cod') {
+      setErrorMessage('Cash on Delivery is available for domestic deliveries in India only. Please choose Online Payment.');
       return;
     }
 
@@ -336,8 +466,9 @@ export default function CheckoutClient() {
           address: formData.address.trim(),
           landmark: formData.landmark.trim(),
           city: formData.city.trim(),
-          state: formData.state.trim(),
+          state: (formData.state || (isIndia ? 'Gujarat' : 'Outside India')).trim(),
           pincode: cleanPincode,
+          country: customerCountry,
         },
         items: items.map((i) => ({
           product: {
@@ -350,7 +481,10 @@ export default function CheckoutClient() {
           quantity: i.quantity,
         })),
         paymentMethod,
+        currency: currentCurrency.code,
+        exchangeRate: currentCurrency.exchangeRate,
         couponCode: appliedCoupon ? appliedCoupon.code : '',
+        shipping,
         notes: formData.notes.trim(),
       };
 
@@ -606,35 +740,44 @@ export default function CheckoutClient() {
 
               {/* Real-World E-Commerce: Account Authentication Status Banner */}
               {currentUser ? (
-                <div className="p-4 rounded-3xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-3 text-xs shadow-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-xs uppercase">
+                <div className="p-4 sm:p-4.5 rounded-3xl bg-emerald-50/80 border border-emerald-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-2xl bg-[#1F3A2E] text-[#D4A373] flex items-center justify-center font-bold text-sm shadow-xs uppercase shrink-0">
                       {currentUser.name ? currentUser.name.charAt(0) : 'U'}
                     </div>
-                    <div>
-                      <span className="font-bold text-emerald-950 flex items-center gap-1.5 text-sm">
-                        <span>{currentUser.name}</span>
-                        <span className="text-[10px] bg-emerald-200/80 text-emerald-800 px-2 py-0.5 rounded-full font-bold uppercase">
-                          Verified Account
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                        <span className="font-bold text-emerald-950 text-sm truncate max-w-[180px] sm:max-w-none">
+                          {currentUser.name}
                         </span>
-                      </span>
-                      <span className="text-[11px] text-emerald-700 block">
-                        {currentUser.email} {currentUser.phone ? `• ${currentUser.phone}` : ''} • Order will be linked to your account
-                      </span>
+                        <span className="inline-flex items-center gap-1 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold uppercase tracking-wide whitespace-nowrap border border-emerald-200/60 shrink-0">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Verified Account</span>
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-emerald-700/90 truncate mt-0.5">
+                        {currentUser.email}{currentUser.phone ? ` • ${currentUser.phone}` : ''}
+                      </p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      localStorage.removeItem('accessToken');
-                      localStorage.removeItem('user');
-                      window.dispatchEvent(new Event('authChange'));
-                      setIsAuthOpen(true);
-                    }}
-                    className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 underline cursor-pointer shrink-0"
-                  >
-                    Change Account
-                  </button>
+
+                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-emerald-200/60 shrink-0">
+                    <span className="text-[10px] text-emerald-600 font-light sm:hidden">
+                      Order will be linked to your account
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        localStorage.removeItem('accessToken');
+                        localStorage.removeItem('user');
+                        window.dispatchEvent(new Event('authChange'));
+                        setIsAuthOpen(true);
+                      }}
+                      className="text-xs font-bold text-[#1F3A2E] hover:text-[#B58A5A] underline underline-offset-2 cursor-pointer shrink-0 py-0.5"
+                    >
+                      Change Account
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="p-4.5 rounded-3xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
@@ -682,6 +825,43 @@ export default function CheckoutClient() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Destination Country / Region Selector */}
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5 text-[#B58A5A]" />
+                        <span>Destination Country / Region</span>
+                        <span className="text-red-500">*</span>
+                      </span>
+                      <span className="text-[10px] text-emerald-800 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        {isIndia ? '🇮🇳 Domestic Delivery' : '✈️ Worldwide International Courier'}
+                      </span>
+                    </label>
+                    <select
+                      name="country"
+                      value={formData.country}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const matched = COUNTRIES_BY_NAME.get(val.toLowerCase());
+                        setFormData((prev) => ({
+                          ...prev,
+                          country: val,
+                          state: val === 'India' ? (prev.state === 'Outside India' ? 'Gujarat' : prev.state) : '',
+                        }));
+                        if (matched) {
+                          setCustomerCountry(matched);
+                        }
+                      }}
+                      className="w-full px-4 py-3 rounded-xl border border-[#EFE9DD] text-xs bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] cursor-pointer"
+                    >
+                      {GLOBAL_COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.name}>
+                          {c.flag} {c.name} ({c.dialCode})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
                   {/* Full Name */}
                   <div className="sm:col-span-2 space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
@@ -708,20 +888,20 @@ export default function CheckoutClient() {
                     </label>
                     <div className="relative">
                       <span className="absolute left-3.5 top-3.5 text-xs text-slate-400 font-bold">
-                        +91
+                        {COUNTRIES_BY_NAME.get((formData.country || 'India').toLowerCase())?.dialCode || (isIndia ? '+91' : '+')}
                       </span>
                       <input
                         type="tel"
                         name="phone"
                         required
-                        maxLength={10}
+                        maxLength={isIndia ? 10 : 16}
                         value={formData.phone}
                         onChange={handleInputChange}
-                        placeholder="98765 43210"
-                        className="w-full pl-12 pr-4 py-3 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                        placeholder={isIndia ? '98765 43210' : 'Mobile phone number'}
+                        className="w-full pl-14 pr-4 py-3 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
                       />
                     </div>
-                    <p className="text-[10px] text-slate-400">Used for courier delivery updates & OTP</p>
+                    <p className="text-[10px] text-slate-400">Used for courier delivery updates &amp; tracking</p>
                   </div>
 
                   {/* Email */}
@@ -737,10 +917,10 @@ export default function CheckoutClient() {
                       required
                       value={formData.email}
                       onChange={handleInputChange}
-                      placeholder="priya@example.com"
+                      placeholder="recipient@example.com"
                       className="w-full px-4 py-3 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
                     />
-                    <p className="text-[10px] text-slate-400">Order invoice & tracking link sent here</p>
+                    <p className="text-[10px] text-slate-400">Order invoice &amp; tracking link sent here</p>
                   </div>
 
                   {/* Street Address */}
@@ -771,7 +951,7 @@ export default function CheckoutClient() {
                       name="landmark"
                       value={formData.landmark}
                       onChange={handleInputChange}
-                      placeholder="e.g. Opposite Iscon Temple or Behind Central Bank"
+                      placeholder="e.g. Opposite Park or Central Plaza"
                       className="w-full px-4 py-3 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
                     />
                   </div>
@@ -779,7 +959,7 @@ export default function CheckoutClient() {
                   {/* Postal Pincode */}
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                      <span>Postal PIN Code</span>
+                      <span>{isIndia ? 'Postal PIN Code' : 'Postal / ZIP Code'}</span>
                       <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -787,13 +967,13 @@ export default function CheckoutClient() {
                         type="text"
                         name="pincode"
                         required
-                        maxLength={6}
+                        maxLength={isIndia ? 6 : 12}
                         value={formData.pincode}
                         onChange={handleInputChange}
-                        placeholder="e.g. 395007"
+                        placeholder={isIndia ? 'e.g. 395007' : 'e.g. 90210 / SW1A 1AA'}
                         className="w-full px-4 py-3 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
                       />
-                      {formData.pincode.length === 6 && (
+                      {formData.pincode.length >= (isIndia ? 6 : 3) && (
                         <span className="absolute right-3 top-3 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
                           ✓ Delivery Active
                         </span>
@@ -814,7 +994,7 @@ export default function CheckoutClient() {
                       required
                       value={formData.city}
                       onChange={handleInputChange}
-                      placeholder="Surat"
+                      placeholder={isIndia ? 'Surat' : 'e.g. London, Dubai, Toronto'}
                       className="w-full px-4 py-3 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
                     />
                   </div>
@@ -822,22 +1002,46 @@ export default function CheckoutClient() {
                   {/* State */}
                   <div className="sm:col-span-2 space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                      <span>State</span>
+                      <span>{isIndia ? 'State' : 'State / Province / Region'}</span>
                       <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      name="state"
-                      required
-                      value={formData.state}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 rounded-xl border border-[#EFE9DD] text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] cursor-pointer"
-                    >
-                      {INDIAN_STATES.map((st) => (
-                        <option key={st} value={st}>
-                          {st}
-                        </option>
-                      ))}
-                    </select>
+                    {isIndia ? (
+                      <select
+                        name="state"
+                        required
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 rounded-xl border border-[#EFE9DD] text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] cursor-pointer"
+                      >
+                        {INDIAN_STATES.map((st) => (
+                          <option key={st} value={st}>
+                            {st}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        name="state"
+                        required
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        placeholder="e.g. California, Greater London, Ontario, Dubai"
+                        className="w-full px-4 py-3 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                      />
+                    )}
+                    <div className="flex items-center justify-between pt-1 px-1">
+                      <span className="text-[11px] text-slate-500">
+                        {isIndia
+                          ? isGujarat
+                            ? '🌿 Gujarat State (Local Courier Zone)'
+                            : `🚚 Interstate Zone: ${formData.state || 'Rest of India'}`
+                          : `✈️ International Courier: ${formData.country}`}
+                      </span>
+                      <span className="text-[11px] font-bold text-[#1F3A2E]">
+                        Shipping: {shipping === 0 ? 'FREE' : formatPrice(shipping, { showCode: true })}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -849,31 +1053,47 @@ export default function CheckoutClient() {
                     2
                   </span>
                   <h2 className="font-serif text-lg font-bold text-[#1A201C]">
-                    Shipping & Delivery Method
+                    Shipping &amp; Delivery Method
                   </h2>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#F8F6F0] border-2 border-[#1F3A2E] flex items-center justify-between">
+                <div className="p-4 rounded-2xl bg-[#F8F6F0] border-2 border-[#1F3A2E] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3.5">
                     <div className="w-10 h-10 rounded-xl bg-[#1F3A2E] text-[#D4A373] flex items-center justify-center shrink-0 shadow-xs">
                       <Truck className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <span className="text-xs font-bold text-[#1A201C]">
-                          Standard Express Herbal Courier
+                          {isIndia
+                            ? isGujarat
+                              ? 'Gujarat Local Express (Surat Dispatch)'
+                              : `National Express Courier (${formData.state || 'Rest of India'})`
+                            : `International Express Courier (${formData.country})`}
                         </span>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                          FREE
-                        </span>
+                        {shipping === 0 ? (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                            FREE DELIVERY {isFreeThresholdMet ? '(Offer Applied)' : ''}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-[#1F3A2E] bg-[#1F3A2E]/10 px-2 py-0.5 rounded-full">
+                            {isIndia ? (isGujarat ? 'Within Gujarat' : 'Interstate Courier') : 'International Air Express'}
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-slate-500 font-light mt-0.5">
-                        Estimated delivery in 3 to 5 business days across all Indian pincodes.
+                        {isIndia
+                          ? isGujarat
+                            ? (deliveryConfig.estimatedDeliveryGujarat || '2-3 business days')
+                            : (deliveryConfig.estimatedDeliveryOutsideGujarat || '4-7 business days')
+                          : '7-12 business days with door-to-door international courier tracking.'}
                       </p>
                     </div>
                   </div>
 
-                  <span className="text-sm font-bold text-emerald-700">₹0 (Free)</span>
+                  <span className={`text-sm font-bold shrink-0 ${shipping === 0 ? 'text-emerald-700' : 'text-[#1F3A2E]'}`}>
+                    {shipping === 0 ? 'FREE' : formatPrice(shipping, { showCode: true })}
+                  </span>
                 </div>
               </div>
 
@@ -893,36 +1113,53 @@ export default function CheckoutClient() {
 
                 <div className="space-y-3">
                   {/* Cash on Delivery (COD) Option */}
-                  <label
-                    onClick={() => setPaymentMethod('cod')}
-                    className={`flex items-start gap-4 p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer ${
-                      paymentMethod === 'cod'
-                        ? 'border-[#1F3A2E] bg-emerald-50/40 shadow-xs'
-                        : 'border-[#EFE9DD] bg-white hover:bg-slate-50'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      checked={paymentMethod === 'cod'}
-                      onChange={() => setPaymentMethod('cod')}
-                      className="mt-1 w-4 h-4 text-[#1F3A2E] focus:ring-[#1F3A2E] cursor-pointer"
-                    />
-                    <div className="flex-1 space-y-1">
+                  {isIndia ? (
+                    <label
+                      onClick={() => setPaymentMethod('cod')}
+                      className={`flex items-start gap-4 p-4 sm:p-5 rounded-2xl border-2 transition-all cursor-pointer ${
+                        paymentMethod === 'cod'
+                          ? 'border-[#1F3A2E] bg-emerald-50/40 shadow-xs'
+                          : 'border-[#EFE9DD] bg-white hover:bg-slate-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        checked={paymentMethod === 'cod'}
+                        onChange={() => setPaymentMethod('cod')}
+                        className="mt-1 w-4 h-4 text-[#1F3A2E] focus:ring-[#1F3A2E] cursor-pointer"
+                      />
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs sm:text-sm font-bold text-[#1A201C] flex items-center gap-2">
+                            <Banknote className="w-4 h-4 text-emerald-700" />
+                            <span>Cash on Delivery (COD)</span>
+                          </span>
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                            Most Popular in India
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 font-light leading-relaxed">
+                          Pay in cash or via UPI QR code directly to the courier executive upon doorstep delivery.
+                        </p>
+                      </div>
+                    </label>
+                  ) : (
+                    <div className="p-4 rounded-2xl border border-stone-200 bg-stone-50/80 text-stone-500 opacity-80">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs sm:text-sm font-bold text-[#1A201C] flex items-center gap-2">
-                          <Banknote className="w-4 h-4 text-emerald-700" />
+                        <span className="text-xs font-bold flex items-center gap-2 text-stone-600">
+                          <Banknote className="w-4 h-4 text-stone-400" />
                           <span>Cash on Delivery (COD)</span>
                         </span>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                          Most Popular
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
+                          India Domestic Only
                         </span>
                       </div>
-                      <p className="text-xs text-slate-500 font-light leading-relaxed">
-                        Pay in cash or via UPI QR code directly to the courier executive upon doorstep delivery.
+                      <p className="text-[11px] text-stone-500 mt-1">
+                        Cross-border international parcels cannot support retail COD. Orders to {formData.country} are processed securely via Online Payment.
                       </p>
                     </div>
-                  </label>
+                  )}
 
                   {/* Online Payment (UPI, Cards, Netbanking) Option */}
                   <label
@@ -944,20 +1181,20 @@ export default function CheckoutClient() {
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <span className="text-xs sm:text-sm font-bold text-[#1A201C] flex items-center gap-2">
                           <QrCode className="w-4 h-4 text-[#B58A5A]" />
-                          <span>Instant Online Payment (Razorpay)</span>
+                          <span>Instant Online Payment (Razorpay Global)</span>
                         </span>
                         <div className="flex items-center gap-1.5">
                           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-full">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                             <span>Test Mode</span>
                           </span>
-                          <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-                            Instant Confirmation
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                            International Cards Accepted
                           </span>
                         </div>
                       </div>
                       <p className="text-xs text-slate-500 font-light leading-relaxed">
-                        Pay securely with Razorpay Test Mode via UPI (Google Pay, PhonePe, Paytm), RuPay, Visa, Mastercard, or 50+ NetBanking options.
+                        Pay securely with all International Credit &amp; Debit Cards (Visa, Mastercard, Amex), UPI (Google Pay, PhonePe), or NetBanking.
                       </p>
 
                       {paymentMethod === 'online' && (
@@ -1054,7 +1291,7 @@ export default function CheckoutClient() {
                       </div>
 
                       <span className="font-bold text-[#1F3A2E] shrink-0">
-                        ₹{Number(product.price || 0) * quantity}
+                        {formatPrice(Number(product.price || 0) * quantity)}
                       </span>
                     </div>
                   ))}
@@ -1077,7 +1314,7 @@ export default function CheckoutClient() {
                           <span>Coupon &quot;{appliedCoupon.code}&quot; Applied!</span>
                         </div>
                         <p className="text-[11px] text-emerald-700 font-light">
-                          You saved ₹{appliedCoupon.discountAmount} on this order
+                          You saved {formatPrice(appliedCoupon.discountAmount)} on this order
                         </p>
                       </div>
 
@@ -1124,7 +1361,7 @@ export default function CheckoutClient() {
                               onClick={() => handleApplyCoupon(cp.code)}
                               className="font-bold text-[#1F3A2E] underline hover:text-[#B58A5A] cursor-pointer mr-1"
                             >
-                              {cp.code} ({cp.type === 'percent' ? `${cp.value}% Off` : `₹${cp.value} Flat`})
+                              {cp.code} ({cp.type === 'percent' ? `${cp.value}% Off` : `${formatPrice(cp.value)} Flat`})
                             </button>
                           ))}
                         </div>
@@ -1137,23 +1374,31 @@ export default function CheckoutClient() {
                 <div className="pt-4 border-t border-[#EFE9DD] space-y-2.5 text-xs">
                   <div className="flex justify-between text-slate-600">
                     <span>Items Subtotal:</span>
-                    <span className="font-bold text-slate-800">₹{subtotal}</span>
+                    <span className="font-bold text-slate-800">{formatPrice(subtotal)}</span>
                   </div>
 
                   {discount > 0 && (
                     <div className="flex justify-between text-emerald-700 font-medium">
                       <span>Promo Coupon Discount:</span>
-                      <span>−₹{discount}</span>
+                      <span className="font-bold text-emerald-700">−{formatPrice(discount)}</span>
                     </div>
                   )}
 
                   <div className="flex justify-between text-slate-600">
-                    <span>Express All-India Delivery:</span>
-                    <span className="text-emerald-700 font-bold">FREE</span>
+                    <span className="flex items-center gap-1">
+                      <span>
+                        {isIndia
+                          ? `Delivery (${isGujarat ? 'Within Gujarat' : `Outside Gujarat — ${formData.state || 'National'}`}):`
+                          : `International Delivery (${formData.country}):`}
+                      </span>
+                    </span>
+                    <span className={shipping === 0 ? 'text-emerald-700 font-bold' : 'font-bold text-slate-800'}>
+                      {shipping === 0 ? `FREE ${isFreeThresholdMet ? '(Offer)' : ''}` : formatPrice(shipping, { showCode: true })}
+                    </span>
                   </div>
 
                   <div className="flex justify-between text-slate-600">
-                    <span>GST & Packaging:</span>
+                    <span>GST &amp; Packaging:</span>
                     <span className="text-slate-400">Included</span>
                   </div>
 
@@ -1163,11 +1408,11 @@ export default function CheckoutClient() {
                         Total Payable:
                       </span>
                       <span className="text-[10px] text-slate-400 font-light">
-                        Inclusive of all government taxes
+                        Inclusive of all taxes
                       </span>
                     </div>
                     <span className="font-serif text-2xl font-bold text-[#1F3A2E]">
-                      ₹{finalTotal}
+                      {formatPrice(finalTotal)}
                     </span>
                   </div>
                 </div>
@@ -1185,8 +1430,8 @@ export default function CheckoutClient() {
                       <Lock className="w-4 h-4 text-[#D4A373]" />
                       <span>
                         {paymentMethod === 'cod'
-                          ? 'Place Order — Cash on Delivery'
-                          : `Pay ₹${finalTotal} via Razorpay (Test Mode)`}
+                          ? `Place Order — Cash on Delivery (${formatPrice(finalTotal)})`
+                          : `Pay ${formatPrice(finalTotal)} via Razorpay`}
                       </span>
                     </>
                   )}

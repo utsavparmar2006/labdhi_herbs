@@ -14,6 +14,7 @@ import SortDropdown from '../../../../components/SortDropdown';
 import { getProducts } from '../../../../services/api';
 import { MainCategory, SubCategory, Product } from '../../../../types';
 import { useCart } from '../../../../context/CartContext';
+import { useCurrency } from '../../../../context/CurrencyContext';
 import { useSiteSettings } from '../../../../context/SiteSettingsContext';
 import { useInfiniteScroll } from '../../../../hooks/useInfiniteScroll';
 import {
@@ -37,6 +38,7 @@ interface Props {
 
 export default function SubCategoryProductsClient({ mainCategory, subCategory }: Props) {
   const { cartCount, openCart, addToCart: contextAddToCart } = useCart();
+  const { formatPrice } = useCurrency();
   const { settings } = useSiteSettings();
   const subCatHeader = settings?.pageHeaders?.subCategories;
   const [selectedBrand, setSelectedBrand] = useState('All');
@@ -324,9 +326,9 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
                         <div className="pt-2 sm:pt-3 border-t border-[#EFE9DD] flex items-center justify-between gap-1">
                           <Link href={`/product/${product.id}`} className="cursor-pointer">
                             <div className="flex items-baseline gap-1 sm:gap-1.5">
-                              <span className="text-sm sm:text-lg font-bold text-[#1F3A2E]">₹{product.price}</span>
+                              <span className="text-sm sm:text-lg font-bold text-[#1F3A2E]">{formatPrice(product.price)}</span>
                               {product.originalPrice && (
-                                <span className="text-[10px] sm:text-xs text-slate-400 line-through">₹{product.originalPrice}</span>
+                                <span className="text-[10px] sm:text-xs text-slate-400 line-through">{formatPrice(product.originalPrice)}</span>
                               )}
                             </div>
                             <span className="hidden sm:block text-[10px] text-emerald-700 font-medium">Taxes Included</span>

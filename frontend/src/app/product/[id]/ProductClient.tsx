@@ -16,6 +16,7 @@ import SearchModal from '../../../components/SearchModal';
 import Footer from '../../../components/Footer';
 import { getProductById } from '../../../services/api';
 import { useCart } from '../../../context/CartContext';
+import { useCurrency } from '../../../context/CurrencyContext';
 import { Product, CartItem } from '../../../types';
 import { 
   ChevronRight, 
@@ -45,6 +46,7 @@ export default function ProductClient({ productId }: ProductClientProps) {
     updateQuantity: handleUpdateCartQuantity,
     removeFromCart: handleRemoveCartItem,
   } = useCart();
+  const { formatPrice, currentCurrency } = useCurrency();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -245,10 +247,10 @@ export default function ProductClient({ productId }: ProductClientProps) {
 
               {/* Price Block */}
               <div className="p-4 rounded-2xl bg-white border border-[#EFE9DD] space-y-1 shadow-2xs">
-                <div className="flex items-baseline gap-3">
-                  <span className="text-3xl font-bold text-[#1F3A2E]">₹{product.price}</span>
+                <div className="flex items-baseline gap-3 flex-wrap">
+                  <span className="text-3xl font-bold text-[#1F3A2E]">{formatPrice(product.price)}</span>
                   {product.originalPrice && (
-                    <span className="text-base text-slate-400 line-through">₹{product.originalPrice}</span>
+                    <span className="text-base text-slate-400 line-through">{formatPrice(product.originalPrice)}</span>
                   )}
                   {discountPercent && (
                     <span className="px-2.5 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-xs font-bold">
@@ -256,7 +258,7 @@ export default function ProductClient({ productId }: ProductClientProps) {
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-emerald-700 font-medium">Inclusive of all taxes • Free shipping across India</p>
+                <p className="text-[11px] text-emerald-700 font-medium">Inclusive of all taxes • Global express dispatch from Surat</p>
               </div>
 
               {/* Short Description */}

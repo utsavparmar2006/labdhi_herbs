@@ -2,6 +2,7 @@
 
 import { PRODUCTS } from '../services/mockData';
 import { Product } from '../types';
+import { useCurrency } from '../context/CurrencyContext';
 import Link from 'next/link';
 import { Star, ShoppingBag, Leaf } from 'lucide-react';
 
@@ -17,6 +18,7 @@ export default function RelatedProducts({
   category,
   onAddToCart,
 }: RelatedProductsProps) {
+  const { formatPrice } = useCurrency();
   const relatedList = PRODUCTS.filter(
     (p) => p.id !== currentProductId && p.category.toLowerCase() === category.toLowerCase()
   ).slice(0, 4);
@@ -92,7 +94,7 @@ export default function RelatedProducts({
               {/* Price & Action */}
               <div className="pt-2 sm:pt-3 border-t border-[#EFE9DD] flex items-center justify-between gap-1">
                 <Link href={`/product/${product.id}`} className="text-sm sm:text-base font-bold text-[#1F3A2E] cursor-pointer">
-                  ₹{product.price}
+                  {formatPrice(product.price)}
                 </Link>
                 <button
                   type="button"

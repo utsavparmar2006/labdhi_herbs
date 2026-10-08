@@ -12,6 +12,9 @@ import {
   updateGeneralSettings,
   updatePageHeaders,
   updateSmtpConfig,
+  updateDeliveryCharges,
+  updateCurrencies,
+  updateInternationalShipping,
   sendTestSmtpEmail,
 } from '../controllers/siteSettings.controller.js';
 import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
@@ -33,6 +36,9 @@ router.put('/banners', verifyJWT, verifyAdmin, updateBanners);
 router.put('/general', verifyJWT, verifyAdmin, updateGeneralSettings);
 router.put('/page-headers', verifyJWT, verifyAdmin, updatePageHeaders);
 router.put('/smtp', verifyJWT, verifyAdmin, updateSmtpConfig);
+router.put('/delivery-charges', verifyJWT, verifyAdmin, updateDeliveryCharges);
+router.put('/currencies', verifyJWT, verifyAdmin, updateCurrencies);
+router.put('/international-shipping', verifyJWT, verifyAdmin, updateInternationalShipping);
 router.post('/test-smtp', verifyJWT, verifyAdmin, sendTestSmtpEmail);
 
 export default router;

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getProducts } from '../services/api';
 import { Product } from '../types';
+import { useCurrency } from '../context/CurrencyContext';
 import { Search, X, Star, ArrowRight } from 'lucide-react';
 
 interface SearchModalProps {
@@ -12,6 +13,7 @@ interface SearchModalProps {
 }
 
 export default function SearchModal({ isOpen, onClose, onSelectProduct }: SearchModalProps) {
+  const { formatPrice } = useCurrency();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
@@ -60,7 +62,7 @@ export default function SearchModal({ isOpen, onClose, onSelectProduct }: Search
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-start justify-center pt-20 px-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
     >
       <div
         onClick={(e) => e.stopPropagation()}
@@ -152,7 +154,7 @@ export default function SearchModal({ isOpen, onClose, onSelectProduct }: Search
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-bold text-[#1F3A2E]">₹{product.price}</span>
+                    <span className="text-sm font-bold text-[#1F3A2E]">{formatPrice(product.price)}</span>
                     <ArrowRight className="w-4 h-4 text-[#D4A373]" />
                   </div>
                 </div>

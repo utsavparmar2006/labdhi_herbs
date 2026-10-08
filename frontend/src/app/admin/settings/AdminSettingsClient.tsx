@@ -41,6 +41,8 @@ import {
   EyeOff,
   X,
   Pencil,
+  Tag,
+  Sparkles,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -130,10 +132,41 @@ interface SiteSettings {
     smtpPass: string;
     enableOrderEmails: boolean;
   };
+  deliveryCharges?: {
+    enabled: boolean;
+    gujaratCharge: number;
+    outsideGujaratCharge: number;
+    freeDeliveryThreshold: number;
+    estimatedDeliveryGujarat: string;
+    estimatedDeliveryOutsideGujarat: string;
+  };
+  currencies?: Array<{
+    code: string;
+    symbol: string;
+    name: string;
+    exchangeRate: number;
+    isActive: boolean;
+    isDefault?: boolean;
+  }>;
+  internationalShipping?: {
+    enabled: boolean;
+    defaultCharge: number;
+    defaultFreeThreshold: number;
+    zones: Array<{
+      id: string;
+      name: string;
+      countries: string[];
+      deliveryCharge: number;
+      freeDeliveryThreshold: number;
+      isActive: boolean;
+    }>;
+  };
 }
 
 type ActiveTab =
   | 'profile'
+  | 'deliveryCharges'
+  | 'international'
   | 'pageHeaders'
   | 'smtp'
   | 'about'
@@ -614,6 +647,18 @@ export default function AdminSettingsClient() {
     isActive: true,
   });
 
+  // Currency & International Shipping States
+  const [newCurrCode, setNewCurrCode] = useState('');
+  const [newCurrSymbol, setNewCurrSymbol] = useState('');
+  const [newCurrName, setNewCurrName] = useState('');
+  const [newCurrRate, setNewCurrRate] = useState<number>(85);
+  const [showAddCurrencyModal, setShowAddCurrencyModal] = useState(false);
+
+  const [newZoneName, setNewZoneName] = useState('');
+  const [newZoneCountries, setNewZoneCountries] = useState('');
+  const [newZoneCharge, setNewZoneCharge] = useState<number>(1500);
+  const [showAddZoneModal, setShowAddZoneModal] = useState(false);
+
   const defaultSettings: SiteSettings = {
     profile: {
       adminName: 'admin',
@@ -701,6 +746,62 @@ export default function AdminSettingsClient() {
       smtpUser: '',
       smtpPass: '',
       enableOrderEmails: true,
+    },
+    deliveryCharges: {
+      enabled: true,
+      gujaratCharge: 50,
+      outsideGujaratCharge: 100,
+      freeDeliveryThreshold: 0,
+      estimatedDeliveryGujarat: '2-3 business days',
+      estimatedDeliveryOutsideGujarat: '4-7 business days',
+    },
+    currencies: [
+      { code: 'INR', symbol: '₹', name: 'Indian Rupee', exchangeRate: 1, isActive: true, isDefault: true },
+      { code: 'USD', symbol: '$', name: 'US Dollar', exchangeRate: 85, isActive: true, isDefault: false },
+      { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham', exchangeRate: 23, isActive: true, isDefault: false },
+      { code: 'GBP', symbol: '£', name: 'British Pound', exchangeRate: 110, isActive: true, isDefault: false },
+      { code: 'EUR', symbol: '€', name: 'Euro', exchangeRate: 92, isActive: true, isDefault: false },
+      { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', exchangeRate: 62, isActive: true, isDefault: false },
+      { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', exchangeRate: 56, isActive: true, isDefault: false },
+    ],
+    internationalShipping: {
+      enabled: true,
+      defaultCharge: 2200,
+      defaultFreeThreshold: 0,
+      zones: [
+        {
+          id: 'middle-east',
+          name: 'Middle East & Gulf',
+          countries: ['United Arab Emirates', 'Saudi Arabia', 'Oman', 'Qatar', 'Kuwait', 'Bahrain'],
+          deliveryCharge: 1200,
+          freeDeliveryThreshold: 0,
+          isActive: true,
+        },
+        {
+          id: 'north-america',
+          name: 'USA & Canada',
+          countries: ['United States', 'Canada'],
+          deliveryCharge: 1800,
+          freeDeliveryThreshold: 0,
+          isActive: true,
+        },
+        {
+          id: 'europe-uk',
+          name: 'UK & Europe',
+          countries: ['United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Switzerland'],
+          deliveryCharge: 1600,
+          freeDeliveryThreshold: 0,
+          isActive: true,
+        },
+        {
+          id: 'australasia',
+          name: 'Australia & New Zealand',
+          countries: ['Australia', 'New Zealand', 'Singapore'],
+          deliveryCharge: 1700,
+          freeDeliveryThreshold: 0,
+          isActive: true,
+        },
+      ],
     },
   };
 
@@ -1044,9 +1145,188 @@ export default function AdminSettingsClient() {
     []
   );
 
+  const setDeliveryField = useCallback(
+    (field: keyof NonNullable<SiteSettings['deliveryCharges']>, val: any) => {
+      setSettings((prev) => ({
+        ...prev,
+        deliveryCharges: {
+          ...(prev.deliveryCharges || defaultSettings.deliveryCharges!),
+          [field]: val,
+        },
+      }));
+    },
+    []
+  );
+
+  const saveDeliveryCharges = () =>
+    save('delivery-charges', settings.deliveryCharges || defaultSettings.deliveryCharges!);
+
+  // Currency Handlers
+  const setCurrencyRate = (code: string, newRate: number) => {
+    setSettings((prev) => ({
+      ...prev,
+      currencies: (prev.currencies || defaultSettings.currencies!).map((c) =>
+        c.code === code ? { ...c, exchangeRate: Math.max(0.001, newRate) } : c
+      ),
+    }));
+  };
+
+  const toggleCurrencyActive = (code: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      currencies: (prev.currencies || defaultSettings.currencies!).map((c) =>
+        c.code === code ? { ...c, isActive: !c.isActive } : c
+      ),
+    }));
+  };
+
+  const addCustomCurrency = () => {
+    if (!newCurrCode.trim()) {
+      showToast('Please enter a currency code (e.g. SGD)', 'error');
+      return;
+    }
+    const cleanCode = newCurrCode.trim().toUpperCase();
+    const existing = settings.currencies || defaultSettings.currencies!;
+    if (existing.some((c) => c.code === cleanCode)) {
+      showToast(`Currency ${cleanCode} already exists`, 'error');
+      return;
+    }
+
+    setSettings((prev) => ({
+      ...prev,
+      currencies: [
+        ...(prev.currencies || defaultSettings.currencies!),
+        {
+          code: cleanCode,
+          symbol: newCurrSymbol.trim() || '$',
+          name: newCurrName.trim() || cleanCode,
+          exchangeRate: Math.max(0.001, Number(newCurrRate) || 1),
+          isActive: true,
+          isDefault: false,
+        },
+      ],
+    }));
+
+    setNewCurrCode('');
+    setNewCurrSymbol('');
+    setNewCurrName('');
+    setNewCurrRate(85);
+    setShowAddCurrencyModal(false);
+    showToast(`Added ${cleanCode} currency`, 'success');
+  };
+
+  const removeCurrency = (code: string) => {
+    if (code === 'INR') {
+      showToast('Indian Rupee (INR) is the base currency and cannot be deleted.', 'error');
+      return;
+    }
+    setSettings((prev) => ({
+      ...prev,
+      currencies: (prev.currencies || defaultSettings.currencies!).filter((c) => c.code !== code),
+    }));
+    showToast(`Removed currency ${code}`, 'success');
+  };
+
+  // International Shipping Handlers
+  const setIntlShippingField = (field: 'enabled' | 'defaultCharge' | 'defaultFreeThreshold', val: any) => {
+    setSettings((prev) => ({
+      ...prev,
+      internationalShipping: {
+        ...(prev.internationalShipping || defaultSettings.internationalShipping!),
+        [field]: val,
+      },
+    }));
+  };
+
+  const updateIntlZone = (
+    zoneId: string,
+    updates: Partial<{ name: string; countries: string[]; deliveryCharge: number; freeDeliveryThreshold: number; isActive: boolean }>
+  ) => {
+    setSettings((prev) => {
+      const currentIntl = prev.internationalShipping || defaultSettings.internationalShipping!;
+      return {
+        ...prev,
+        internationalShipping: {
+          ...currentIntl,
+          zones: currentIntl.zones.map((z) => (z.id === zoneId ? { ...z, ...updates } : z)),
+        },
+      };
+    });
+  };
+
+  const addIntlZone = () => {
+    if (!newZoneName.trim()) {
+      showToast('Please enter zone name (e.g. Asia Pacific)', 'error');
+      return;
+    }
+    const countryList = newZoneCountries
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (countryList.length === 0) {
+      showToast('Please enter at least one country name for this zone', 'error');
+      return;
+    }
+
+    const currentIntl = settings.internationalShipping || defaultSettings.internationalShipping!;
+    const id = 'zone-' + Date.now();
+
+    setSettings((prev) => ({
+      ...prev,
+      internationalShipping: {
+        ...currentIntl,
+        zones: [
+          ...currentIntl.zones,
+          {
+            id,
+            name: newZoneName.trim(),
+            countries: countryList,
+            deliveryCharge: Math.max(0, Number(newZoneCharge) || 0),
+            freeDeliveryThreshold: 0,
+            isActive: true,
+          },
+        ],
+      },
+    }));
+
+    setNewZoneName('');
+    setNewZoneCountries('');
+    setNewZoneCharge(1500);
+    setShowAddZoneModal(false);
+    showToast(`Added shipping zone: ${newZoneName.trim()}`, 'success');
+  };
+
+  const deleteIntlZone = (zoneId: string) => {
+    setSettings((prev) => {
+      const currentIntl = prev.internationalShipping || defaultSettings.internationalShipping!;
+      return {
+        ...prev,
+        internationalShipping: {
+          ...currentIntl,
+          zones: currentIntl.zones.filter((z) => z.id !== zoneId),
+        },
+      };
+    });
+    showToast('Shipping zone removed', 'success');
+  };
+
+  const saveCurrencies = () =>
+    save('currencies', { currencies: settings.currencies || defaultSettings.currencies! });
+
+  const saveInternationalShipping = () =>
+    save('international-shipping', settings.internationalShipping || defaultSettings.internationalShipping!);
+
+  const saveAllInternational = async () => {
+    await save('currencies', { currencies: settings.currencies || defaultSettings.currencies! });
+    await save('international-shipping', settings.internationalShipping || defaultSettings.internationalShipping!);
+  };
+
   // Map tab → save action
   const saveActions: Record<ActiveTab, () => void> = {
     profile: saveProfile,
+    deliveryCharges: saveDeliveryCharges,
+    international: saveAllInternational,
     pageHeaders: savePageHeaders,
     smtp: saveSmtp,
     about: saveAbout,
@@ -1064,13 +1344,15 @@ export default function AdminSettingsClient() {
   // Sidebar tabs config
   const tabs: { id: ActiveTab; label: string; icon: React.ElementType }[] = [
     { id: 'profile', label: 'Profile', icon: User },
+    { id: 'deliveryCharges', label: 'Delivery Charges (India)', icon: Truck },
+    { id: 'international', label: 'Global Currencies & Shipping', icon: Globe },
     { id: 'pageHeaders', label: 'Page Banners & Headers', icon: Layout },
     { id: 'smtp', label: 'Email & Invoicing', icon: Mail },
     { id: 'about', label: 'About Us', icon: Info },
     { id: 'terms', label: 'Terms & Conditions', icon: FileText },
     { id: 'privacy', label: 'Privacy Policy', icon: Shield },
     { id: 'refund', label: 'Refund Policy', icon: RotateCcw },
-    { id: 'shipping', label: 'Shipping Policy', icon: Truck },
+    { id: 'shipping', label: 'Shipping Policy (Text)', icon: FileText },
     { id: 'faq', label: 'FAQ', icon: HelpCircle },
     { id: 'copyright', label: 'Copyrights', icon: Copyright },
     { id: 'logo', label: 'Logo', icon: Star },
@@ -1331,6 +1613,838 @@ export default function AdminSettingsClient() {
                 </div>
               </div>
             </SettingsCard>
+          </div>
+        );
+
+      // ── Delivery Charges (Gujarat vs Outside Gujarat) ─────────────────────────
+      case 'deliveryCharges':
+        const delivery = settings.deliveryCharges || defaultSettings.deliveryCharges!;
+        const isDeliveryActive = delivery.enabled !== false;
+        const gujCharge = Number(delivery.gujaratCharge ?? 50);
+        const outsideCharge = Number(delivery.outsideGujaratCharge ?? 100);
+        const freeThreshold = Number(delivery.freeDeliveryThreshold ?? 0);
+        const sampleCart = 499;
+
+        return (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="bg-[#1F3A2E] text-white p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="p-1.5 rounded-lg bg-white/10 text-[#D4A373]">
+                    <Truck className="w-4 h-4" />
+                  </span>
+                  <h3 className="font-serif text-lg font-bold">Delivery Charges Setup</h3>
+                </div>
+                <p className="text-xs text-white/70 max-w-xl">
+                  Configure separate shipping rates for Gujarat and Outside Gujarat (Rest of India). The checkout page automatically detects the customer&apos;s state and applies the correct delivery charge.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={saveDeliveryCharges}
+                disabled={saving}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#D4A373] text-[#14261E] text-sm font-bold rounded-xl hover:bg-[#c69262] transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer shadow-md"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? 'Saving...' : 'Save Delivery Rates'}
+              </button>
+            </div>
+
+            {/* Master Toggle Card */}
+            <SettingsCard title="System Delivery Status" icon={Shield}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD]">
+                <div>
+                  <h4 className="text-sm font-bold text-[#14261E]">Enable State-Wise Delivery Charges</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    When active, customers in Gujarat pay Gujarat rate, and customers outside Gujarat pay outside state rate. If disabled, all orders get free shipping.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDeliveryField('enabled', !isDeliveryActive)}
+                  className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    isDeliveryActive ? 'bg-[#1F3A2E]' : 'bg-slate-300'
+                  }`}
+                  role="switch"
+                  aria-checked={isDeliveryActive}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      isDeliveryActive ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+            </SettingsCard>
+
+            {/* Rates Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Zone 1: Within Gujarat */}
+              <SettingsCard title="Zone 1: Within Gujarat (Local State)" icon={Truck}>
+                <div className="space-y-4">
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center justify-between">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      <span>🌿</span> Surat &amp; All 33 Gujarat Districts
+                    </span>
+                    <span className="bg-emerald-200/80 text-emerald-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                      Local Shipping
+                    </span>
+                  </div>
+
+                  <FormField
+                    label="Gujarat Delivery Charge (₹)"
+                    hint="Delivery charge in rupees added to orders shipping to Gujarat (e.g. 50, or 0 for free)"
+                  >
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-2.5 text-sm font-bold text-slate-500">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={delivery.gujaratCharge ?? 50}
+                        onChange={(e) => setDeliveryField('gujaratCharge', Math.max(0, Number(e.target.value) || 0))}
+                        className={`${inputCls} pl-8 font-semibold`}
+                        placeholder="50"
+                      />
+                    </div>
+                  </FormField>
+
+                  <div className="p-3 bg-[#F8F6F0] rounded-xl border border-[#EFE9DD] text-[11px] text-slate-600 space-y-1">
+                    <p className="font-semibold text-[#14261E]">📌 District Coverage:</p>
+                    <p>Surat, Ahmedabad, Vadodara, Rajkot, Gandhinagar, Bhavnagar, Jamnagar, Junagadh, Anand, Navsari, Valsad, and all other Gujarat pin codes.</p>
+                  </div>
+                </div>
+              </SettingsCard>
+
+              {/* Zone 2: Outside Gujarat */}
+              <SettingsCard title="Zone 2: Outside Gujarat (Rest of India)" icon={Globe}>
+                <div className="space-y-4">
+                  <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-center justify-between">
+                    <span className="font-semibold flex items-center gap-1.5">
+                      <span>🇮🇳</span> National Inter-State Shipping
+                    </span>
+                    <span className="bg-blue-200/80 text-blue-900 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+                      Interstate
+                    </span>
+                  </div>
+
+                  <FormField
+                    label="Outside Gujarat Delivery Charge (₹)"
+                    hint="Delivery charge in rupees for Maharashtra, Rajasthan, Delhi, UP, MP, and all other states"
+                  >
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-2.5 text-sm font-bold text-slate-500">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={delivery.outsideGujaratCharge ?? 100}
+                        onChange={(e) => setDeliveryField('outsideGujaratCharge', Math.max(0, Number(e.target.value) || 0))}
+                        className={`${inputCls} pl-8 font-semibold`}
+                        placeholder="100"
+                      />
+                    </div>
+                  </FormField>
+
+                  <div className="p-3 bg-[#F8F6F0] rounded-xl border border-[#EFE9DD] text-[11px] text-slate-600 space-y-1">
+                    <p className="font-semibold text-[#14261E]">📌 National Courier Coverage:</p>
+                    <p>Maharashtra, Rajasthan, Delhi NCR, Uttar Pradesh, Madhya Pradesh, Karnataka, Tamil Nadu, West Bengal, Bihar, Punjab, and all other Indian states.</p>
+                  </div>
+                </div>
+              </SettingsCard>
+            </div>
+
+            {/* Free Delivery Threshold */}
+            <SettingsCard title="Free Delivery Threshold (Optional Offer)" icon={Tag}>
+              <div className="space-y-4">
+                <FormField
+                  label="Free Delivery on Orders Above (₹)"
+                  hint="Enter a cart order amount (e.g. 999) to give 100% Free Delivery on higher-value orders. Enter 0 to always charge the zone rate."
+                >
+                  <div className="relative max-w-md">
+                    <span className="absolute left-3.5 top-2.5 text-sm font-bold text-slate-500">₹</span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={delivery.freeDeliveryThreshold ?? 0}
+                      onChange={(e) => setDeliveryField('freeDeliveryThreshold', Math.max(0, Number(e.target.value) || 0))}
+                      className={`${inputCls} pl-8 font-semibold`}
+                      placeholder="0 (Disabled - Always charge)"
+                    />
+                  </div>
+                </FormField>
+
+                <p className="text-xs text-slate-500">
+                  {freeThreshold > 0
+                    ? `✅ Active Promotion: Customers ordering ₹${freeThreshold} or more will automatically receive FREE Delivery regardless of state.`
+                    : 'ℹ️ No free shipping threshold set. Delivery charges will apply on all orders according to destination state.'}
+                </p>
+              </div>
+            </SettingsCard>
+
+            {/* Live Customer Simulation Card */}
+            <SettingsCard title="Live Checkout Customer Simulator Preview" icon={Sparkles}>
+              <div className="space-y-3">
+                <p className="text-xs text-slate-500">
+                  Here is an instant preview of what a customer sees at checkout when purchasing a sample product worth ₹{sampleCart}:
+                </p>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {/* Preview Gujarat */}
+                  <div className="p-4 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-[#EFE9DD] pb-2">
+                      <span className="text-xs font-bold text-[#14261E] flex items-center gap-1.5">
+                        <span>🌿</span> Customer in Gujarat (Surat / Ahmedabad)
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Gujarat
+                      </span>
+                    </div>
+
+                    <div className="text-xs space-y-1.5 text-slate-600">
+                      <div className="flex justify-between">
+                        <span>Cart Subtotal:</span>
+                        <strong className="text-slate-900 font-mono">₹{sampleCart}.00</strong>
+                      </div>
+                      <div className="flex justify-between text-slate-700 font-semibold">
+                        <span>Delivery (Within Gujarat):</span>
+                        <span className="font-mono text-[#1F3A2E]">
+                          {!isDeliveryActive
+                            ? 'FREE (Disabled)'
+                            : freeThreshold > 0 && sampleCart >= freeThreshold
+                            ? 'FREE (Offer Met)'
+                            : `+ ₹${gujCharge}.00`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t border-[#EFE9DD] pt-2 font-bold text-[#14261E] text-sm">
+                        <span>Customer Total:</span>
+                        <span className="font-mono text-base text-[#1F3A2E]">
+                          ₹
+                          {!isDeliveryActive || (freeThreshold > 0 && sampleCart >= freeThreshold)
+                            ? sampleCart
+                            : sampleCart + gujCharge}
+                          .00
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preview Outside Gujarat */}
+                  <div className="p-4 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-[#EFE9DD] pb-2">
+                      <span className="text-xs font-bold text-[#14261E] flex items-center gap-1.5">
+                        <span>🇮🇳</span> Customer Outside Gujarat (Mumbai / Delhi)
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
+                        Interstate
+                      </span>
+                    </div>
+
+                    <div className="text-xs space-y-1.5 text-slate-600">
+                      <div className="flex justify-between">
+                        <span>Cart Subtotal:</span>
+                        <strong className="text-slate-900 font-mono">₹{sampleCart}.00</strong>
+                      </div>
+                      <div className="flex justify-between text-slate-700 font-semibold">
+                        <span>Delivery (Outside Gujarat):</span>
+                        <span className="font-mono text-[#1F3A2E]">
+                          {!isDeliveryActive
+                            ? 'FREE (Disabled)'
+                            : freeThreshold > 0 && sampleCart >= freeThreshold
+                            ? 'FREE (Offer Met)'
+                            : `+ ₹${outsideCharge}.00`}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t border-[#EFE9DD] pt-2 font-bold text-[#14261E] text-sm">
+                        <span>Customer Total:</span>
+                        <span className="font-mono text-base text-[#1F3A2E]">
+                          ₹
+                          {!isDeliveryActive || (freeThreshold > 0 && sampleCart >= freeThreshold)
+                            ? sampleCart
+                            : sampleCart + outsideCharge}
+                          .00
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </SettingsCard>
+
+            <SaveButton
+              onClick={saveDeliveryCharges}
+              loading={saving}
+              label="Save Delivery Charges"
+            />
+          </div>
+        );
+
+      // ── Global Currencies & International Shipping ─────────────────────────
+      case 'international':
+        const activeCurrencies = settings.currencies || defaultSettings.currencies!;
+        const intlShipping = settings.internationalShipping || defaultSettings.internationalShipping!;
+        const isIntlEnabled = intlShipping.enabled !== false;
+        const flagMap: Record<string, string> = {
+          INR: '🇮🇳',
+          USD: '🇺🇸',
+          AED: '🇦🇪',
+          GBP: '🇬🇧',
+          EUR: '🇪🇺',
+          CAD: '🇨🇦',
+          AUD: '🇦🇺',
+        };
+
+        return (
+          <div className="space-y-6">
+            {/* Header Banner */}
+            <div className="bg-[#1F3A2E] text-white p-5 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="p-1.5 rounded-lg bg-white/10 text-[#D4A373]">
+                    <Globe className="w-4 h-4" />
+                  </span>
+                  <h3 className="font-serif text-lg font-bold">Global Currencies &amp; International Shipping</h3>
+                </div>
+                <p className="text-xs text-white/70 max-w-xl">
+                  Configure multi-currency conversion rates and zone-based international shipping for customers outside India. Foreign visitors are auto-detected with 100% free browser geo-detection.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={saveAllInternational}
+                disabled={saving}
+                className="flex items-center justify-center gap-2 px-6 py-2.5 bg-[#D4A373] text-[#14261E] text-sm font-bold rounded-xl hover:bg-[#c69262] transition-colors disabled:opacity-50 flex-shrink-0 cursor-pointer shadow-md"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving ? 'Saving...' : 'Save All Global Settings'}
+              </button>
+            </div>
+
+            {/* ── PART 1: Multi-Currency & Exchange Rates ── */}
+            <SettingsCard title="Multi-Currency Management & Exchange Rates" icon={Globe}>
+              <div className="space-y-4">
+                <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200/80 text-emerald-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">⚡</span>
+                    <div>
+                      <p className="font-bold">Zero-Cost Geography Auto-Detection Active</p>
+                      <p className="text-[11px] text-emerald-800/80">
+                        Visitor country is detected instantly in browser without any paid API subscriptions.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCurrencyModal(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-800 text-white font-semibold rounded-lg text-xs hover:bg-emerald-900 transition-colors cursor-pointer self-start sm:self-auto shrink-0 shadow-xs"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add New Currency</span>
+                  </button>
+                </div>
+
+                {/* Currency Table */}
+                <div className="overflow-x-auto rounded-xl border border-[#EFE9DD]">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-[#F8F6F0] text-slate-700 font-bold uppercase text-[10px] tracking-wider border-b border-[#EFE9DD]">
+                      <tr>
+                        <th className="px-4 py-3">Currency</th>
+                        <th className="px-4 py-3">Symbol</th>
+                        <th className="px-4 py-3">Exchange Rate (1 Foreign Unit = X INR)</th>
+                        <th className="px-4 py-3">Example Preview</th>
+                        <th className="px-4 py-3 text-center">Status</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#EFE9DD] bg-white">
+                      {activeCurrencies.map((curr) => {
+                        const flag = flagMap[curr.code] || '🌐';
+                        const isINR = curr.code === 'INR';
+                        const sampleINR = 850;
+                        const previewVal = isINR ? '₹850' : `${curr.symbol}${(sampleINR / (curr.exchangeRate || 1)).toFixed(2)}`;
+
+                        return (
+                          <tr key={curr.code} className="hover:bg-stone-50/60 transition-colors">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-base">{flag}</span>
+                                <div>
+                                  <span className="font-bold text-slate-900 font-mono">{curr.code}</span>
+                                  <p className="text-[11px] text-slate-500">{curr.name}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 font-mono font-bold text-slate-800">
+                              {curr.symbol}
+                            </td>
+                            <td className="px-4 py-3">
+                              {isINR ? (
+                                <span className="text-slate-400 font-medium">1 INR (Base Currency)</span>
+                              ) : (
+                                <div className="flex items-center gap-2 max-w-[180px]">
+                                  <span className="text-slate-500 font-bold text-[11px]">1 {curr.code} =</span>
+                                  <div className="relative flex-1">
+                                    <span className="absolute left-2.5 top-1.5 text-slate-400 font-bold text-[11px]">₹</span>
+                                    <input
+                                      type="number"
+                                      min="0.01"
+                                      step="0.1"
+                                      value={curr.exchangeRate}
+                                      onChange={(e) =>
+                                        setCurrencyRate(curr.code, Math.max(0.001, Number(e.target.value) || 0))
+                                      }
+                                      className="w-full pl-6 pr-2 py-1 text-xs font-bold rounded-lg border border-[#EFE9DD] bg-[#F8F6F0] focus:bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 font-mono"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-[11px] text-emerald-800 font-medium">
+                              ₹850 product → <strong className="text-slate-900">{previewVal}</strong>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {isINR ? (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                  Default
+                                </span>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleCurrencyActive(curr.code)}
+                                  className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                                    curr.isActive !== false
+                                      ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                      : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                                  }`}
+                                >
+                                  {curr.isActive !== false ? 'Active' : 'Disabled'}
+                                </button>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {!isINR && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeCurrency(curr.code)}
+                                  className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Delete currency"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={saveCurrencies}
+                    disabled={saving}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1F3A2E] text-white text-xs font-semibold rounded-xl hover:bg-[#2d5441] disabled:opacity-60 transition-all shadow-sm cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save Exchange Rates</span>
+                  </button>
+                </div>
+              </div>
+            </SettingsCard>
+
+            {/* ── PART 2: International Shipping Configuration & Zones ── */}
+            <SettingsCard title="International Courier Delivery Setup" icon={Truck}>
+              <div className="space-y-5">
+                {/* Master Toggle */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD]">
+                  <div>
+                    <h4 className="text-sm font-bold text-[#14261E]">Enable Worldwide International Shipping</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      When enabled, foreign customers can select their destination country and pay via online international card gateway. Cash on Delivery (COD) is automatically restricted to domestic India.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIntlShippingField('enabled', !isIntlEnabled)}
+                    className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      isIntlEnabled ? 'bg-[#1F3A2E]' : 'bg-slate-300'
+                    }`}
+                    role="switch"
+                    aria-checked={isIntlEnabled}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                        isIntlEnabled ? 'translate-x-6' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Default International Rate Card */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-xl border border-[#EFE9DD] bg-white">
+                  <FormField
+                    label="Default International Delivery Charge (₹)"
+                    hint="Fallback courier rate for countries not mapped into any specific custom zone"
+                  >
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-2.5 text-sm font-bold text-slate-500">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={intlShipping.defaultCharge ?? 2200}
+                        onChange={(e) =>
+                          setIntlShippingField('defaultCharge', Math.max(0, Number(e.target.value) || 0))
+                        }
+                        className={inputCls + ' pl-8 font-mono font-bold text-slate-800'}
+                      />
+                    </div>
+                  </FormField>
+
+                  <FormField
+                    label="Global Free Shipping Threshold (₹)"
+                    hint="Set 0 to always charge delivery fee, or e.g. 15000 for free worldwide shipping above this cart amount"
+                  >
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-2.5 text-sm font-bold text-slate-500">₹</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={intlShipping.defaultFreeThreshold ?? 0}
+                        onChange={(e) =>
+                          setIntlShippingField('defaultFreeThreshold', Math.max(0, Number(e.target.value) || 0))
+                        }
+                        className={inputCls + ' pl-8 font-mono font-bold text-slate-800'}
+                      />
+                    </div>
+                  </FormField>
+                </div>
+
+                {/* Shipping Zones List */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900">Custom International Shipping Zones</h4>
+                      <p className="text-xs text-slate-500">
+                        Zone-specific pricing for high-volume regions (e.g. Gulf, North America, UK, Europe).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddZoneModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1F3A2E] text-white font-semibold rounded-lg text-xs hover:bg-[#2d5441] transition-colors cursor-pointer shadow-xs"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Shipping Zone</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    {intlShipping.zones.map((zone) => (
+                      <div
+                        key={zone.id}
+                        className="p-4 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0]/60 space-y-3 hover:border-emerald-300 transition-colors"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#EFE9DD] pb-2.5">
+                          <div className="flex items-center gap-2">
+                            <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
+                              <Truck className="w-3.5 h-3.5" />
+                            </span>
+                            <input
+                              type="text"
+                              value={zone.name}
+                              onChange={(e) => updateIntlZone(zone.id, { name: e.target.value })}
+                              className="font-bold text-sm text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-600 focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => updateIntlZone(zone.id, { isActive: zone.isActive === false })}
+                              className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                                zone.isActive !== false
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : 'bg-slate-200 text-slate-600'
+                              }`}
+                            >
+                              {zone.isActive !== false ? 'Active Zone' : 'Disabled'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => deleteIntlZone(zone.id)}
+                              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors cursor-pointer"
+                              title="Delete zone"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Rate & Threshold row */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                              Zone Delivery Fee (₹)
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={zone.deliveryCharge}
+                                onChange={(e) =>
+                                  updateIntlZone(zone.id, {
+                                    deliveryCharge: Math.max(0, Number(e.target.value) || 0),
+                                  })
+                                }
+                                className="w-full pl-7 pr-3 py-1.5 text-xs font-bold rounded-lg border border-[#EFE9DD] bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 font-mono"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                              Free Shipping Threshold (₹)
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-2 text-xs font-bold text-slate-400">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                value={zone.freeDeliveryThreshold ?? 0}
+                                onChange={(e) =>
+                                  updateIntlZone(zone.id, {
+                                    freeDeliveryThreshold: Math.max(0, Number(e.target.value) || 0),
+                                  })
+                                }
+                                className="w-full pl-7 pr-3 py-1.5 text-xs font-bold rounded-lg border border-[#EFE9DD] bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600 font-mono"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Countries tags */}
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                            Included Countries (Comma-separated)
+                          </label>
+                          <input
+                            type="text"
+                            value={zone.countries.join(', ')}
+                            onChange={(e) =>
+                              updateIntlZone(zone.id, {
+                                countries: e.target.value
+                                  .split(',')
+                                  .map((c) => c.trim())
+                                  .filter(Boolean),
+                              })
+                            }
+                            className="w-full px-3 py-1.5 text-xs rounded-lg border border-[#EFE9DD] bg-white focus:outline-none focus:ring-1 focus:ring-emerald-600"
+                            placeholder="e.g. United States, Canada"
+                          />
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {zone.countries.map((c) => (
+                              <span
+                                key={c}
+                                className="inline-block px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200"
+                              >
+                                {c}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={saveInternationalShipping}
+                    disabled={saving}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1F3A2E] text-white text-xs font-semibold rounded-xl hover:bg-[#2d5441] disabled:opacity-60 transition-all shadow-sm cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Save International Shipping</span>
+                  </button>
+                </div>
+              </div>
+            </SettingsCard>
+
+            <SaveButton
+              onClick={saveAllInternational}
+              loading={saving}
+              label="Save All Global Settings"
+            />
+
+            {/* Modal: Add New Currency */}
+            {showAddCurrencyModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+                <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4">
+                  <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <h3 className="font-serif text-base font-bold text-stone-900">Add New Global Currency</h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCurrencyModal(false)}
+                      className="p-1 rounded-full hover:bg-stone-100 text-stone-500 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Currency Code (3 letters)</label>
+                      <input
+                        type="text"
+                        maxLength={5}
+                        placeholder="e.g. SGD, NZD, KWD"
+                        value={newCurrCode}
+                        onChange={(e) => setNewCurrCode(e.target.value.toUpperCase())}
+                        className={inputCls + ' font-mono'}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Currency Symbol</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. S$, NZ$, د.ك"
+                        value={newCurrSymbol}
+                        onChange={(e) => setNewCurrSymbol(e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Currency Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Singapore Dollar"
+                        value={newCurrName}
+                        onChange={(e) => setNewCurrName(e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Exchange Rate (1 Foreign Unit = X INR)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-xs font-bold text-stone-400">₹</span>
+                        <input
+                          type="number"
+                          min="0.01"
+                          step="0.1"
+                          value={newCurrRate}
+                          onChange={(e) => setNewCurrRate(Number(e.target.value))}
+                          className={inputCls + ' pl-7 font-mono font-bold'}
+                        />
+                      </div>
+                      <p className="text-[10px] text-stone-400 mt-1">
+                        Example: If 1 SGD = 63 INR, enter 63.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-stone-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCurrencyModal(false)}
+                      className="px-4 py-2 text-xs font-semibold rounded-xl border border-stone-200 hover:bg-stone-50 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={addCustomCurrency}
+                      className="px-4 py-2 text-xs font-bold rounded-xl bg-[#1F3A2E] text-white hover:bg-[#2d5441] shadow-xs cursor-pointer"
+                    >
+                      Add Currency
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Modal: Add New Shipping Zone */}
+            {showAddZoneModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+                <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4">
+                  <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                    <h3 className="font-serif text-base font-bold text-stone-900">Add International Shipping Zone</h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddZoneModal(false)}
+                      className="p-1 rounded-full hover:bg-stone-100 text-stone-500 cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Zone Name</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. South East Asia"
+                        value={newZoneName}
+                        onChange={(e) => setNewZoneName(e.target.value)}
+                        className={inputCls}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Delivery Charge (₹)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-xs font-bold text-stone-400">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={newZoneCharge}
+                          onChange={(e) => setNewZoneCharge(Number(e.target.value))}
+                          className={inputCls + ' pl-7 font-mono font-bold'}
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Countries (Comma-separated)
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="e.g. Singapore, Malaysia, Thailand, Indonesia"
+                        value={newZoneCountries}
+                        onChange={(e) => setNewZoneCountries(e.target.value)}
+                        className={textareaCls}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-2 border-t border-stone-100">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddZoneModal(false)}
+                      className="px-4 py-2 text-xs font-semibold rounded-xl border border-stone-200 hover:bg-stone-50 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={addIntlZone}
+                      className="px-4 py-2 text-xs font-bold rounded-xl bg-[#1F3A2E] text-white hover:bg-[#2d5441] shadow-xs cursor-pointer"
+                    >
+                      Create Zone
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         );
 

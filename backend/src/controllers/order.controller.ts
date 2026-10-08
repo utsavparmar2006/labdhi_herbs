@@ -130,10 +130,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       }
     }
 
-    const shipping = 0; // Free all-India delivery
-    const total = Math.max(0, subtotal - discount + shipping);
-
-    // Calculate inclusive GST according to Admin Site Settings
+    // Retrieve site settings for dynamic delivery charges & inclusive GST
     let siteSettings: any = null;
     try {
       siteSettings = await SiteSettings.findOne().lean();
@@ -141,10 +138,77 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       console.warn('SiteSettings lookup warning:', sErr);
     }
 
+    // Determine destination country & calculate delivery fee
+    const customerCountry = (shippingAddress?.country || 'India').trim();
+    const isIndia = customerCountry.toLowerCase() === 'india';
+
+    // International orders MUST be prepaid (COD is strictly domestic)
+    if (!isIndia && paymentMethod === 'cod') {
+      res.status(400).json({
+        success: false,
+        message: 'Cash on Delivery (COD) is available for domestic Indian deliveries only. Please select Online Payment for international shipments.',
+      });
+      return;
+    }
+
+    let shipping = 0;
+    const isFreeShippingCoupon = couponRecord?.type === 'free_shipping';
+
+    if (isFreeShippingCoupon) {
+      shipping = 0;
+    } else if (isIndia) {
+      // Domestic India: Gujarat vs Outside Gujarat
+      const customerState = (shippingAddress?.state || 'Gujarat').trim().toLowerCase();
+      const isGujarat = customerState === 'gujarat';
+
+      if (siteSettings?.deliveryCharges && siteSettings.deliveryCharges.enabled !== false) {
+        const freeThreshold = Number(siteSettings.deliveryCharges.freeDeliveryThreshold) || 0;
+        if (freeThreshold > 0 && subtotal >= freeThreshold) {
+          shipping = 0;
+        } else {
+          const gujaratFee = Number(siteSettings.deliveryCharges.gujaratCharge ?? 50);
+          const outsideFee = Number(siteSettings.deliveryCharges.outsideGujaratCharge ?? 100);
+          shipping = isGujarat ? gujaratFee : outsideFee;
+        }
+      } else {
+        shipping = 0;
+      }
+    } else {
+      // International Destination: Zone matching & default fallback
+      const intlConfig = siteSettings?.internationalShipping;
+      if (intlConfig && intlConfig.enabled !== false) {
+        const matchedZone = intlConfig.zones?.find((z: any) =>
+          z.isActive !== false &&
+          Array.isArray(z.countries) &&
+          z.countries.some((c: string) => c.toLowerCase() === customerCountry.toLowerCase())
+        );
+
+        if (matchedZone) {
+          const zoneFreeThreshold = Number(matchedZone.freeDeliveryThreshold) || 0;
+          if (zoneFreeThreshold > 0 && subtotal >= zoneFreeThreshold) {
+            shipping = 0;
+          } else {
+            shipping = Number(matchedZone.deliveryCharge ?? 1500);
+          }
+        } else {
+          const defaultFree = Number(intlConfig.defaultFreeThreshold) || 0;
+          if (defaultFree > 0 && subtotal >= defaultFree) {
+            shipping = 0;
+          } else {
+            shipping = Number(intlConfig.defaultCharge ?? 2200);
+          }
+        }
+      } else {
+        shipping = 0;
+      }
+    }
+
+    const total = Math.max(0, subtotal - discount + shipping);
+
     const gstCalc = calculateGstInclusive({
       amount: total,
-      state: shippingAddress?.state || 'Gujarat',
-      gstEnabled: siteSettings?.gstEnabled !== false,
+      state: isIndia ? (shippingAddress?.state || 'Gujarat') : 'Outside India',
+      gstEnabled: isIndia && siteSettings?.gstEnabled !== false,
       igstRate: siteSettings?.igst ?? 18,
       cgstRate: siteSettings?.cgst ?? 9,
       sgstRate: siteSettings?.sgst ?? 9,
@@ -182,6 +246,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
         city: shippingAddress.city.trim(),
         state: shippingAddress.state.trim(),
         pincode: shippingAddress.pincode.trim(),
+        country: customerCountry,
       },
       items: formattedItems,
       pricing: {
@@ -197,6 +262,8 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       },
       couponCode: discount > 0 ? normalizedCoupon : '',
       payment,
+      currency: req.body.currency || 'INR',
+      exchangeRate: Number(req.body.exchangeRate) || 1,
       deliveryName: '',
       deliveryTrackId: '',
       orderStatus: 'pending',

@@ -120,6 +120,35 @@ export interface ISiteSettings extends Document {
     smtpPass: string;
     enableOrderEmails: boolean;
   };
+  deliveryCharges?: {
+    enabled: boolean;
+    gujaratCharge: number;
+    outsideGujaratCharge: number;
+    freeDeliveryThreshold: number;
+    estimatedDeliveryGujarat: string;
+    estimatedDeliveryOutsideGujarat: string;
+  };
+  currencies?: Array<{
+    code: string;
+    symbol: string;
+    name: string;
+    exchangeRate: number;
+    isActive: boolean;
+    isDefault?: boolean;
+  }>;
+  internationalShipping?: {
+    enabled: boolean;
+    defaultCharge: number;
+    defaultFreeThreshold: number;
+    zones: Array<{
+      id: string;
+      name: string;
+      countries: string[];
+      deliveryCharge: number;
+      freeDeliveryThreshold: number;
+      isActive: boolean;
+    }>;
+  };
   updatedAt: Date;
   createdAt: Date;
 }
@@ -353,6 +382,86 @@ const SiteSettingsSchema: Schema = new Schema(
       smtpUser: { type: String, default: '' },
       smtpPass: { type: String, default: '' },
       enableOrderEmails: { type: Boolean, default: true },
+    },
+    deliveryCharges: {
+      enabled: { type: Boolean, default: true },
+      gujaratCharge: { type: Number, default: 50, min: 0 },
+      outsideGujaratCharge: { type: Number, default: 100, min: 0 },
+      freeDeliveryThreshold: { type: Number, default: 0, min: 0 },
+      estimatedDeliveryGujarat: { type: String, default: '2-3 business days' },
+      estimatedDeliveryOutsideGujarat: { type: String, default: '4-7 business days' },
+    },
+    currencies: {
+      type: [
+        {
+          code: { type: String, required: true },
+          symbol: { type: String, required: true },
+          name: { type: String, required: true },
+          exchangeRate: { type: Number, required: true, min: 0.001 },
+          isActive: { type: Boolean, default: true },
+          isDefault: { type: Boolean, default: false },
+        },
+      ],
+      default: [
+        { code: 'INR', symbol: '₹', name: 'Indian Rupee', exchangeRate: 1, isActive: true, isDefault: true },
+        { code: 'USD', symbol: '$', name: 'US Dollar', exchangeRate: 85, isActive: true, isDefault: false },
+        { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham', exchangeRate: 23, isActive: true, isDefault: false },
+        { code: 'GBP', symbol: '£', name: 'British Pound', exchangeRate: 110, isActive: true, isDefault: false },
+        { code: 'EUR', symbol: '€', name: 'Euro', exchangeRate: 92, isActive: true, isDefault: false },
+        { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', exchangeRate: 62, isActive: true, isDefault: false },
+        { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', exchangeRate: 56, isActive: true, isDefault: false },
+      ],
+    },
+    internationalShipping: {
+      enabled: { type: Boolean, default: true },
+      defaultCharge: { type: Number, default: 2200, min: 0 },
+      defaultFreeThreshold: { type: Number, default: 0, min: 0 },
+      zones: {
+        type: [
+          {
+            id: { type: String, required: true },
+            name: { type: String, required: true },
+            countries: { type: [String], default: [] },
+            deliveryCharge: { type: Number, default: 1500, min: 0 },
+            freeDeliveryThreshold: { type: Number, default: 0, min: 0 },
+            isActive: { type: Boolean, default: true },
+          },
+        ],
+        default: [
+          {
+            id: 'gulf',
+            name: 'Middle East & Gulf',
+            countries: ['United Arab Emirates', 'Saudi Arabia', 'Qatar', 'Oman', 'Kuwait', 'Bahrain'],
+            deliveryCharge: 1200,
+            freeDeliveryThreshold: 12000,
+            isActive: true,
+          },
+          {
+            id: 'na',
+            name: 'North America (USA & Canada)',
+            countries: ['United States', 'Canada'],
+            deliveryCharge: 1800,
+            freeDeliveryThreshold: 15000,
+            isActive: true,
+          },
+          {
+            id: 'europe_uk',
+            name: 'Europe & United Kingdom',
+            countries: ['United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Switzerland', 'Ireland', 'Belgium', 'Austria', 'Sweden'],
+            deliveryCharge: 1600,
+            freeDeliveryThreshold: 14000,
+            isActive: true,
+          },
+          {
+            id: 'apac',
+            name: 'Asia-Pacific & Australia',
+            countries: ['Australia', 'New Zealand', 'Singapore', 'Malaysia', 'Japan'],
+            deliveryCharge: 1500,
+            freeDeliveryThreshold: 14000,
+            isActive: true,
+          },
+        ],
+      },
     },
   },
   {

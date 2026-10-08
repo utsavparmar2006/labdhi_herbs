@@ -22,6 +22,7 @@ export interface IShippingAddress {
   city: string;
   state: string;
   pincode: string;
+  country?: string;
 }
 
 export interface IPricing {
@@ -74,6 +75,8 @@ export interface IOrder extends Document {
   pricing: IPricing;
   couponCode?: string;
   payment: IPayment;
+  currency?: string;
+  exchangeRate?: number;
   deliveryName?: string; // Delivery By (e.g. DTDC, Delhivery, Tirupati, Speed Post)
   deliveryTrackId?: string; // Tracking Id
   orderStatus: OrderStatusType;
@@ -108,6 +111,7 @@ const ShippingAddressSchema = new Schema<IShippingAddress>(
     city: { type: String, required: true, trim: true },
     state: { type: String, required: true, trim: true },
     pincode: { type: String, required: true, trim: true },
+    country: { type: String, default: 'India', trim: true },
   },
   { _id: false }
 );
@@ -154,6 +158,8 @@ const OrderSchema = new Schema<IOrder>(
     pricing: { type: PricingSchema, required: true },
     couponCode: { type: String, default: '', trim: true, uppercase: true },
     payment: { type: PaymentSchema, required: true },
+    currency: { type: String, default: 'INR', trim: true, uppercase: true },
+    exchangeRate: { type: Number, default: 1 },
     deliveryName: { type: String, default: '', trim: true },
     deliveryTrackId: { type: String, default: '', trim: true },
     orderStatus: {

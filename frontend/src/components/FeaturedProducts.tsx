@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { PRODUCTS } from '../services/mockData';
 import { getProducts } from '../services/api';
 import { Product } from '../types';
+import { useCurrency } from '../context/CurrencyContext';
 import { Leaf, ArrowRight } from 'lucide-react';
 
 interface FeaturedProductsProps {
@@ -138,6 +139,7 @@ export default function FeaturedProducts({
 
 {/* Pure Image Product Card Component */}
 function ProductImageCard({ product }: { product: Product }) {
+  const { formatPrice } = useCurrency();
   return (
     <Link href={`/product/${product.id}`} className="block group">
       <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-md hover:shadow-2xl border border-[#EFE9DD] bg-white transition-all duration-500 cursor-pointer">
@@ -166,7 +168,7 @@ function ProductImageCard({ product }: { product: Product }) {
           </h3>
 
           <div className="pt-2 flex items-center justify-between text-xs font-bold text-[#D4A373]">
-            <span>₹{product.price} • View Product</span>
+            <span>{formatPrice(product.price)} • View Product</span>
             <div className="w-8 h-8 rounded-full bg-[#1F3A2E] text-[#D4A373] flex items-center justify-center border border-[#D4A373]/30">
               <ArrowRight className="w-4 h-4" />
             </div>

@@ -110,6 +110,7 @@ export function generateOrderInvoiceHtml(params: {
     address.city,
     address.state,
     address.pincode,
+    address.country,
   ]
     .filter(Boolean)
     .join(', ');
@@ -124,6 +125,7 @@ export function generateOrderInvoiceHtml(params: {
   const items = Array.isArray(order.items) ? order.items : [];
   const subtotal = Number(order.pricing?.subtotal || 0);
   const discount = Number(order.pricing?.discount || 0);
+  const shippingAmount = Number(order.pricing?.shipping ?? order.shipping ?? 0);
   const total = Number(order.pricing?.total || 0);
 
   // Inclusive GST calculation
@@ -331,7 +333,7 @@ export function generateOrderInvoiceHtml(params: {
                       }
                       <tr>
                         <td style="padding: 3px 0; color: #64748b;">Delivery / Shipping:</td>
-                        <td style="padding: 3px 0; text-align: right; color: #15803d; font-weight: 600;">FREE</td>
+                        <td style="padding: 3px 0; text-align: right; color: ${shippingAmount === 0 ? '#15803d' : '#14261E'}; font-weight: 600;">${shippingAmount === 0 ? 'FREE' : `₹${shippingAmount.toFixed(2)}`}</td>
                       </tr>
                       <tr style="border-top: 2px solid #14261E;">
                         <td style="padding: 10px 0 4px 0; font-size: 14px; font-weight: bold; color: #14261E;">Grand Total:</td>

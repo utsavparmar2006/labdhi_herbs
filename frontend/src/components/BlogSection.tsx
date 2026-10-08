@@ -47,24 +47,23 @@ export default function BlogSection() {
   return (
     <section id="blog" className="py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-12">
       
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-4">
-        <div className="space-y-3 max-w-2xl">
-          <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#1A201C] tracking-tight">
-            Herbal Insights & Ayurvedic Wisdom
-          </h2>
-          <p className="text-slate-600 text-sm font-light">
-            Learn ancient remedies, holistic lifestyle tips, and botanical skincare routines from our experts.
-          </p>
+      {/* Centered Header */}
+      <div className="text-center max-w-3xl mx-auto space-y-3 pb-6 border-b border-[#EFE9DD]">
+        <h2 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#1A201C] tracking-tight">
+          Herbal Insights &amp; Ayurvedic Wisdom
+        </h2>
+        <p className="text-slate-600 text-sm font-light max-w-2xl mx-auto">
+          Learn ancient remedies, holistic lifestyle tips, and botanical skincare routines from our experts.
+        </p>
+        <div className="pt-1">
+          <Link
+            href="/blog"
+            className="inline-flex items-center gap-2 text-xs font-bold text-[#1F3A2E] hover:text-[#B58A5A] transition-colors"
+          >
+            <span>View All Articles</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
-
-        <Link
-          href="/blog"
-          className="inline-flex items-center gap-2 text-xs font-bold text-[#1F3A2E] hover:text-[#B58A5A] transition-colors"
-        >
-          <span>View All Articles</span>
-          <ArrowRight className="w-4 h-4" />
-        </Link>
       </div>
 
       {/* Editorial Grid */}

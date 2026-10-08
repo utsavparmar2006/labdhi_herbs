@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import { CartProvider } from '../context/CartContext';
 import { SiteSettingsProvider } from '../context/SiteSettingsContext';
+import { CurrencyProvider } from '../context/CurrencyContext';
 
 /**
  * Automatically wipes any legacy Google Translate browser cookies
@@ -26,10 +27,12 @@ function CookieCleanupManager() {
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SiteSettingsProvider>
-      <CartProvider>
-        <CookieCleanupManager />
-        {children}
-      </CartProvider>
+      <CurrencyProvider>
+        <CartProvider>
+          <CookieCleanupManager />
+          {children}
+        </CartProvider>
+      </CurrencyProvider>
     </SiteSettingsProvider>
   );
 }

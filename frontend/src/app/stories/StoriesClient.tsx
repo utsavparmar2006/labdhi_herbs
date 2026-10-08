@@ -497,23 +497,26 @@ export default function StoriesClient() {
                 {/* Multi-Video Selector (Shown if more than 1 video story exists) */}
                 {videoStories.length > 1 && (
                   <div className="pt-2">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                      More Video Transformations ({videoStories.length}):
+                    <p className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+                      <span>More Video Transformations ({videoStories.length}):</span>
+                      <span className="sm:hidden text-[10px] text-slate-400 font-normal lowercase">swipe to view ➔</span>
                     </p>
-                    <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                    <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar scroll-smooth">
                       {videoStories.map((v) => (
                         <button
                           key={v.id}
                           onClick={() => setSelectedVideoStoryId(v.id)}
-                          className={`flex items-center gap-2.5 px-4 py-2 rounded-2xl border text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                          className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl sm:rounded-2xl border text-xs font-bold transition-all shrink-0 cursor-pointer ${
                             activeVideoStory?.id === v.id
                               ? 'bg-[#1F3A2E] text-[#EFE9DD] border-[#1F3A2E] shadow-sm'
                               : 'bg-white text-slate-700 border-[#EFE9DD] hover:bg-[#F8F6F0]'
                           }`}
                         >
-                          <Video className="w-3.5 h-3.5 text-[#D4A373]" />
-                          <span>{v.customer}</span>
-                          <span className="text-[10px] opacity-75 font-light">({v.formulation})</span>
+                          <Video className="w-3.5 h-3.5 text-[#D4A373] shrink-0" />
+                          <span className="whitespace-nowrap">{v.customer}</span>
+                          <span className="hidden sm:inline text-[10px] opacity-75 font-light truncate max-w-[140px]">
+                            ({v.formulation})
+                          </span>
                         </button>
                       ))}
                     </div>

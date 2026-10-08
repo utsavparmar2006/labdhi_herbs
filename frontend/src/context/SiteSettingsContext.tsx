@@ -98,6 +98,43 @@ export interface SiteSettingsData {
   metaDescription: string;
   metaKeywords: string;
   pageHeaders?: PageHeadersData;
+  deliveryCharges?: DeliveryChargesConfig;
+  currencies?: CurrencyConfigItem[];
+  internationalShipping?: InternationalShippingConfig;
+}
+
+export interface DeliveryChargesConfig {
+  enabled: boolean;
+  gujaratCharge: number;
+  outsideGujaratCharge: number;
+  freeDeliveryThreshold: number;
+  estimatedDeliveryGujarat: string;
+  estimatedDeliveryOutsideGujarat: string;
+}
+
+export interface CurrencyConfigItem {
+  code: string;
+  symbol: string;
+  name: string;
+  exchangeRate: number; // 1 Foreign Unit = X INR (e.g. 85 for USD)
+  isActive: boolean;
+  isDefault?: boolean;
+}
+
+export interface InternationalShippingZone {
+  id: string;
+  name: string;
+  countries: string[];
+  deliveryCharge: number;
+  freeDeliveryThreshold: number;
+  isActive: boolean;
+}
+
+export interface InternationalShippingConfig {
+  enabled: boolean;
+  defaultCharge: number;
+  defaultFreeThreshold: number;
+  zones: InternationalShippingZone[];
 }
 
 export interface PageHeaderItem {
@@ -230,6 +267,62 @@ const DEFAULT_SETTINGS: SiteSettingsData = {
         'Discover our journey of restoring authentic Ayurvedic self-care with 100% chemical-free hair, skin, and joint care formulations.',
     },
   },
+  deliveryCharges: {
+    enabled: true,
+    gujaratCharge: 50,
+    outsideGujaratCharge: 100,
+    freeDeliveryThreshold: 0,
+    estimatedDeliveryGujarat: '2-3 business days',
+    estimatedDeliveryOutsideGujarat: '4-7 business days',
+  },
+  currencies: [
+    { code: 'INR', symbol: '₹', name: 'Indian Rupee', exchangeRate: 1, isActive: true, isDefault: true },
+    { code: 'USD', symbol: '$', name: 'US Dollar', exchangeRate: 85, isActive: true, isDefault: false },
+    { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham', exchangeRate: 23, isActive: true, isDefault: false },
+    { code: 'GBP', symbol: '£', name: 'British Pound', exchangeRate: 110, isActive: true, isDefault: false },
+    { code: 'EUR', symbol: '€', name: 'Euro', exchangeRate: 92, isActive: true, isDefault: false },
+    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', exchangeRate: 62, isActive: true, isDefault: false },
+    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar', exchangeRate: 56, isActive: true, isDefault: false },
+  ],
+  internationalShipping: {
+    enabled: true,
+    defaultCharge: 2200,
+    defaultFreeThreshold: 0,
+    zones: [
+      {
+        id: 'middle-east',
+        name: 'Middle East & Gulf',
+        countries: ['United Arab Emirates', 'Saudi Arabia', 'Oman', 'Qatar', 'Kuwait', 'Bahrain'],
+        deliveryCharge: 1200,
+        freeDeliveryThreshold: 0,
+        isActive: true,
+      },
+      {
+        id: 'north-america',
+        name: 'USA & Canada',
+        countries: ['United States', 'Canada'],
+        deliveryCharge: 1800,
+        freeDeliveryThreshold: 0,
+        isActive: true,
+      },
+      {
+        id: 'europe-uk',
+        name: 'UK & Europe',
+        countries: ['United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Switzerland'],
+        deliveryCharge: 1600,
+        freeDeliveryThreshold: 0,
+        isActive: true,
+      },
+      {
+        id: 'australasia',
+        name: 'Australia & New Zealand',
+        countries: ['Australia', 'New Zealand', 'Singapore'],
+        deliveryCharge: 1700,
+        freeDeliveryThreshold: 0,
+        isActive: true,
+      },
+    ],
+  },
 };
 
 interface SiteSettingsContextType {
@@ -309,6 +402,16 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
             blog: { ...DEFAULT_SETTINGS.pageHeaders!.blog, ...(d.pageHeaders?.blog || {}) },
             about: { ...DEFAULT_SETTINGS.pageHeaders!.about, ...(d.pageHeaders?.about || {}) },
           },
+          deliveryCharges: {
+            ...DEFAULT_SETTINGS.deliveryCharges!,
+            ...(d.deliveryCharges || {}),
+          },
+          currencies: Array.isArray(d.currencies) && d.currencies.length > 0 ? d.currencies : DEFAULT_SETTINGS.currencies,
+          internationalShipping: d.internationalShipping ? {
+            ...DEFAULT_SETTINGS.internationalShipping!,
+            ...d.internationalShipping,
+            zones: Array.isArray(d.internationalShipping.zones) ? d.internationalShipping.zones : DEFAULT_SETTINGS.internationalShipping!.zones,
+          } : DEFAULT_SETTINGS.internationalShipping,
         };
 
         setSettings(finalSettings);

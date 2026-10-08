@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { CartItem } from '../types';
 import { useCart } from '../context/CartContext';
+import { useCurrency } from '../context/CurrencyContext';
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck } from 'lucide-react';
 
 interface CartDrawerProps {
@@ -22,6 +23,7 @@ export default function CartDrawer({
 }: CartDrawerProps) {
   const router = useRouter();
   const cartContext = useCart();
+  const { formatPrice } = useCurrency();
 
   const isOpen = propIsOpen !== undefined ? propIsOpen : cartContext.isCartOpen;
   const onClose = propOnClose || cartContext.closeCart;
@@ -42,7 +44,7 @@ export default function CartDrawer({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-[100] overflow-hidden">
       {/* Backdrop */}
       <div
         onClick={onClose}
@@ -107,7 +109,7 @@ export default function CartDrawer({
 
                     <div className="flex items-center justify-between pt-1">
                       <span className="text-xs font-bold text-[#1F3A2E]">
-                        ₹{Number(product.price || 0) * quantity}
+                        {formatPrice(Number(product.price || 0) * quantity)}
                       </span>
 
                       <div className="flex items-center border border-[#EFE9DD] rounded-lg bg-slate-50 overflow-hidden text-xs">
@@ -146,15 +148,15 @@ export default function CartDrawer({
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-slate-500">
                   <span>Subtotal:</span>
-                  <span className="font-bold text-slate-800">₹{totalAmount}</span>
+                  <span className="font-bold text-slate-800">{formatPrice(totalAmount)}</span>
                 </div>
                 <div className="flex justify-between text-slate-500">
                   <span>Estimated Shipping:</span>
-                  <span className="text-emerald-700 font-bold">FREE</span>
+                  <span className="text-emerald-700 font-bold">Calculated at Checkout</span>
                 </div>
                 <div className="flex justify-between text-sm font-bold text-[#1F3A2E] pt-2 border-t border-slate-100">
                   <span>Total Amount:</span>
-                  <span>₹{totalAmount}</span>
+                  <span>{formatPrice(totalAmount)}</span>
                 </div>
               </div>
 
