@@ -1,30 +1,76 @@
 import { Request, Response } from 'express';
 
-const INDIC_ITC_MAP: Record<string, string> = {
-  hi: 'hi-t-i0-und',
-  mr: 'mr-t-i0-und',
-  gu: 'gu-t-i0-und',
-  bn: 'bn-t-i0-und',
-  ta: 'ta-t-i0-und',
-  te: 'te-t-i0-und',
-  pa: 'pa-t-i0-und',
-};
+// In-memory cache to prevent redundant API calls
+const translationCache = new Map<string, string>();
+const MAX_CACHE_SIZE = 1000;
 
+function getCached(key: string): string | undefined {
+  return translationCache.get(key);
+}
+
+function setCached(key: string, value: string): void {
+  if (translationCache.size >= MAX_CACHE_SIZE) {
+    const oldestKeys = Array.from(translationCache.keys()).slice(0, 200);
+    oldestKeys.forEach((k) => translationCache.delete(k));
+  }
+  translationCache.set(key, value);
+}
+
+/**
+ * Robust Translation of a text chunk (meaning-based, 100% free, zero transliteration)
+ */
 async function translateChunk(inputStr: string, targetLang: string): Promise<string> {
   const trimmed = inputStr?.trim();
   if (!trimmed || targetLang === 'en') return inputStr;
 
-  // 1. Google Translate GTX GET request
+  const cacheKey = `${targetLang}:::${trimmed}`;
+  const cached = getCached(cacheKey);
+  if (cached) return cached;
+
+  // 1. Google Translate GTX via POST (Primary - handles large paragraphs, formatting, newlines)
   try {
     const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(
       targetLang
-    )}&dt=t&q=${encodeURIComponent(trimmed)}`;
+    )}&dt=t`;
 
     const res = await fetch(url, {
-      method: 'GET',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      },
+      body: 'q=' + encodeURIComponent(trimmed),
+    });
+
+    if (res.ok) {
+      const data: any = await res.json();
+      if (Array.isArray(data) && Array.isArray(data[0])) {
+        const translated = data[0]
+          .map((item: any) => (Array.isArray(item) ? item[0] : ''))
+          .filter(Boolean)
+          .join('');
+
+        if (translated && translated.trim()) {
+          setCached(cacheKey, translated);
+          return translated;
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[TranslateController] Google GTX POST error:', err);
+  }
+
+  // 2. Google Translate GTX via GET (Secondary fallback)
+  try {
+    const getUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(
+      targetLang
+    )}&dt=t&q=${encodeURIComponent(trimmed.slice(0, 1800))}`;
+
+    const res = await fetch(getUrl, {
       headers: {
         'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
       },
     });
 
@@ -36,53 +82,81 @@ async function translateChunk(inputStr: string, targetLang: string): Promise<str
           .filter(Boolean)
           .join('');
 
-        if (translated && translated.trim() !== trimmed) {
+        if (translated && translated.trim()) {
+          setCached(cacheKey, translated);
           return translated;
         }
       }
     }
   } catch (err) {
-    console.warn('[TranslateController] Google GTX error:', err);
+    console.warn('[TranslateController] Google GTX GET error:', err);
   }
 
-  // 2. Indic phonetic transliteration fallback for test words, acronyms, brand names
-  if (/[a-zA-Z]/.test(trimmed) && INDIC_ITC_MAP[targetLang]) {
-    try {
-      const itc = INDIC_ITC_MAP[targetLang];
-      const translitUrl = `https://inputtools.google.com/request?text=${encodeURIComponent(
-        trimmed
-      )}&itc=${itc}&num=1`;
+  // 3. MyMemory Free API (Tertiary fallback for meaning translation)
+  try {
+    const mmUrl = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(
+      trimmed.slice(0, 500)
+    )}&langpair=en|${encodeURIComponent(targetLang)}`;
 
-      const tRes = await fetch(translitUrl, { method: 'GET' });
-      if (tRes.ok) {
-        const tData: any = await tRes.json();
-        if (tData[0] === 'SUCCESS' && tData[1]?.[0]?.[1]?.[0]) {
-          return tData[1][0][1][0];
-        }
+    const res = await fetch(mmUrl);
+    if (res.ok) {
+      const data: any = await res.json();
+      if (data?.responseData?.translatedText) {
+        const translated = data.responseData.translatedText;
+        setCached(cacheKey, translated);
+        return translated;
       }
-    } catch (err) {
-      console.warn('[TranslateController] Transliterate error:', err);
     }
+  } catch (err) {
+    console.warn('[TranslateController] MyMemory error:', err);
   }
 
   return inputStr;
 }
 
+/**
+ * Splits large article text by paragraphs if necessary to respect length limits
+ */
+function chunkText(text: string, maxChunkSize = 2500): string[] {
+  if (text.length <= maxChunkSize) return [text];
+
+  const paragraphs = text.split('\n\n');
+  const chunks: string[] = [];
+  let current = '';
+
+  for (const para of paragraphs) {
+    if ((current + '\n\n' + para).length > maxChunkSize && current.length > 0) {
+      chunks.push(current);
+      current = para;
+    } else {
+      current = current ? current + '\n\n' + para : para;
+    }
+  }
+
+  if (current) {
+    chunks.push(current);
+  }
+
+  return chunks;
+}
+
+/**
+ * Translates an entire article text, preserving markdown headers, lists, and line breaks
+ */
 async function translateFullText(text: string, targetLang: string): Promise<string> {
   if (!text || !text.trim() || targetLang === 'en') return text;
 
-  if (text.includes('\n')) {
-    const paragraphs = text.split('\n');
-    const translatedParagraphs = await Promise.all(
-      paragraphs.map(async (para) => {
-        if (!para.trim()) return para;
-        return await translateChunk(para, targetLang);
-      })
-    );
-    return translatedParagraphs.join('\n');
+  const chunks = chunkText(text, 2800);
+  if (chunks.length === 1) {
+    return await translateChunk(text, targetLang);
   }
 
-  return await translateChunk(text, targetLang);
+  const translatedChunks: string[] = [];
+  for (const chunk of chunks) {
+    const tr = await translateChunk(chunk, targetLang);
+    translatedChunks.push(tr);
+  }
+  return translatedChunks.join('\n\n');
 }
 
 export const translateTextHandler = async (req: Request, res: Response): Promise<void> => {
@@ -99,9 +173,11 @@ export const translateTextHandler = async (req: Request, res: Response): Promise
     }
 
     if (Array.isArray(texts)) {
-      const results = await Promise.all(
-        texts.map((t) => translateFullText(t, targetLang))
-      );
+      const results: string[] = [];
+      for (const t of texts) {
+        const translated = await translateFullText(t, targetLang);
+        results.push(translated);
+      }
       res.status(200).json({
         success: true,
         translatedTexts: results,

@@ -1660,21 +1660,36 @@ export default function AdminSettingsClient() {
                     When active, customers in Gujarat pay Gujarat rate, and customers outside Gujarat pay outside state rate. If disabled, all orders get free shipping.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setDeliveryField('enabled', !isDeliveryActive)}
-                  className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    isDeliveryActive ? 'bg-[#1F3A2E]' : 'bg-slate-300'
-                  }`}
-                  role="switch"
-                  aria-checked={isDeliveryActive}
-                >
+                <div className="flex items-center gap-3 shrink-0">
                   <span
-                    className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                      isDeliveryActive ? 'translate-x-6' : 'translate-x-0'
+                    className={`text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                      isDeliveryActive
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-slate-100 text-slate-500 border border-slate-200'
                     }`}
-                  />
-                </button>
+                  >
+                    {isDeliveryActive ? 'Active' : 'Disabled'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryField('enabled', !isDeliveryActive)}
+                    className={`relative inline-flex h-8 w-16 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] shadow-inner ${
+                      isDeliveryActive ? 'bg-[#1F3A2E]' : 'bg-slate-300'
+                    }`}
+                    role="switch"
+                    aria-checked={isDeliveryActive}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ease-in-out flex items-center justify-center text-[10px] font-bold ${
+                        isDeliveryActive
+                          ? 'translate-x-8 text-[#1F3A2E]'
+                          : 'translate-x-0 text-slate-400'
+                      }`}
+                    >
+                      {isDeliveryActive ? '✓' : '✕'}
+                    </span>
+                  </button>
+                </div>
               </div>
             </SettingsCard>
 
@@ -2064,21 +2079,36 @@ export default function AdminSettingsClient() {
                       When enabled, foreign customers can select their destination country and pay via online international card gateway. Cash on Delivery (COD) is automatically restricted to domestic India.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setIntlShippingField('enabled', !isIntlEnabled)}
-                    className={`relative inline-flex h-7 w-13 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      isIntlEnabled ? 'bg-[#1F3A2E]' : 'bg-slate-300'
-                    }`}
-                    role="switch"
-                    aria-checked={isIntlEnabled}
-                  >
+                  <div className="flex items-center gap-3 shrink-0">
                     <span
-                      className={`pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                        isIntlEnabled ? 'translate-x-6' : 'translate-x-0'
+                      className={`text-xs font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                        isIntlEnabled
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-500 border border-slate-200'
                       }`}
-                    />
-                  </button>
+                    >
+                      {isIntlEnabled ? 'Active' : 'Disabled'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIntlShippingField('enabled', !isIntlEnabled)}
+                      className={`relative inline-flex h-8 w-16 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-[#1F3A2E] shadow-inner ${
+                        isIntlEnabled ? 'bg-[#1F3A2E]' : 'bg-slate-300'
+                      }`}
+                      role="switch"
+                      aria-checked={isIntlEnabled}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow-md ring-0 transition-transform duration-300 ease-in-out flex items-center justify-center text-[10px] font-bold ${
+                          isIntlEnabled
+                            ? 'translate-x-8 text-[#1F3A2E]'
+                            : 'translate-x-0 text-slate-400'
+                        }`}
+                      >
+                        {isIntlEnabled ? '✓' : '✕'}
+                      </span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Default International Rate Card */}
