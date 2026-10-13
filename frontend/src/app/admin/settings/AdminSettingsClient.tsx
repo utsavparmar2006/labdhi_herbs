@@ -1347,7 +1347,6 @@ export default function AdminSettingsClient() {
     { id: 'deliveryCharges', label: 'Delivery Charges (India)', icon: Truck },
     { id: 'international', label: 'Global Currencies & Shipping', icon: Globe },
     { id: 'pageHeaders', label: 'Page Banners & Headers', icon: Layout },
-    { id: 'smtp', label: 'Email & Invoicing', icon: Mail },
     { id: 'about', label: 'About Us', icon: Info },
     { id: 'terms', label: 'Terms & Conditions', icon: FileText },
     { id: 'privacy', label: 'Privacy Policy', icon: Shield },
@@ -1411,25 +1410,23 @@ export default function AdminSettingsClient() {
                     />
                   </FormField>
 
-                  <FormField label="Email">
-                    <input
-                      type="email"
-                      value={settings.profile.adminEmail}
-                      onChange={(e) => setProfileField('adminEmail', e.target.value)}
-                      className={inputCls}
-                      placeholder="e.g. support@labdhiherbs.com"
-                    />
-                  </FormField>
+                  <div className="p-3.5 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0] flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">System Support Email</p>
+                      <p className="text-xs font-bold text-[#1F3A2E] mt-0.5">Support@labdhiherbs.com</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Managed in code / server environment</p>
+                    </div>
+                    <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">Protected</span>
+                  </div>
 
-                  <FormField label="Contact / Phone Number">
-                    <input
-                      type="text"
-                      value={settings.profile.adminPhone}
-                      onChange={(e) => setProfileField('adminPhone', e.target.value)}
-                      className={inputCls}
-                      placeholder="e.g. +91 93283 49328"
-                    />
-                  </FormField>
+                  <div className="p-3.5 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0] flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Official Helpline Phone</p>
+                      <p className="text-xs font-bold text-[#1F3A2E] mt-0.5">+91 93283 49328</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Managed in code / server environment</p>
+                    </div>
+                    <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">Protected</span>
+                  </div>
 
                   <FormField label="City">
                     <input
@@ -3505,21 +3502,23 @@ export default function AdminSettingsClient() {
                   <FormField label="Tagline">
                     <input type="text" value={settings.siteTagline} onChange={(e) => setField('siteTagline', e.target.value)} className={inputCls} placeholder="Pure Ayurvedic Formulations..." />
                   </FormField>
-                  <FormField label="Support Email">
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input type="email" value={settings.supportEmail} onChange={(e) => setField('supportEmail', e.target.value)} className={inputCls + ' pl-9'} placeholder="support@labdhiherbs.com" />
+                  <div className="p-3.5 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0] flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Store Support Email</p>
+                      <p className="text-xs font-bold text-[#1F3A2E] mt-0.5">Support@labdhiherbs.com</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Configured securely at server environment</p>
                     </div>
-                  </FormField>
-                  <FormField label="Support Phone">
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                      <input type="text" value={settings.supportPhone} onChange={(e) => setField('supportPhone', e.target.value)} className={inputCls + ' pl-9'} placeholder="+91 XXXXX XXXXX" />
+                    <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">Protected</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0] flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Customer Care &amp; WhatsApp</p>
+                      <p className="text-xs font-bold text-[#1F3A2E] mt-0.5">+91 93283 49328</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Configured securely at server environment</p>
                     </div>
-                  </FormField>
-                  <FormField label="WhatsApp Number" hint="Include country code: +919XXXXXXXXX">
-                    <input type="text" value={settings.whatsappNumber} onChange={(e) => setField('whatsappNumber', e.target.value)} className={inputCls} placeholder="+919328349328" />
-                  </FormField>
+                    <span className="px-2 py-1 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">Protected</span>
+                  </div>
                 </div>
               </div>
             </SettingsCard>

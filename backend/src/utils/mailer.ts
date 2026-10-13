@@ -46,8 +46,8 @@ export function createMailerTransport(config?: {
 
   // Otherwise use generic SMTP
   return nodemailer.createTransport({
-    host: host || 'smtp.gmail.com',
-    port: port || 587,
+    host: host || 'smtpout.secureserver.net',
+    port: port || 465,
     secure: port === 465,
     auth: {
       user,
@@ -67,21 +67,44 @@ export async function sendEmail({
   smtpConfig,
 }: SendMailOptions): Promise<{ success: boolean; simulated?: boolean; messageId?: string; error?: string }> {
   try {
-    let activeConfig = smtpConfig;
-    if (!activeConfig?.user || !activeConfig?.pass) {
+    // 1. Priority: Environment variables from .env
+    const envUser = process.env.SMTP_USER;
+    const envPass = process.env.SMTP_PASS;
+    const envHost = process.env.SMTP_HOST;
+    const envPort = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
+    const envSender = process.env.SMTP_SENDER_NAME;
+
+    let activeConfig: any = {
+      host: envHost || 'smtpout.secureserver.net',
+      port: envPort || 465,
+      user: envUser || 'Support@labdhiherbs.com',
+      pass: envPass,
+      senderName: envSender || fromName,
+    };
+
+    // 2. Fallback to passed config or database settings if env pass is not present
+    if (!activeConfig.pass && smtpConfig?.pass) {
+      activeConfig = {
+        host: smtpConfig.host || activeConfig.host,
+        port: smtpConfig.port || activeConfig.port,
+        user: smtpConfig.user || activeConfig.user,
+        pass: smtpConfig.pass,
+        senderName: smtpConfig.senderName || activeConfig.senderName,
+      };
+    } else if (!activeConfig.pass) {
       try {
         const settings = (await SiteSettings.findOne().lean()) as any;
         if (settings?.smtpConfig?.smtpUser && settings?.smtpConfig?.smtpPass) {
           activeConfig = {
-            host: settings.smtpConfig.smtpHost || 'smtp.gmail.com',
-            port: Number(settings.smtpConfig.smtpPort) || 587,
-            user: settings.smtpConfig.smtpUser,
+            host: settings.smtpConfig.smtpHost || activeConfig.host,
+            port: Number(settings.smtpConfig.smtpPort) || activeConfig.port,
+            user: settings.smtpConfig.smtpUser || activeConfig.user,
             pass: settings.smtpConfig.smtpPass,
-            senderName: settings.smtpConfig.senderName || settings.smtpConfig.senderEmail || fromName,
+            senderName: settings.smtpConfig.senderName || activeConfig.senderName,
           };
         }
       } catch (e) {
-        // continue to env fallback
+        // continue
       }
     }
 

@@ -548,7 +548,7 @@ export default function AdminHomePageClient() {
                       }))
                     }
                     label="Hero Section Video (.mp4, .webm, .mov)"
-                    helperText="Select or drag & drop a video file from your computer folder (supports up to 150MB)."
+                    helperText="Select or drag & drop a video file from your computer folder (supports all video sizes)."
                   />
                 </div>
               </div>

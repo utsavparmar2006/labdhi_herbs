@@ -736,40 +736,22 @@ export default function AdminSubscribersClient() {
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#14261E] block">
-                      Admin Notification Email
-                    </label>
-                    <input
-                      type="email"
-                      value={settings.adminNotificationEmail}
-                      onChange={(e) =>
-                        setSettings({ ...settings, adminNotificationEmail: e.target.value })
-                      }
-                      placeholder="e.g. support@labdhiherbs.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] text-xs text-[#14261E] focus:outline-none focus:border-[#1F3A2E]"
-                    />
-                    <span className="text-[10px] text-slate-400 block">
-                      Admin receives lead capture notifications here.
-                    </span>
+                  <div className="p-3.5 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0] flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Admin Notification Email</p>
+                      <p className="text-xs font-bold text-[#14261E] mt-0.5">Support@labdhiherbs.com</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Alerts delivered here (Configured in server .env)</p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">Protected</span>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#14261E] block">
-                      Company WhatsApp Number
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.adminWhatsAppNumber}
-                      onChange={(e) =>
-                        setSettings({ ...settings, adminWhatsAppNumber: e.target.value })
-                      }
-                      placeholder="e.g. +91 93283 49328"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] text-xs text-[#14261E] focus:outline-none focus:border-[#1F3A2E]"
-                    />
-                    <span className="text-[10px] text-slate-400 block">
-                      WhatsApp sender phone used for customer direct replies.
-                    </span>
+                  <div className="p-3.5 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0] flex items-center justify-between">
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Company WhatsApp Phone</p>
+                      <p className="text-xs font-bold text-[#14261E] mt-0.5">+91 93283 49328</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Direct chat sender (Configured in server .env)</p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">Protected</span>
                   </div>
 
                   <div className="space-y-1">
@@ -1033,126 +1015,6 @@ export default function AdminSubscribersClient() {
                     <p className="text-[10px] text-slate-400 text-center pt-3">
                       This is how your customer sees the email in Gmail, Apple Mail, and Outlook.
                     </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 4: Customer Welcome Email Server (Gmail / SMTP Delivery) */}
-              <div className="p-6 rounded-3xl bg-white border border-[#EFE9DD] shadow-xs space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-bold text-emerald-700 uppercase tracking-wider">
-                    <Mail className="w-4 h-4" />
-                    <span>Customer Welcome Email Server (Gmail / SMTP Delivery)</span>
-                  </div>
-                  <span className="text-[11px] text-emerald-700 font-semibold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    Live Inbox Delivery
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Enter your sender Gmail address and 16-character <strong>Google App Password</strong> so welcome discounts are delivered automatically to your customer&apos;s email inbox.
-                  <br />
-                  <strong className="text-slate-700">Quick Guide:</strong> Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" className="text-emerald-700 underline font-semibold">myaccount.google.com/apppasswords</a>, generate a 16-letter App Password, and paste it below.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#14261E] block">
-                      SMTP Host (Default: smtp.gmail.com)
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.smtpHost}
-                      onChange={(e) => setSettings({ ...settings, smtpHost: e.target.value })}
-                      placeholder="smtp.gmail.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] text-xs text-[#14261E] focus:outline-none focus:border-[#1F3A2E]"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#14261E] block">
-                      SMTP Port (Default: 587)
-                    </label>
-                    <input
-                      type="number"
-                      value={settings.smtpPort}
-                      onChange={(e) => setSettings({ ...settings, smtpPort: parseInt(e.target.value) || 587 })}
-                      placeholder="587"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] text-xs text-[#14261E] focus:outline-none focus:border-[#1F3A2E]"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#14261E] block">
-                      Sender Brand Name
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.smtpSenderName}
-                      onChange={(e) => setSettings({ ...settings, smtpSenderName: e.target.value })}
-                      placeholder="Labdhi Herbs Authentic Ayurveda"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] text-xs text-[#14261E] focus:outline-none focus:border-[#1F3A2E]"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#14261E] block">
-                      Your Gmail / Sender Email
-                    </label>
-                    <input
-                      type="text"
-                      value={settings.smtpUser}
-                      onChange={(e) => setSettings({ ...settings, smtpUser: e.target.value })}
-                      placeholder="yourbrand@gmail.com"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] text-xs text-[#14261E] focus:outline-none focus:border-[#1F3A2E]"
-                    />
-                  </div>
-
-                  <div className="space-y-1 sm:col-span-2">
-                    <label className="text-xs font-bold text-[#14261E] block">
-                      16-Letter Google App Password
-                    </label>
-                    <input
-                      type="password"
-                      value={settings.smtpPass}
-                      onChange={(e) => setSettings({ ...settings, smtpPass: e.target.value })}
-                      placeholder="16-character Google App Password (e.g. abcd efgh ijkl mnop)"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F6F0] border border-[#EFE9DD] text-xs text-[#14261E] focus:outline-none focus:border-[#1F3A2E]"
-                    />
-                  </div>
-                </div>
-
-                {/* Test Email Section */}
-                <div className="p-4 rounded-2xl bg-[#F8F6F0] border border-[#EFE9DD] space-y-2 mt-2">
-                  <span className="text-xs font-bold text-[#14261E] block">
-                    Verify Email Connection Live:
-                  </span>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="email"
-                      value={testEmailInput}
-                      onChange={(e) => setTestEmailInput(e.target.value)}
-                      placeholder="Enter destination email for test (e.g. your email)"
-                      className="flex-1 px-3.5 py-2 rounded-xl bg-white border border-[#EFE9DD] text-xs text-[#14261E] focus:outline-none focus:border-[#1F3A2E]"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleTestEmail}
-                      disabled={isSendingTestEmail}
-                      className="px-4 py-2 rounded-xl bg-[#14261E] hover:bg-[#1f3a2e] disabled:opacity-50 text-white text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      {isSendingTestEmail ? (
-                        <>
-                          <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Testing SMTP...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-3.5 h-3.5 text-[#D4A373]" />
-                          <span>Send Test Email</span>
-                        </>
-                      )}
-                    </button>
                   </div>
                 </div>
               </div>

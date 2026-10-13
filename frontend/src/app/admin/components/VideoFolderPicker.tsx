@@ -44,12 +44,6 @@ export default function VideoFolderPicker({
       return;
     }
 
-    // 150MB limit
-    if (file.size > 150 * 1024 * 1024) {
-      setUploadError('Video file size exceeds 150MB limit. Please compress the video.');
-      return;
-    }
-
     setIsUploading(true);
     setUploadError('');
 
@@ -142,7 +136,7 @@ export default function VideoFolderPicker({
                   Click to select or drag &amp; drop video from folder
                 </p>
                 <p className="text-[11px] text-slate-400 font-light">
-                  Supports MP4, WebM, MOV, OGG (up to 150MB)
+                  Supports MP4, WebM, MOV, OGG (All video sizes supported)
                 </p>
               </div>
 

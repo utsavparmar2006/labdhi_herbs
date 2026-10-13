@@ -230,13 +230,13 @@ export async function subscribe(req: Request, res: Response) {
         to: cleanEmail,
         subject: personalizedEmailSubject,
         html: brandedEmailHtml,
-        fromName: config.smtpSenderName || 'Labdhi Herbs Authentic Ayurveda',
+        fromName: process.env.SMTP_SENDER_NAME || config.smtpSenderName || 'Labdhi Herbs Authentic Ayurveda',
         smtpConfig: {
-          host: config.smtpHost || process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: config.smtpPort || Number(process.env.SMTP_PORT) || 587,
-          user: config.smtpUser || process.env.SMTP_USER || settings.supportEmail || config.adminNotificationEmail || '',
-          pass: config.smtpPass || process.env.SMTP_PASS || '',
-          senderName: config.smtpSenderName || 'Labdhi Herbs Authentic Ayurveda',
+          host: process.env.SMTP_HOST || config.smtpHost || 'smtpout.secureserver.net',
+          port: Number(process.env.SMTP_PORT) || config.smtpPort || 465,
+          user: process.env.SMTP_USER || config.smtpUser || 'Support@labdhiherbs.com',
+          pass: process.env.SMTP_PASS || config.smtpPass || '',
+          senderName: process.env.SMTP_SENDER_NAME || config.smtpSenderName || 'Labdhi Herbs Authentic Ayurveda',
         },
       });
 
@@ -253,7 +253,9 @@ export async function subscribe(req: Request, res: Response) {
       personalizedWhatsappText
     )}`;
 
-    const adminFormattedPhone = formatWhatsAppNumber(config.adminWhatsAppNumber || '+919328349328');
+    const adminFormattedPhone = formatWhatsAppNumber(
+      process.env.COMPANY_WHATSAPP_NUMBER || config.adminWhatsAppNumber || '+919328349328'
+    );
     const directChatWithAdminUrl = `https://api.whatsapp.com/send?phone=${adminFormattedPhone}&text=${encodeURIComponent(
       `Hello Labdhi Herbs, I am ${trimmedName}. I just subscribed with code ${couponCode} and would like to know more about your formulations!`
     )}`;
@@ -286,9 +288,15 @@ export async function subscribe(req: Request, res: Response) {
     }
 
     // 3. Notify Admin of New Lead
-    if (config.notifyAdmin && config.adminNotificationEmail) {
+    const adminNotificationDestination =
+      process.env.ADMIN_NOTIFICATION_EMAIL ||
+      process.env.SMTP_USER ||
+      config.adminNotificationEmail ||
+      'Support@labdhiherbs.com';
+
+    if (config.notifyAdmin && adminNotificationDestination) {
       sendEmail({
-        to: config.adminNotificationEmail,
+        to: adminNotificationDestination,
         subject: `🎯 New Lead Captured: ${trimmedName} (${cleanPhone})`,
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #EFE9DD; border-radius: 10px; max-width: 500px;">

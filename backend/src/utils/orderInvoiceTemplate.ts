@@ -406,7 +406,13 @@ export async function sendOrderInvoiceEmail(order: any): Promise<{ success: bool
     console.log(`[Order Email] Dispatched to ${recipientEmail} for Order #${order.orderId} (Simulated: ${result.simulated})`);
 
     // Also notify admin email if configured
-    const adminEmail = settings?.smtpConfig?.senderEmail || settings?.profile?.adminEmail;
+    const adminEmail =
+      process.env.ADMIN_NOTIFICATION_EMAIL ||
+      process.env.SMTP_USER ||
+      settings?.smtpConfig?.senderEmail ||
+      settings?.profile?.adminEmail ||
+      'Support@labdhiherbs.com';
+
     if (adminEmail && adminEmail !== recipientEmail && adminEmail.includes('@')) {
       sendEmail({
         to: adminEmail,

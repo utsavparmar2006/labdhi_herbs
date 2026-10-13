@@ -80,7 +80,7 @@ const videoFilter = (
 
 const uploadVideo = multer({
   storage,
-  limits: { fileSize: 150 * 1024 * 1024 }, // 150MB limit for video hero
+  limits: { fileSize: 2048 * 1024 * 1024 }, // 2GB limit (Virtually unrestricted for high-def web video assets)
   fileFilter: videoFilter,
 });
 
@@ -168,7 +168,23 @@ router.post(
   '/video',
   verifyJWT,
   verifyAdmin,
-  uploadVideo.single('file'),
+  (req: Request, res: Response, next: any) => {
+    uploadVideo.single('file')(req, res, (err: any) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: 'Video file size exceeds maximum server limit.',
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'Error occurred while processing video upload',
+        });
+      }
+      next();
+    });
+  },
   async (req: Request, res: Response): Promise<void> => {
     try {
       if (!req.file) {

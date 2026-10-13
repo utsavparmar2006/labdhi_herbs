@@ -503,6 +503,34 @@ export async function uploadVideoFile(
       body: formData,
     });
 
+    if (!res.ok) {
+      if (res.status === 413) {
+        return {
+          success: false,
+          message: 'Server upload size limit exceeded (HTTP 413). Please ensure server client_max_body_size is configured.',
+        };
+      }
+      if (res.status === 504 || res.status === 502) {
+        return {
+          success: false,
+          message: `Server connection timed out (HTTP ${res.status}). The video upload took longer than the server gateway allowed.`,
+        };
+      }
+      const rawText = await res.text();
+      try {
+        const parsed = JSON.parse(rawText);
+        return {
+          success: false,
+          message: parsed.message || `Server error (HTTP ${res.status})`,
+        };
+      } catch {
+        return {
+          success: false,
+          message: `Upload failed (HTTP ${res.status}). Please try again.`,
+        };
+      }
+    }
+
     const data = await res.json();
     return data;
   } catch (error: any) {
