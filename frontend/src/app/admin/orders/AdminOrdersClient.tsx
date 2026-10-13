@@ -580,7 +580,11 @@ export default function AdminOrdersClient() {
                   
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => setInvoiceOrder(selectedOrder)}
+                      onClick={() => {
+                        const target = selectedOrder;
+                        setSelectedOrder(null);
+                        setInvoiceOrder(target);
+                      }}
                       className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
                       <Printer className="w-3.5 h-3.5 text-[#D4A373]" />
@@ -971,7 +975,11 @@ export default function AdminOrdersClient() {
                 {/* Drawer Footer */}
                 <div className="p-4 border-t border-[#EFE9DD] bg-white flex items-center justify-between">
                   <button
-                    onClick={() => setInvoiceOrder(selectedOrder)}
+                    onClick={() => {
+                      const target = selectedOrder;
+                      setSelectedOrder(null);
+                      setInvoiceOrder(target);
+                    }}
                     className="px-4 py-2 rounded-xl bg-[#1F3A2E]/10 hover:bg-[#1F3A2E]/20 text-[#1F3A2E] text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <Printer className="w-3.5 h-3.5 text-[#B58A5A]" />

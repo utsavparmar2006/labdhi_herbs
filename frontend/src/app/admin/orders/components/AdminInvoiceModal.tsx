@@ -128,7 +128,7 @@ export default function AdminInvoiceModal({ order, onClose, isOpen }: AdminInvoi
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/75 backdrop-blur-sm p-3 sm:p-6 md:p-8 flex justify-center items-start print:p-0 print:bg-white print:static print:overflow-visible transition-opacity"
+      className="fixed inset-0 z-[70] overflow-y-auto bg-black/75 backdrop-blur-sm p-3 sm:p-6 md:p-8 flex justify-center items-start print:p-0 print:bg-white print:static print:overflow-visible transition-opacity"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
