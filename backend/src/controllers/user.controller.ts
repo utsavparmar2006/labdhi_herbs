@@ -146,7 +146,8 @@ export const getUsers = async (
       .select('-password -refreshToken')
       .sort({ [sortBy]: sortOrder })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const totalPages = Math.ceil(totalUsers / limit) || 1;
 
@@ -180,7 +181,7 @@ export const getUserById = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const user = await User.findById(req.params.id).select('-password -refreshToken');
+    const user = await User.findById(req.params.id).select('-password -refreshToken').lean();
 
     if (!user) {
       res.status(404).json({

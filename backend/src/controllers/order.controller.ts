@@ -370,7 +370,7 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
         { orderId: id },
         { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null },
       ],
-    });
+    }).lean();
 
     if (!order) {
       res.status(404).json({
@@ -444,7 +444,7 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
     const skip = (pageNum - 1) * limitNum;
 
     const [orders, totalCount, statsAgg] = await Promise.all([
-      Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum),
+      Order.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limitNum).lean(),
       Order.countDocuments(filter),
       Order.aggregate([
         {
@@ -585,7 +585,7 @@ export const trackOrderByNumber = async (req: Request, res: Response): Promise<v
         { deliveryTrackId: new RegExp(`^${cleanId}$`, 'i') },
         { _id: cleanId.match(/^[0-9a-fA-F]{24}$/) ? cleanId : null },
       ],
-    });
+    }).lean();
 
     if (!order) {
       res.status(404).json({
@@ -631,7 +631,7 @@ export const getMyOrders = async (req: AuthRequest, res: Response): Promise<void
       queryConditions.push({ 'customer.phone': req.user.phone });
     }
 
-    const orders = await Order.find({ $or: queryConditions }).sort({ createdAt: -1 });
+    const orders = await Order.find({ $or: queryConditions }).sort({ createdAt: -1 }).lean();
 
     res.status(200).json({
       success: true,

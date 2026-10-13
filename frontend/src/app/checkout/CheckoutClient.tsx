@@ -199,6 +199,21 @@ export default function CheckoutClient() {
   // UI State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [razorpayKeyId, setRazorpayKeyId] = useState<string>('');
+
+  useEffect(() => {
+    let isMounted = true;
+    getRazorpayKeyId()
+      .then((res) => {
+        if (isMounted && res?.keyId) {
+          setRazorpayKeyId(res.keyId);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Delivery Charges configuration from Admin Site Settings
   const deliveryConfig = settings?.deliveryCharges || {
@@ -1214,15 +1229,27 @@ export default function CheckoutClient() {
                             </span>
                           </div>
 
-                          <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-slate-600 space-y-1">
-                            <div className="flex items-center gap-2 text-amber-900 font-bold">
-                              <ShieldCheck className="w-4 h-4 text-amber-600" />
-                              <span>Razorpay Test Mode Active</span>
+                          {razorpayKeyId && razorpayKeyId.startsWith('rzp_live_') ? (
+                            <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 text-xs text-slate-600 space-y-1">
+                              <div className="flex items-center gap-2 text-emerald-900 font-bold">
+                                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                                <span>100% Secure &amp; Verified Payment</span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 leading-relaxed">
+                                Transactions are protected with 256-bit bank-grade encryption via official Razorpay gateway. All major UPI apps, Debit/Credit cards, NetBanking, and International cards supported.
+                              </p>
                             </div>
-                            <p className="text-[11px] text-slate-600 leading-relaxed">
-                              No real money will be charged. In the Razorpay popup, you can use any test UPI ID (e.g. <span className="font-mono font-bold text-[#1F3A2E]">success@razorpay</span>) or test card (<span className="font-mono font-bold text-[#1F3A2E]">4111 1111 1111 1111</span>) to test the flow end-to-end.
-                            </p>
-                          </div>
+                          ) : (
+                            <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-slate-600 space-y-1">
+                              <div className="flex items-center gap-2 text-amber-900 font-bold">
+                                <ShieldCheck className="w-4 h-4 text-amber-600" />
+                                <span>Razorpay Test Mode Active</span>
+                              </div>
+                              <p className="text-[11px] text-slate-600 leading-relaxed">
+                                No real money will be charged. In the Razorpay popup, you can use any test UPI ID (e.g. <span className="font-mono font-bold text-[#1F3A2E]">success@razorpay</span>) or test card (<span className="font-mono font-bold text-[#1F3A2E]">4111 1111 1111 1111</span>) to test the flow end-to-end.
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

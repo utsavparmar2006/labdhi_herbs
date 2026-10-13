@@ -117,6 +117,11 @@ const userSchema = new Schema<IUser>(
   }
 );
 
+// Indexes for fast administrative queries and sorting
+userSchema.index({ role: 1, createdAt: -1 });
+userSchema.index({ status: 1, createdAt: -1 });
+userSchema.index({ createdAt: -1 });
+
 // Hash password before saving if modified
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password') || !this.password) {
