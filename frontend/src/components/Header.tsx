@@ -29,6 +29,7 @@ import { getHomePageConfig } from '../services/api';
 import { AnnouncementBarConfig } from '../types';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useCart } from '../context/CartContext';
+import CurrencySelector from './CurrencySelector';
 
 interface HeaderProps {
   cartCount?: number;
@@ -349,8 +350,9 @@ export default function Header({
             })}
           </nav>
 
-          {/* Action Icons (Search, Account, Cart) */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Action Icons (Currency, Search, Account, Cart) */}
+          <div className="flex items-center gap-2 sm:gap-3.5">
+            <CurrencySelector className="hidden sm:inline-block" />
             
             {/* Search Button */}
             <button
@@ -516,6 +518,12 @@ export default function Header({
                   >
                     <X className="w-5 h-5 text-[#1F3A2E]" />
                   </button>
+                </div>
+
+                {/* Mobile Currency / Region Selector */}
+                <div className="px-4 py-2.5 flex items-center justify-between border-b border-[#EFE9DD] bg-white/50">
+                  <span className="text-[11px] font-semibold text-stone-500">Currency / Country</span>
+                  <CurrencySelector compact />
                 </div>
 
                 {/* Main Navigation Links */}

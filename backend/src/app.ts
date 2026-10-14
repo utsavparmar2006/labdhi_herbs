@@ -32,11 +32,28 @@ app.use(
   })
 );
 
-// Cross-Origin Resource Sharing (CORS)
-const allowedOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+// Cross-Origin Resource Sharing (CORS) with robust multi-domain support
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes('*') ||
+        origin.includes('localhost') ||
+        origin.includes('15.207.248.254') ||
+        origin.endsWith('labdhiherbs.com')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );

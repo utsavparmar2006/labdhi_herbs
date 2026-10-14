@@ -190,6 +190,7 @@ export interface ShippingAddress {
   city: string;
   state: string;
   pincode: string;
+  country?: string;
 }
 
 export interface OrderPricing {
@@ -242,6 +243,8 @@ export interface Order {
   pricing: OrderPricing;
   couponCode?: string;
   payment: OrderPayment;
+  currency?: string;
+  exchangeRate?: number;
   deliveryName?: string; // Delivery By (e.g. DTDC, Delhivery, Tirupati, Speed Post)
   deliveryTrackId?: string; // Tracking Id
   orderStatus: OrderStatusType;

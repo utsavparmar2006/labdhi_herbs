@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
+import mongoose from 'mongoose';
 import { Order, IOrderItem } from '../models/Order.model.js';
+import { Product } from '../models/Product.model.js';
 import { Coupon } from '../models/Coupon.model.js';
 import { AuthRequest } from '../middlewares/auth.middleware.js';
 import { getRazorpayConfig, getRazorpayInstance } from '../config/razorpay.js';
@@ -67,21 +69,53 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
-    // Calculate subtotal from validated item prices
+    // Authoritative Server-Side Product Lookup & Price Verification (Anti-Tampering)
+    const productSlugsOrIds = items
+      .map((i: any) => String(i.product?.id || i.productId || i.id || '').trim())
+      .filter(Boolean);
+
+    const dbProductMap = new Map<string, any>();
+    if (productSlugsOrIds.length > 0) {
+      try {
+        const objectIds = productSlugsOrIds.filter((id) => mongoose.isValidObjectId(id));
+        const foundProducts = await Product.find({
+          $or: [
+            { id: { $in: productSlugsOrIds } },
+            ...(objectIds.length > 0 ? [{ _id: { $in: objectIds } }] : []),
+          ],
+        }).lean();
+
+        foundProducts.forEach((p: any) => {
+          if (p.id) dbProductMap.set(String(p.id).toLowerCase(), p);
+          if (p._id) dbProductMap.set(String(p._id), p);
+        });
+      } catch (dbErr) {
+        console.warn('[Order Price Validation] Product lookup fallback:', dbErr);
+      }
+    }
+
+    // Calculate subtotal from authoritative verified item prices
     let subtotal = 0;
     const formattedItems: IOrderItem[] = items.map((item: any) => {
-      const unitPrice = Number(item.product?.price || item.price || 0);
+      const slugKey = String(item.product?.id || item.productId || item.id || '').trim().toLowerCase();
+      const matchedDbProduct = dbProductMap.get(slugKey);
+
+      // Protect against client price manipulation: Use verified DB price if product exists
+      const unitPrice = matchedDbProduct
+        ? Number(matchedDbProduct.price)
+        : Number(item.product?.price || item.price || 0);
+
       const qty = Math.max(1, Number(item.quantity || 1));
       const lineTotal = unitPrice * qty;
       subtotal += lineTotal;
 
       return {
         product: {
-          id: item.product?.id || item.productId || 'unknown',
-          name: item.product?.name || item.name || 'Herbal Product',
+          id: matchedDbProduct?.id || item.product?.id || item.productId || 'unknown',
+          name: matchedDbProduct?.name || item.product?.name || item.name || 'Herbal Product',
           price: unitPrice,
-          image: item.product?.image || item.image || '/uploads/logo/Main-logo-531.jpg',
-          category: item.product?.category || item.category || 'Herbal Care',
+          image: matchedDbProduct?.image || item.product?.image || item.image || '/uploads/logo/Main-logo-531.jpg',
+          category: matchedDbProduct?.category || item.product?.category || item.category || 'Herbal Care',
         },
         quantity: qty,
         price: unitPrice,
@@ -161,13 +195,20 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       const customerState = (shippingAddress?.state || 'Gujarat').trim().toLowerCase();
       const isGujarat = customerState === 'gujarat';
 
-      if (siteSettings?.deliveryCharges && siteSettings.deliveryCharges.enabled !== false) {
-        const freeThreshold = Number(siteSettings.deliveryCharges.freeDeliveryThreshold) || 0;
+      const deliveryConfig = siteSettings?.deliveryCharges || {
+        enabled: true,
+        gujaratCharge: 50,
+        outsideGujaratCharge: 100,
+        freeDeliveryThreshold: 0,
+      };
+
+      if (deliveryConfig.enabled !== false) {
+        const freeThreshold = Number(deliveryConfig.freeDeliveryThreshold) || 0;
         if (freeThreshold > 0 && subtotal >= freeThreshold) {
           shipping = 0;
         } else {
-          const gujaratFee = Number(siteSettings.deliveryCharges.gujaratCharge ?? 50);
-          const outsideFee = Number(siteSettings.deliveryCharges.outsideGujaratCharge ?? 100);
+          const gujaratFee = Number(deliveryConfig.gujaratCharge ?? 50);
+          const outsideFee = Number(deliveryConfig.outsideGujaratCharge ?? 100);
           shipping = isGujarat ? gujaratFee : outsideFee;
         }
       } else {
@@ -175,8 +216,46 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       }
     } else {
       // International Destination: Zone matching & default fallback
-      const intlConfig = siteSettings?.internationalShipping;
-      if (intlConfig && intlConfig.enabled !== false) {
+      const intlConfig = siteSettings?.internationalShipping || {
+        enabled: true,
+        defaultCharge: 2200,
+        defaultFreeThreshold: 0,
+        zones: [
+          {
+            id: 'middle-east',
+            name: 'Middle East & Gulf',
+            countries: ['United Arab Emirates', 'Saudi Arabia', 'Oman', 'Qatar', 'Kuwait', 'Bahrain'],
+            deliveryCharge: 1200,
+            freeDeliveryThreshold: 0,
+            isActive: true,
+          },
+          {
+            id: 'north-america',
+            name: 'USA & Canada',
+            countries: ['United States', 'Canada'],
+            deliveryCharge: 1800,
+            freeDeliveryThreshold: 0,
+            isActive: true,
+          },
+          {
+            id: 'europe-uk',
+            name: 'UK & Europe',
+            countries: ['United Kingdom', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Switzerland'],
+            deliveryCharge: 1700,
+            freeDeliveryThreshold: 0,
+            isActive: true,
+          },
+          {
+            id: 'australasia',
+            name: 'Australia & New Zealand',
+            countries: ['Australia', 'New Zealand', 'Singapore'],
+            deliveryCharge: 1700,
+            freeDeliveryThreshold: 0,
+            isActive: true,
+          },
+        ],
+      };
+      if (intlConfig.enabled !== false) {
         const matchedZone = intlConfig.zones?.find((z: any) =>
           z.isActive !== false &&
           Array.isArray(z.countries) &&

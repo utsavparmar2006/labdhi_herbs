@@ -319,8 +319,18 @@ export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps)
               ) : null}
 
               <div className="flex justify-between text-slate-600">
-                <span>Express All-India Shipping:</span>
-                <span className="text-emerald-700 font-bold">FREE</span>
+                <span>
+                  {order?.shippingAddress?.country && order.shippingAddress.country !== 'India'
+                    ? `International Shipping (${order.shippingAddress.country}):`
+                    : `Express Delivery (${order?.shippingAddress?.state || 'Gujarat'}):`}
+                </span>
+                {order?.pricing?.shipping && order.pricing.shipping > 0 ? (
+                  <span className="font-bold text-slate-800 font-mono">
+                    ₹{order.pricing.shipping}
+                  </span>
+                ) : (
+                  <span className="text-emerald-700 font-bold">FREE</span>
+                )}
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex justify-between items-baseline">

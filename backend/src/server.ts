@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import mongoose from 'mongoose';
 
-// Load environment variables before initializing app or db
+// Load environment variables before initializing app or db (Delivery & SMTP Active)
 dotenv.config();
 
 import app from './app.js';
@@ -55,6 +55,15 @@ const startServer = async (): Promise<void> => {
   process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM'));
   process.on('SIGINT', () => handleGracefulShutdown('SIGINT'));
 };
+
+// Global unhandled promise rejection & exception traps (Production Stability)
+process.on('unhandledRejection', (reason) => {
+  console.error('[Process] Unhandled Promise Rejection:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[Process] Uncaught Exception:', error);
+});
 
 // Start server
 startServer().catch((err) => {
