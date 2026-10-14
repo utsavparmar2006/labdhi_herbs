@@ -71,26 +71,12 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [customerCountry, setCustomerCountryState] = useState<CountryInfo>(GLOBAL_COUNTRIES[0]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Initialize geo-detection and storage hydration
+  // Initialize purely automatic zero-cost geo-detection via native Intl
   useEffect(() => {
     try {
-      const savedCode = localStorage.getItem(STORAGE_KEY);
-      const savedCountryCode = localStorage.getItem(COUNTRY_STORAGE_KEY);
-
-      if (savedCode) {
-        setCurrentCurrencyCode(savedCode);
-        if (savedCountryCode) {
-          const matchedCountry = COUNTRIES_BY_CODE.get(savedCountryCode);
-          if (matchedCountry) {
-            setCustomerCountryState(matchedCountry);
-          }
-        }
-      } else {
-        // Zero-Cost Automatic Geo-Detection via native Intl
-        const detected = detectLocalCountryAndCurrency();
-        setCustomerCountryState(detected.country);
-        setCurrentCurrencyCode(detected.currencyCode);
-      }
+      const detected = detectLocalCountryAndCurrency();
+      setCustomerCountryState(detected.country);
+      setCurrentCurrencyCode(detected.currencyCode);
     } catch (_) {
       // Fallback to INR
     } finally {
