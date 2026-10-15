@@ -121,7 +121,6 @@ const generateSlug = (text: string): string => {
  */
 export const getCategories = async (_req: Request, res: Response): Promise<void> => {
   try {
-    await ensureInitialCategories();
     const categories = await Category.find({ status: 'active' }).sort({ order: 1, createdAt: 1 }).lean();
 
     res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
@@ -145,8 +144,6 @@ export const getCategories = async (_req: Request, res: Response): Promise<void>
  */
 export const getAdminCategories = async (req: Request, res: Response): Promise<void> => {
   try {
-    await ensureInitialCategories();
-
     const search = req.query.search ? String(req.query.search).trim() : '';
     const status = req.query.status ? String(req.query.status).trim() : 'all';
 

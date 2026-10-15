@@ -20,6 +20,7 @@ import paymentRoutes from './routes/payment.routes.js';
 import reviewRoutes from './routes/review.routes.js';
 import subscriberRoutes from './routes/subscriber.routes.js';
 import translateRoutes from './routes/translate.routes.js';
+import compression from 'compression';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app: Application = express();
@@ -55,6 +56,20 @@ app.use(
       return callback(null, true);
     },
     credentials: true,
+  })
+);
+
+// High-Performance Response Compression (Gzip / Deflate for fast JSON payloads)
+app.use(
+  compression({
+    level: 6,
+    threshold: 1024,
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) {
+        return false;
+      }
+      return compression.filter(req, res);
+    },
   })
 );
 

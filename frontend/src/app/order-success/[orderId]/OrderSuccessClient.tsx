@@ -35,6 +35,29 @@ export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps)
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Dynamic Currency Formatter based on Order's saved currency and exchange rate
+  const orderCurrency = order?.currency || 'INR';
+  const orderExchangeRate = order?.exchangeRate || 1;
+  const isForeignOrder = orderCurrency !== 'INR';
+
+  const formatOrderPrice = (inrAmount: number) => {
+    if (!order || !isForeignOrder || !orderExchangeRate || orderExchangeRate <= 1) {
+      return `₹${Math.round(inrAmount || 0)}`;
+    }
+    const symbolMap: Record<string, string> = {
+      EUR: '€',
+      USD: '$',
+      GBP: '£',
+      AED: 'د.إ',
+      CAD: 'C$',
+      AUD: 'A$',
+      INR: '₹',
+    };
+    const symbol = symbolMap[orderCurrency] || `${orderCurrency} `;
+    const converted = (inrAmount || 0) / orderExchangeRate;
+    return `${symbol}${converted.toFixed(2)}`;
+  };
+
   useEffect(() => {
     async function fetchOrder() {
       try {
@@ -221,7 +244,8 @@ export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps)
                     Contact Phone
                   </span>
                   <span className="font-semibold text-slate-700">
-                    +91 {order.shippingAddress.phone}
+                    {order.shippingAddress.phone?.startsWith('+') ? '' : isForeignOrder ? '' : '+91 '}
+                    {order.shippingAddress.phone}
                   </span>
                 </div>
 
@@ -235,6 +259,11 @@ export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps)
                     <br />
                     {order.shippingAddress.city}, {order.shippingAddress.state} —{' '}
                     <strong>{order.shippingAddress.pincode}</strong>
+                    {order.shippingAddress.country && order.shippingAddress.country !== 'India' && (
+                      <span className="block font-semibold text-slate-800 mt-0.5">
+                        {order.shippingAddress.country}
+                      </span>
+                    )}
                   </p>
                 </div>
 
@@ -294,12 +323,14 @@ export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps)
                         {item.product?.name}
                       </h4>
                       <span className="text-[11px] text-slate-500 font-light">
-                        Qty: {item.quantity} × ₹{item.price}
+                        Qty: {item.quantity} × {formatOrderPrice(item.price)}
                       </span>
                     </div>
                   </div>
 
-                  <span className="font-bold text-[#1F3A2E] shrink-0">₹{item.total}</span>
+                  <span className="font-bold text-[#1F3A2E] shrink-0">
+                    {formatOrderPrice(item.total)}
+                  </span>
                 </div>
               ))}
             </div>
@@ -308,13 +339,15 @@ export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps)
             <div className="pt-3 border-t border-[#EFE9DD] space-y-2 text-xs">
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal:</span>
-                <span className="font-bold text-slate-800">₹{order?.pricing?.subtotal || 0}</span>
+                <span className="font-bold text-slate-800">
+                  {formatOrderPrice(order?.pricing?.subtotal || 0)}
+                </span>
               </div>
 
               {order?.pricing?.discount ? (
                 <div className="flex justify-between text-emerald-700 font-medium">
                   <span>Coupon Savings ({order.couponCode || 'PROMO'}):</span>
-                  <span>−₹{order.pricing.discount}</span>
+                  <span>−{formatOrderPrice(order.pricing.discount)}</span>
                 </div>
               ) : null}
 
@@ -326,7 +359,7 @@ export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps)
                 </span>
                 {order?.pricing?.shipping && order.pricing.shipping > 0 ? (
                   <span className="font-bold text-slate-800 font-mono">
-                    ₹{order.pricing.shipping}
+                    {formatOrderPrice(order.pricing.shipping)}
                   </span>
                 ) : (
                   <span className="text-emerald-700 font-bold">FREE</span>
@@ -335,9 +368,16 @@ export default function OrderSuccessClient({ orderId }: OrderSuccessClientProps)
 
               <div className="pt-3 border-t border-slate-100 flex justify-between items-baseline">
                 <span className="font-serif text-sm font-bold text-[#1A201C]">Total Amount:</span>
-                <span className="font-serif text-2xl font-bold text-[#1F3A2E]">
-                  ₹{order?.pricing?.total || 0}
-                </span>
+                <div className="text-right">
+                  <span className="font-serif text-2xl font-bold text-[#1F3A2E] block">
+                    {formatOrderPrice(order?.pricing?.total || 0)}
+                  </span>
+                  {isForeignOrder && (
+                    <span className="text-[11px] text-slate-400 font-light block">
+                      (₹{order?.pricing?.total || 0} INR)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 

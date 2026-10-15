@@ -208,7 +208,6 @@ const ensureInitialProducts = async () => {
  */
 export const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
-    await ensureInitialProducts();
 
     const {
       category,
@@ -293,6 +292,7 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 
     const totalPages = Math.ceil(totalCount / limitNum) || 1;
 
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     res.status(200).json({
       success: true,
       data: products,
@@ -320,7 +320,6 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
  */
 export const getProductById = async (req: Request, res: Response): Promise<void> => {
   try {
-    await ensureInitialProducts();
     const { id } = req.params;
 
     const product = await Product.findOne({
@@ -335,6 +334,7 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
     res.status(200).json({
       success: true,
       data: product,

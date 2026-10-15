@@ -26,6 +26,12 @@ interface CurrencyContextType {
   formatPrice: (inrAmount: number, options?: { showCode?: boolean }) => string;
   convertPrice: (inrAmount: number) => { amount: number; formatted: string; symbol: string; code: string };
   isLoaded: boolean;
+  // Aliases for compatibility across components
+  activeCurrency: CurrencyConfigItem;
+  availableCurrencies: CurrencyConfigItem[];
+  setCurrency: (code: string) => void;
+  detectedCountry: CountryInfo;
+  isLoading: boolean;
 }
 
 const DEFAULT_INR_CURRENCY: CurrencyConfigItem = {
@@ -51,6 +57,11 @@ const CurrencyContext = createContext<CurrencyContextType>({
     code: 'INR',
   }),
   isLoaded: false,
+  activeCurrency: DEFAULT_INR_CURRENCY,
+  availableCurrencies: DEFAULT_CURRENCIES,
+  setCurrency: () => {},
+  detectedCountry: GLOBAL_COUNTRIES[0],
+  isLoading: true,
 });
 
 const STORAGE_KEY = 'labdhi_customer_currency';
@@ -71,12 +82,23 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
   const [customerCountry, setCustomerCountryState] = useState<CountryInfo>(GLOBAL_COUNTRIES[0]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Initialize purely automatic zero-cost geo-detection via native Intl
+  // Initialize from saved preference or zero-cost geo-detection
   useEffect(() => {
     try {
-      const detected = detectLocalCountryAndCurrency();
-      setCustomerCountryState(detected.country);
-      setCurrentCurrencyCode(detected.currencyCode);
+      const savedCode = typeof window !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+      const savedCountryCode = typeof window !== 'undefined' ? localStorage.getItem(COUNTRY_STORAGE_KEY) : null;
+
+      if (savedCountryCode && COUNTRIES_BY_CODE.has(savedCountryCode)) {
+        const country = COUNTRIES_BY_CODE.get(savedCountryCode)!;
+        setCustomerCountryState(country);
+        setCurrentCurrencyCode(savedCode || country.currency || 'INR');
+      } else if (savedCode) {
+        setCurrentCurrencyCode(savedCode);
+      } else {
+        const detected = detectLocalCountryAndCurrency();
+        setCustomerCountryState(detected.country);
+        setCurrentCurrencyCode(detected.currencyCode);
+      }
     } catch (_) {
       // Fallback to INR
     } finally {
@@ -102,8 +124,16 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
 
   const setCustomerCountry = useCallback((country: CountryInfo) => {
     setCustomerCountryState(country);
+    if (country?.currency) {
+      setCurrentCurrencyCode(country.currency);
+      try {
+        localStorage.setItem(STORAGE_KEY, country.currency);
+      } catch (_) {}
+    }
     try {
-      localStorage.setItem(COUNTRY_STORAGE_KEY, country.code);
+      if (country?.code) {
+        localStorage.setItem(COUNTRY_STORAGE_KEY, country.code);
+      }
     } catch (_) {}
   }, []);
 
@@ -159,6 +189,11 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
         formatPrice,
         convertPrice,
         isLoaded,
+        activeCurrency: currentCurrency,
+        availableCurrencies,
+        setCurrency: setCurrencyCode,
+        detectedCountry: customerCountry,
+        isLoading: !isLoaded,
       }}
     >
       {children}

@@ -220,6 +220,25 @@ export default function OrdersClient() {
     }
   };
 
+  const formatOrderCurrency = (amount: number, order: Order) => {
+    const code = order.currency || 'INR';
+    const rate = order.exchangeRate || 1;
+    if (code === 'INR' || rate <= 1) {
+      return `₹${Math.round(amount || 0)}`;
+    }
+    const symbolMap: Record<string, string> = {
+      EUR: '€',
+      USD: '$',
+      GBP: '£',
+      AED: 'د.إ',
+      CAD: 'C$',
+      AUD: 'A$',
+      INR: '₹',
+    };
+    const symbol = symbolMap[code] || `${code} `;
+    return `${symbol}${((amount || 0) / rate).toFixed(2)}`;
+  };
+
   // Filter & Search Logic
   const filteredOrders = orders.filter((order) => {
     // Status Filter
@@ -516,11 +535,11 @@ export default function OrdersClient() {
                                 {/* Price */}
                                 <div className="text-right shrink-0">
                                   <span className="text-xs sm:text-sm font-bold text-[#1F3A2E]">
-                                    ₹{item.total}
+                                    {formatOrderCurrency(item.total, order)}
                                   </span>
                                   {item.quantity > 1 && (
                                     <p className="text-[10px] text-slate-400">
-                                      ₹{item.price} each
+                                      {formatOrderCurrency(item.price, order)} each
                                     </p>
                                   )}
                                 </div>
@@ -544,10 +563,18 @@ export default function OrdersClient() {
                               {order.shippingAddress.landmark && `, ${order.shippingAddress.landmark}`}
                               <br />
                               {order.shippingAddress.city}, {order.shippingAddress.state} - {order.shippingAddress.pincode}
+                              {order.shippingAddress.country && order.shippingAddress.country !== 'India' && (
+                                <span className="block font-semibold text-[#1F3A2E] mt-0.5">
+                                  {order.shippingAddress.country}
+                                </span>
+                              )}
                             </p>
                             <p className="text-[11px] text-slate-600 mt-2 flex items-center gap-1">
                               <Phone className="w-3 h-3 text-slate-400" />
-                              <span>+91 {order.shippingAddress.phone}</span>
+                              <span>
+                                {order.shippingAddress.phone?.startsWith('+') ? '' : order.shippingAddress.country && order.shippingAddress.country !== 'India' ? '' : '+91 '}
+                                {order.shippingAddress.phone}
+                              </span>
                             </p>
                           </div>
 
@@ -591,22 +618,32 @@ export default function OrdersClient() {
                       <div className="flex items-center gap-4 sm:gap-6 text-xs text-slate-600">
                         <div>
                           <span>Subtotal: </span>
-                          <span className="font-bold text-[#1F3A2E]">₹{order.pricing.subtotal}</span>
+                          <span className="font-bold text-[#1F3A2E]">
+                            {formatOrderCurrency(order.pricing.subtotal, order)}
+                          </span>
                         </div>
                         {order.pricing.discount > 0 && (
                           <div className="text-emerald-700">
                             <span>Discount: </span>
-                            <span className="font-bold">-₹{order.pricing.discount}</span>
+                            <span className="font-bold">
+                              -{formatOrderCurrency(order.pricing.discount, order)}
+                            </span>
                           </div>
                         )}
                         <div>
                           <span>Delivery: </span>
-                          <span className="font-bold text-emerald-700">FREE</span>
+                          {order.pricing.shipping && order.pricing.shipping > 0 ? (
+                            <span className="font-bold text-[#1F3A2E]">
+                              {formatOrderCurrency(order.pricing.shipping, order)}
+                            </span>
+                          ) : (
+                            <span className="font-bold text-emerald-700">FREE</span>
+                          )}
                         </div>
                         <div className="text-sm">
                           <span className="font-bold text-[#1F3A2E]">Total: </span>
                           <span className="font-serif font-bold text-base text-[#1F3A2E]">
-                            ₹{order.pricing.total}
+                            {formatOrderCurrency(order.pricing.total, order)}
                           </span>
                         </div>
                       </div>

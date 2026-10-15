@@ -1,126 +1,211 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { useCurrency } from '@/context/CurrencyContext';
+import { useCurrency } from '../context/CurrencyContext';
+import { ChevronDown, Globe } from 'lucide-react';
 
 const CURRENCY_FLAGS: Record<string, string> = {
   INR: '🇮🇳',
   USD: '🇺🇸',
-  AED: '🇦🇪',
-  GBP: '🇬🇧',
   EUR: '🇪🇺',
+  GBP: '🇬🇧',
+  AED: '🇦🇪',
   CAD: '🇨🇦',
   AUD: '🇦🇺',
 };
 
+const getCurrencyFlag = (code: string): string => CURRENCY_FLAGS[code.toUpperCase()] || '🌐';
+
 interface CurrencySelectorProps {
+  variant?: 'header' | 'topbar' | 'mobile' | 'checkout';
   className?: string;
-  compact?: boolean;
 }
 
-export default function CurrencySelector({ className = '', compact = false }: CurrencySelectorProps) {
-  const { currentCurrency, currencies, setCurrencyCode } = useCurrency();
+export default function CurrencySelector({
+  variant = 'header',
+  className = '',
+}: CurrencySelectorProps) {
+  const {
+    activeCurrency,
+    availableCurrencies,
+    setCurrency,
+    detectedCountry,
+    isLoading,
+  } = useCurrency();
+
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside
+  // Close dropdown when clicked outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
-  const flag = CURRENCY_FLAGS[currentCurrency.code] || '🌐';
+  if (isLoading || !activeCurrency) {
+    return (
+      <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/40 border border-[#EFE9DD] animate-pulse text-xs text-slate-400">
+        <Globe className="w-3.5 h-3.5" />
+        <span>INR ₹</span>
+      </div>
+    );
+  }
 
+  // Visual variants
+  if (variant === 'topbar') {
+    return (
+      <div className={`relative inline-block text-left ${className}`} ref={dropdownRef}>
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-label="Select Currency"
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold text-[#D4A373] hover:text-white hover:bg-white/10 transition-colors cursor-pointer select-none"
+        >
+          <span className="text-xs leading-none">{getCurrencyFlag(activeCurrency.code)}</span>
+          <span>{activeCurrency.code}</span>
+          <span className="text-white/60">({activeCurrency.symbol})</span>
+          <ChevronDown className={`w-3 h-3 text-[#D4A373] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {isOpen && (
+          <div className="absolute right-0 mt-1.5 w-56 bg-white text-[#1A201C] rounded-2xl shadow-2xl border border-[#EFE9DD] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-3 py-1.5 border-b border-[#EFE9DD]/70 mb-1">
+              <p className="text-[10px] font-bold tracking-wider uppercase text-[#71846C]">Select Currency</p>
+              {detectedCountry && (
+                <p className="text-[10px] text-slate-500">Detected: {detectedCountry.name}</p>
+              )}
+            </div>
+            <div className="max-h-64 overflow-y-auto py-1">
+              {availableCurrencies.map((c) => {
+                const isSelected = c.code === activeCurrency.code;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => {
+                      setCurrency(c.code);
+                      setIsOpen(false);
+                    }}
+                    className={`w-full text-left px-3.5 py-2 text-xs flex items-center justify-between transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#1F3A2E] text-white font-bold'
+                        : 'text-slate-700 hover:bg-[#F8F6F0] hover:text-[#1F3A2E]'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-base leading-none">{getCurrencyFlag(c.code)}</span>
+                      <span>{c.code} - {c.name}</span>
+                    </span>
+                    <span className={`font-semibold ${isSelected ? 'text-[#D4A373]' : 'text-slate-500'}`}>
+                      {c.symbol}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (variant === 'mobile') {
+    return (
+      <div className={`w-full ${className}`}>
+        <label className="block text-xs font-bold text-[#1F3A2E] uppercase tracking-wider mb-1.5">
+          Select Currency
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {availableCurrencies.map((c) => {
+            const isSelected = c.code === activeCurrency.code;
+            return (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => setCurrency(c.code)}
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'border-[#1F3A2E] bg-[#1F3A2E] text-white shadow-sm'
+                    : 'border-[#EFE9DD] bg-white text-slate-700 hover:bg-[#F8F6F0]'
+                }`}
+              >
+                <span className="text-lg mb-0.5">{getCurrencyFlag(c.code)}</span>
+                <span className="font-bold">{c.code}</span>
+                <span className="text-[10px] opacity-80">{c.symbol}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Default 'header' / standard pill variant
   return (
     <div className={`relative inline-block text-left ${className}`} ref={dropdownRef}>
       <button
         type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border border-stone-200/80 bg-white/90 text-stone-700 hover:text-emerald-800 hover:border-emerald-300 hover:bg-emerald-50/50 shadow-sm transition-all duration-150 backdrop-blur-sm cursor-pointer select-none ${
-          compact ? 'text-[11px] px-2 py-0.5' : ''
-        }`}
-        title={`Select Currency (Currently: ${currentCurrency.name})`}
-        aria-label="Currency Selector"
+        onClick={() => setIsOpen(!isOpen)}
+        aria-label="Select Currency"
+        className="flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-white/90 hover:bg-[#EFE9DD] text-[#1A201C] hover:text-[#1F3A2E] border border-[#EFE9DD] transition-all cursor-pointer shadow-xs font-semibold text-xs select-none"
       >
-        <span className="text-sm leading-none" role="img" aria-label={currentCurrency.code}>
-          {flag}
-        </span>
-        <span className="tracking-tight">{currentCurrency.code}</span>
-        <span className="text-stone-400 font-mono text-[10px]">({currentCurrency.symbol})</span>
-        <svg
-          className={`w-3 h-3 text-stone-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <span className="text-sm leading-none">{getCurrencyFlag(activeCurrency.code)}</span>
+        <span className="tracking-wide font-bold">{activeCurrency.code}</span>
+        <span className="text-slate-500 font-normal">({activeCurrency.symbol})</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-1.5 w-56 rounded-xl bg-white shadow-xl border border-stone-100 ring-1 ring-black/5 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-          <div className="px-3 py-2 bg-gradient-to-r from-emerald-50 to-stone-50 border-b border-stone-100 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-900">
-              Select Currency
-            </span>
-            <span className="text-[10px] text-emerald-700 bg-emerald-100/70 px-1.5 py-0.5 rounded-full font-medium">
-              Global
-            </span>
+        <div className="absolute right-0 mt-2 w-64 bg-white text-[#1A201C] rounded-2xl shadow-xl border border-[#EFE9DD] py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div className="px-4 py-2 border-b border-[#EFE9DD] mb-1">
+            <p className="text-[11px] font-bold tracking-wider uppercase text-[#1F3A2E]">
+              Select Country & Currency
+            </p>
+            {detectedCountry && (
+              <p className="text-[10px] text-slate-500 mt-0.5">
+                Location: {detectedCountry.flag} {detectedCountry.name}
+              </p>
+            )}
           </div>
-
-          <div className="max-h-60 overflow-y-auto py-1 divide-y divide-stone-50">
-            {currencies.map((curr) => {
-              const isSelected = curr.code === currentCurrency.code;
-              const currFlag = CURRENCY_FLAGS[curr.code] || '🌐';
-
+          <div className="max-h-72 overflow-y-auto py-1">
+            {availableCurrencies.map((c) => {
+              const isSelected = c.code === activeCurrency.code;
               return (
                 <button
-                  key={curr.code}
+                  key={c.code}
                   type="button"
                   onClick={() => {
-                    setCurrencyCode(curr.code);
+                    setCurrency(c.code);
                     setIsOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 flex items-center justify-between text-xs transition-colors cursor-pointer ${
+                  className={`w-full text-left px-4 py-2 text-xs flex items-center justify-between transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-emerald-50/80 text-emerald-900 font-semibold'
-                      : 'text-stone-700 hover:bg-stone-50'
+                      ? 'bg-[#1F3A2E] text-white font-bold'
+                      : 'text-slate-700 hover:bg-[#F8F6F0] hover:text-[#1F3A2E]'
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-base leading-none">{currFlag}</span>
-                    <div className="flex flex-col">
-                      <span className="font-medium text-stone-800">
-                        {curr.code} <span className="text-stone-400 font-mono text-[11px]">({curr.symbol})</span>
-                      </span>
-                      <span className="text-[10px] text-stone-400 leading-tight truncate max-w-[120px]">
-                        {curr.name}
-                      </span>
-                    </div>
-                  </div>
-
-                  {isSelected && (
-                    <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                  )}
+                  <span className="flex items-center gap-2.5">
+                    <span className="text-base leading-none">{getCurrencyFlag(c.code)}</span>
+                    <span>
+                      <span className="font-bold">{c.code}</span>
+                      <span className="text-[11px] opacity-80 block">{c.name}</span>
+                    </span>
+                  </span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded ${isSelected ? 'bg-white/20 text-[#D4A373]' : 'bg-slate-100 text-slate-600'}`}>
+                    {c.symbol}
+                  </span>
                 </button>
               );
             })}
-          </div>
-
-          <div className="px-3 py-1.5 bg-stone-50/80 border-t border-stone-100 text-[10px] text-stone-500 text-center flex items-center justify-center gap-1">
-            <span>✈️</span>
-            <span>Worldwide Shipping Available</span>
           </div>
         </div>
       )}

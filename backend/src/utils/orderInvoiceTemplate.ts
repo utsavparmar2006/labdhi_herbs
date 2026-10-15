@@ -128,11 +128,50 @@ export function generateOrderInvoiceHtml(params: {
   const shippingAmount = Number(order.pricing?.shipping ?? order.shipping ?? 0);
   const total = Number(order.pricing?.total || 0);
 
-  // Inclusive GST calculation
+  // Dynamic currency & exchange rate resolution
+  const currencyCode = String(order.currency || 'INR').trim().toUpperCase();
+  const exchangeRate = Number(order.exchangeRate) > 0 ? Number(order.exchangeRate) : 1;
+  const isForeignOrder = currencyCode !== 'INR' && exchangeRate > 1;
+
+  const symbolMap: Record<string, string> = {
+    INR: '₹',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    AED: 'د.إ',
+    CAD: 'C$',
+    AUD: 'A$',
+  };
+  const currencySymbol = symbolMap[currencyCode] || `${currencyCode} `;
+
+  // Currency price formatter helper
+  const formatPrice = (inrVal: number): string => {
+    const val = Number(inrVal) || 0;
+    if (!isForeignOrder) {
+      return `₹${val.toFixed(2)}`;
+    }
+    const converted = val / exchangeRate;
+    return `${currencySymbol}${converted.toFixed(2)}`;
+  };
+
+  const isIndia = (address.country || 'India').trim().toLowerCase() === 'india';
+
+  // Delivery status label for Meta Grid
+  let deliveryStatusHtml = '';
+  if (shippingAmount === 0) {
+    deliveryStatusHtml = 'Delivery: <strong style="color: #15803d;">Free Express Shipping</strong>';
+  } else {
+    const deliveryType = !isIndia
+      ? `International Shipping (${address.country || 'Worldwide'})`
+      : (address.state?.toLowerCase() === 'gujarat' ? 'Gujarat Express' : 'Interstate Express');
+    deliveryStatusHtml = `Delivery: <strong style="color: #14261E;">${deliveryType} • ${formatPrice(shippingAmount)}</strong>`;
+  }
+
+  // Inclusive GST calculation (relevant for India)
   const gstBreakdown = calculateGstInclusive({
     amount: total,
     state: address.state || 'Gujarat',
-    gstEnabled: siteSettings?.gstEnabled !== false,
+    gstEnabled: isIndia && siteSettings?.gstEnabled !== false,
     igstRate: siteSettings?.igst ?? 18,
     cgstRate: siteSettings?.cgst ?? 9,
     sgstRate: siteSettings?.sgst ?? 9,
@@ -157,8 +196,8 @@ export function generateOrderInvoiceHtml(params: {
             <span style="font-size: 11px; color: #B58A5A;">100% Pure Botanical Extract</span>
           </td>
           <td style="padding: 12px 10px; font-size: 13px; color: #1e293b; text-align: center; font-weight: 600;">${qty}</td>
-          <td style="padding: 12px 10px; font-size: 13px; color: #64748b; text-align: right;">₹${unitPrice.toFixed(2)}</td>
-          <td style="padding: 12px 10px; font-size: 13px; color: #14261E; font-weight: bold; text-align: right;">₹${lineTotal.toFixed(2)}</td>
+          <td style="padding: 12px 10px; font-size: 13px; color: #64748b; text-align: right;">${formatPrice(unitPrice)}</td>
+          <td style="padding: 12px 10px; font-size: 13px; color: #14261E; font-weight: bold; text-align: right;">${formatPrice(lineTotal)}</td>
         </tr>
       `;
     })
@@ -220,7 +259,7 @@ export function generateOrderInvoiceHtml(params: {
                     Payment Mode: <strong style="color: #14261E;">${paymentMethodLabel}</strong>
                   </td>
                   <td width="50%" style="font-size: 12px; color: #64748b; text-align: right;">
-                    Delivery: <strong style="color: #15803d;">Free Express Shipping</strong>
+                    ${deliveryStatusHtml}
                   </td>
                 </tr>
               </table>
@@ -271,8 +310,8 @@ export function generateOrderInvoiceHtml(params: {
                     <th style="padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; width: 30px; text-align: center;">#</th>
                     <th style="padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left;">Product</th>
                     <th style="padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; width: 50px;">Qty</th>
-                    <th style="padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; width: 75px;">Rate (₹)</th>
-                    <th style="padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; width: 85px;">Amount (₹)</th>
+                    <th style="padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; width: 85px;">Rate (${currencySymbol})</th>
+                    <th style="padding: 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; text-align: right; width: 95px;">Amount (${currencySymbol})</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -288,56 +327,78 @@ export function generateOrderInvoiceHtml(params: {
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td width="45%" valign="top" style="font-size: 11px; color: #64748b; line-height: 1.5;">
-                    <strong style="color: #14261E; display: block; margin-bottom: 4px;">Important Note on GST:</strong>
-                    All product prices shown above are <strong>inclusive of GST</strong>. The tax breakdown below specifies the exact taxable value and taxes calculated according to statutory Indian GST norms.
+                    ${
+                      isIndia && gstBreakdown.totalGst > 0
+                        ? `
+                      <strong style="color: #14261E; display: block; margin-bottom: 4px;">Important Note on GST:</strong>
+                      All product prices shown above are <strong>inclusive of GST</strong>. The tax breakdown specifies statutory taxes calculated according to Indian GST norms.
+                    `
+                        : `
+                      <strong style="color: #14261E; display: block; margin-bottom: 4px;">International Shipment Notice:</strong>
+                      Your artisanal Ayurvedic formulations are prepared in Surat, Gujarat and dispatched with full customs declaration via International Express Courier.
+                    `
+                    }
                   </td>
                   <td width="10%"></td>
                   <td width="45%" valign="top">
                     <table width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 12px;">
                       <tr>
                         <td style="padding: 4px 0; color: #64748b;">Items Total (MRP incl.):</td>
-                        <td style="padding: 4px 0; text-align: right; font-weight: 600; color: #1e293b;">₹${subtotal.toFixed(2)}</td>
+                        <td style="padding: 4px 0; text-align: right; font-weight: 600; color: #1e293b;">${formatPrice(subtotal)}</td>
                       </tr>
                       ${
                         discount > 0
                           ? `
                         <tr>
                           <td style="padding: 4px 0; color: #15803d; font-weight: 600;">Coupon Discount:</td>
-                          <td style="padding: 4px 0; text-align: right; font-weight: 600; color: #15803d;">- ₹${discount.toFixed(2)}</td>
+                          <td style="padding: 4px 0; text-align: right; font-weight: 600; color: #15803d;">- ${formatPrice(discount)}</td>
                         </tr>
                       `
                           : ''
                       }
-                      <tr style="border-top: 1px dashed #EFE9DD;">
-                        <td style="padding: 6px 0 4px 0; color: #64748b;">Taxable Base Value:</td>
-                        <td style="padding: 6px 0 4px 0; text-align: right; color: #475569;">₹${gstBreakdown.taxableAmount.toFixed(2)}</td>
-                      </tr>
                       ${
-                        gstBreakdown.isGujarat
+                        isIndia && gstBreakdown.totalGst > 0
                           ? `
-                        <tr>
-                          <td style="padding: 3px 0; color: #64748b;">CGST (${((siteSettings?.cgst ?? 9)).toFixed(1)}%):</td>
-                          <td style="padding: 3px 0; text-align: right; color: #475569;">₹${gstBreakdown.cgst.toFixed(2)}</td>
+                        <tr style="border-top: 1px dashed #EFE9DD;">
+                          <td style="padding: 6px 0 4px 0; color: #64748b;">Taxable Base Value:</td>
+                          <td style="padding: 6px 0 4px 0; text-align: right; color: #475569;">₹${gstBreakdown.taxableAmount.toFixed(2)}</td>
                         </tr>
-                        <tr>
-                          <td style="padding: 3px 0; color: #64748b;">SGST (${((siteSettings?.sgst ?? 9)).toFixed(1)}%):</td>
-                          <td style="padding: 3px 0; text-align: right; color: #475569;">₹${gstBreakdown.sgst.toFixed(2)}</td>
-                        </tr>
+                        ${
+                          gstBreakdown.isGujarat
+                            ? `
+                          <tr>
+                            <td style="padding: 3px 0; color: #64748b;">CGST (${((siteSettings?.cgst ?? 9)).toFixed(1)}%):</td>
+                            <td style="padding: 3px 0; text-align: right; color: #475569;">₹${gstBreakdown.cgst.toFixed(2)}</td>
+                          </tr>
+                          <tr>
+                            <td style="padding: 3px 0; color: #64748b;">SGST (${((siteSettings?.sgst ?? 9)).toFixed(1)}%):</td>
+                            <td style="padding: 3px 0; text-align: right; color: #475569;">₹${gstBreakdown.sgst.toFixed(2)}</td>
+                          </tr>
+                        `
+                            : `
+                          <tr>
+                            <td style="padding: 3px 0; color: #64748b;">IGST (${((siteSettings?.igst ?? 18)).toFixed(1)}%):</td>
+                            <td style="padding: 3px 0; text-align: right; color: #475569;">₹${gstBreakdown.igst.toFixed(2)}</td>
+                          </tr>
+                        `
+                        }
                       `
-                          : `
-                        <tr>
-                          <td style="padding: 3px 0; color: #64748b;">IGST (${((siteSettings?.igst ?? 18)).toFixed(1)}%):</td>
-                          <td style="padding: 3px 0; text-align: right; color: #475569;">₹${gstBreakdown.igst.toFixed(2)}</td>
-                        </tr>
-                      `
+                          : ''
                       }
                       <tr>
                         <td style="padding: 3px 0; color: #64748b;">Delivery / Shipping:</td>
-                        <td style="padding: 3px 0; text-align: right; color: ${shippingAmount === 0 ? '#15803d' : '#14261E'}; font-weight: 600;">${shippingAmount === 0 ? 'FREE' : `₹${shippingAmount.toFixed(2)}`}</td>
+                        <td style="padding: 3px 0; text-align: right; color: ${shippingAmount === 0 ? '#15803d' : '#14261E'}; font-weight: 600;">${shippingAmount === 0 ? 'FREE' : formatPrice(shippingAmount)}</td>
                       </tr>
                       <tr style="border-top: 2px solid #14261E;">
                         <td style="padding: 10px 0 4px 0; font-size: 14px; font-weight: bold; color: #14261E;">Grand Total:</td>
-                        <td style="padding: 10px 0 4px 0; text-align: right; font-size: 16px; font-weight: bold; color: #14261E;">₹${total.toFixed(2)}</td>
+                        <td style="padding: 10px 0 4px 0; text-align: right; font-size: 16px; font-weight: bold; color: #14261E;">
+                          ${formatPrice(total)}
+                          ${
+                            isForeignOrder
+                              ? `<span style="font-size: 12px; color: #D4A373; font-weight: 600; margin-left: 3px;">${currencyCode}</span><div style="font-size: 11px; color: #94a3b8; font-weight: normal; margin-top: 2px;">(₹${total.toFixed(2)} INR)</div>`
+                              : ''
+                          }
+                        </td>
                       </tr>
                     </table>
                   </td>
@@ -414,9 +475,14 @@ export async function sendOrderInvoiceEmail(order: any): Promise<{ success: bool
       'Support@labdhiherbs.com';
 
     if (adminEmail && adminEmail !== recipientEmail && adminEmail.includes('@')) {
+      const isForeign = order.currency && order.currency !== 'INR' && Number(order.exchangeRate) > 1;
+      const displayTotal = isForeign
+        ? `${((order.pricing?.total || 0) / Number(order.exchangeRate)).toFixed(2)} ${order.currency} (₹${order.pricing?.total || 0} INR)`
+        : `₹${order.pricing?.total || 0}`;
+
       sendEmail({
         to: adminEmail,
-        subject: `[Admin Alert] New Order #${order.orderId} Received - ₹${order.pricing?.total || 0}`,
+        subject: `[Admin Alert] New Order #${order.orderId} Received - ${displayTotal}`,
         html,
         fromName: senderName,
       }).catch(() => {});

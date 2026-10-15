@@ -308,6 +308,52 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       paidAt: undefined,
     };
 
+    // Determine authoritative currency & exchange rate matching customer geography
+    let resolvedCurrency = String(req.body.currency || '').trim().toUpperCase();
+    let resolvedExchangeRate = Number(req.body.exchangeRate) || 0;
+
+    const currencyConfigs = siteSettings?.currencies || [
+      { code: 'INR', exchangeRate: 1 },
+      { code: 'USD', exchangeRate: 85 },
+      { code: 'EUR', exchangeRate: 92 },
+      { code: 'GBP', exchangeRate: 110 },
+      { code: 'AED', exchangeRate: 23 },
+      { code: 'CAD', exchangeRate: 62 },
+      { code: 'AUD', exchangeRate: 56 },
+    ];
+
+    if (!resolvedCurrency || (resolvedCurrency === 'INR' && !isIndia)) {
+      const lowerCountry = customerCountry.toLowerCase();
+      if (['united states', 'usa', 'us'].includes(lowerCountry)) {
+        resolvedCurrency = 'USD';
+      } else if (['united kingdom', 'uk', 'great britain'].includes(lowerCountry)) {
+        resolvedCurrency = 'GBP';
+      } else if (
+        [
+          'germany', 'france', 'italy', 'spain', 'netherlands', 'switzerland',
+          'austria', 'belgium', 'ireland', 'sweden', 'norway', 'denmark',
+          'portugal', 'greece', 'poland', 'finland', 'czech republic', 'hungary', 'romania'
+        ].includes(lowerCountry)
+      ) {
+        resolvedCurrency = 'EUR';
+      } else if (['united arab emirates', 'uae', 'dubai', 'saudi arabia', 'oman', 'qatar', 'kuwait', 'bahrain'].includes(lowerCountry)) {
+        resolvedCurrency = 'AED';
+      } else if (['canada'].includes(lowerCountry)) {
+        resolvedCurrency = 'CAD';
+      } else if (['australia', 'new zealand'].includes(lowerCountry)) {
+        resolvedCurrency = 'AUD';
+      } else if (!isIndia) {
+        resolvedCurrency = 'USD';
+      } else {
+        resolvedCurrency = 'INR';
+      }
+    }
+
+    if (resolvedExchangeRate <= 0 || (resolvedCurrency !== 'INR' && resolvedExchangeRate === 1)) {
+      const matchedCurr = currencyConfigs.find((c: any) => c.code === resolvedCurrency);
+      resolvedExchangeRate = matchedCurr?.exchangeRate && Number(matchedCurr.exchangeRate) > 0 ? Number(matchedCurr.exchangeRate) : 1;
+    }
+
     const newOrder = await Order.create({
       orderId,
       ...(userId ? { user: userId } : {}),
@@ -341,8 +387,8 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       },
       couponCode: discount > 0 ? normalizedCoupon : '',
       payment,
-      currency: req.body.currency || 'INR',
-      exchangeRate: Number(req.body.exchangeRate) || 1,
+      currency: resolvedCurrency,
+      exchangeRate: resolvedExchangeRate,
       deliveryName: '',
       deliveryTrackId: '',
       orderStatus: 'pending',
