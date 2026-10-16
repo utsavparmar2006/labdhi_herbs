@@ -1,5 +1,11 @@
 import { Request, Response } from 'express';
 import { Category, ICategory } from '../models/Category.model.js';
+import { cache, CACHE_KEYS } from '../utils/cache.js';
+
+// Helper to invalidate active categories RAM cache on any admin mutation
+const invalidateCategoryCache = () => {
+  cache.del(CACHE_KEYS.CATEGORIES_ACTIVE);
+};
 
 // Default initial categories seed
 const INITIAL_CATEGORIES = [
@@ -121,9 +127,18 @@ const generateSlug = (text: string): string => {
  */
 export const getCategories = async (_req: Request, res: Response): Promise<void> => {
   try {
-    const categories = await Category.find({ status: 'active' }).sort({ order: 1, createdAt: 1 }).lean();
+    const isCached = cache.get(CACHE_KEYS.CATEGORIES_ACTIVE) !== null;
 
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    const categories = await cache.getOrSet(
+      CACHE_KEYS.CATEGORIES_ACTIVE,
+      async () => {
+        return await Category.find({ status: 'active' }).sort({ order: 1, createdAt: 1 }).lean();
+      },
+      600 // 10 minutes cache TTL
+    );
+
+    res.setHeader('X-Cache', isCached ? 'HIT' : 'MISS');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
     res.status(200).json({
       success: true,
       data: categories,
@@ -278,6 +293,8 @@ export const createCategory = async (req: Request, res: Response): Promise<void>
       subCategories: formattedSubCategories,
     });
 
+    invalidateCategoryCache();
+
     res.status(201).json({
       success: true,
       message: 'Category created successfully',
@@ -333,6 +350,7 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
     }
 
     await category.save();
+    invalidateCategoryCache();
 
     res.status(200).json({
       success: true,
@@ -370,6 +388,7 @@ export const toggleCategoryStatus = async (req: Request, res: Response): Promise
 
     category.status = category.status === 'active' ? 'inactive' : 'active';
     await category.save();
+    invalidateCategoryCache();
 
     res.status(200).json({
       success: true,
@@ -404,6 +423,8 @@ export const deleteCategory = async (req: Request, res: Response): Promise<void>
       });
       return;
     }
+
+    invalidateCategoryCache();
 
     res.status(200).json({
       success: true,
@@ -512,6 +533,7 @@ export const createSubCategory = async (req: Request, res: Response): Promise<vo
 
     category.subCategories.push(newSubCategory as any);
     await category.save();
+    invalidateCategoryCache();
 
     res.status(201).json({
       success: true,
@@ -591,6 +613,7 @@ export const updateSubCategory = async (req: Request, res: Response): Promise<vo
 
       targetCategory.subCategories.push(updatedSub as any);
       await targetCategory.save();
+      invalidateCategoryCache();
 
       res.status(200).json({
         success: true,
@@ -609,6 +632,7 @@ export const updateSubCategory = async (req: Request, res: Response): Promise<vo
     if (itemCount !== undefined) currentSub.itemCount = Number(itemCount);
 
     await sourceCategory.save();
+    invalidateCategoryCache();
 
     res.status(200).json({
       success: true,
@@ -659,6 +683,7 @@ export const deleteSubCategory = async (req: Request, res: Response): Promise<vo
     }
 
     await category.save();
+    invalidateCategoryCache();
 
     res.status(200).json({
       success: true,

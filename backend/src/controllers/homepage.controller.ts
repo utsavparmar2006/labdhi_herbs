@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { HomePageConfig } from '../models/HomePageConfig.model.js';
+import { cache, CACHE_KEYS } from '../utils/cache.js';
 
 // Default initial config values
 const DEFAULT_CONFIG = {
@@ -32,19 +33,28 @@ const DEFAULT_CONFIG = {
 };
 
 /**
- * @desc Get current Home Page Configuration
+ * @desc Get current Home Page Configuration (Cached in RAM for zero DB overhead)
  * @route GET /api/v1/homepage-config
  * @access Public
  */
 export const getHomePageConfig = async (_req: Request, res: Response): Promise<void> => {
   try {
-    let config: any = await HomePageConfig.findOne().lean();
+    const isCached = cache.get(CACHE_KEYS.HOMEPAGE_CONFIG) !== null;
 
-    if (!config) {
-      config = await HomePageConfig.create(DEFAULT_CONFIG);
-    }
+    const config = await cache.getOrSet(
+      CACHE_KEYS.HOMEPAGE_CONFIG,
+      async () => {
+        let doc: any = await HomePageConfig.findOne().lean();
+        if (!doc) {
+          doc = await HomePageConfig.create(DEFAULT_CONFIG);
+        }
+        return doc;
+      },
+      600 // 10 minutes cache TTL
+    );
 
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    res.setHeader('X-Cache', isCached ? 'HIT' : 'MISS');
+    res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
     res.status(200).json({
       success: true,
       data: config,
@@ -128,6 +138,9 @@ export const updateHomePageConfig = async (req: Request, res: Response): Promise
     }
 
     await config.save();
+
+    // Invalidate cached copy so fresh configuration is served immediately
+    cache.del(CACHE_KEYS.HOMEPAGE_CONFIG);
 
     res.status(200).json({
       success: true,

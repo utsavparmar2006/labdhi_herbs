@@ -1,16 +1,33 @@
 import { Request, Response } from 'express';
 import SiteSettings from '../models/SiteSettings.model.js';
 import { verifyAndSendTestEmail } from '../utils/mailer.js';
+import { cache, CACHE_KEYS } from '../utils/cache.js';
+
+// Helper to invalidate cached site settings whenever any admin updates them
+const invalidateSiteSettingsCache = () => {
+  cache.del(CACHE_KEYS.SITE_SETTINGS);
+};
 
 /**
- * Get site settings (creates default if none exists)
+ * Get site settings (creates default if none exists) - Cached in RAM for ultra-fast response
  */
 export const getSiteSettings = async (req: Request, res: Response) => {
   try {
+    const cached = cache.get(CACHE_KEYS.SITE_SETTINGS);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+      return res.status(200).json({ success: true, data: cached });
+    }
+
     let settings: any = await SiteSettings.findOne().lean();
     if (!settings) {
       settings = await SiteSettings.create({});
+      settings = (settings as any).toObject ? (settings as any).toObject() : settings;
     }
+
+    cache.set(CACHE_KEYS.SITE_SETTINGS, settings, 600); // 10 minutes cache
+    res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     res.status(200).json({ success: true, data: settings });
   } catch (error: any) {
@@ -30,6 +47,7 @@ export const updateSiteSettings = async (req: Request, res: Response) => {
       Object.assign(settings, req.body);
       await settings.save();
     }
+    invalidateSiteSettingsCache();
     res.status(200).json({ success: true, message: 'Site settings updated successfully', data: settings });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -77,6 +95,7 @@ export const updateProfile = async (req: Request, res: Response) => {
       { $set: updateObj },
       { new: true, upsert: true }
     );
+    invalidateSiteSettingsCache();
     res.status(200).json({ success: true, message: 'Profile updated successfully', data: settings });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -93,6 +112,7 @@ export const updateAboutUs = async (req: Request, res: Response) => {
       { $set: { aboutUs: req.body } },
       { new: true, upsert: true }
     );
+    invalidateSiteSettingsCache();
     res.status(200).json({ success: true, message: 'About Us updated successfully', data: settings });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -114,6 +134,7 @@ export const updateLegalPolicy = async (req: Request, res: Response) => {
       { $set: { [section]: req.body.content } },
       { new: true, upsert: true }
     );
+    invalidateSiteSettingsCache();
     res.status(200).json({ success: true, message: `${section} updated successfully`, data: settings });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -130,6 +151,7 @@ export const updateFaq = async (req: Request, res: Response) => {
       { $set: { faq: req.body } },
       { new: true, upsert: true }
     );
+    invalidateSiteSettingsCache();
     res.status(200).json({ success: true, message: 'FAQ updated successfully', data: settings });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -147,6 +169,7 @@ export const updateCopyright = async (req: Request, res: Response) => {
       { $set: { copyrightText, copyrightYear } },
       { new: true, upsert: true }
     );
+    invalidateSiteSettingsCache();
     res.status(200).json({ success: true, message: 'Copyright updated successfully', data: settings });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -164,6 +187,7 @@ export const updateLogos = async (req: Request, res: Response) => {
       { $set: { logoLight, logoDark, favicon } },
       { new: true, upsert: true }
     );
+    invalidateSiteSettingsCache();
     res.status(200).json({ success: true, message: 'Logos updated successfully', data: settings });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -180,6 +204,7 @@ export const updateBanners = async (req: Request, res: Response) => {
       { $set: { banners: req.body } },
       { new: true, upsert: true }
     );
+    invalidateSiteSettingsCache();
     res.status(200).json({ success: true, message: 'Banners updated successfully', data: settings });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -262,6 +287,7 @@ export const updateGeneralSettings = async (req: Request, res: Response) => {
       { $set: updateData },
       { new: true, upsert: true }
     );
+    invalidateSiteSettingsCache();
     res.status(200).json({ success: true, message: 'Site settings updated successfully', data: settings });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -278,6 +304,7 @@ export const updatePageHeaders = async (req: Request, res: Response) => {
       { $set: { pageHeaders: req.body } },
       { new: true, upsert: true }
     );
+    invalidateSiteSettingsCache();
     res.status(200).json({
       success: true,
       message: 'Page headers updated successfully',
@@ -319,6 +346,7 @@ export const updateSmtpConfig = async (req: Request, res: Response) => {
       { new: true, upsert: true }
     );
 
+    invalidateSiteSettingsCache();
     res.status(200).json({
       success: true,
       message: 'Email & SMTP settings saved successfully',
@@ -358,6 +386,7 @@ export const updateDeliveryCharges = async (req: Request, res: Response) => {
       { new: true, upsert: true }
     );
 
+    invalidateSiteSettingsCache();
     res.status(200).json({
       success: true,
       message: 'Delivery charges updated successfully',
@@ -384,6 +413,7 @@ export const updateCurrencies = async (req: Request, res: Response) => {
       { new: true, upsert: true }
     );
 
+    invalidateSiteSettingsCache();
     res.status(200).json({
       success: true,
       message: 'Currency settings saved successfully',
@@ -414,6 +444,7 @@ export const updateInternationalShipping = async (req: Request, res: Response) =
       { new: true, upsert: true }
     );
 
+    invalidateSiteSettingsCache();
     res.status(200).json({
       success: true,
       message: 'International shipping zones saved successfully',
