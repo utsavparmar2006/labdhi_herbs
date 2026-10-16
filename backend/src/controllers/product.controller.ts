@@ -260,21 +260,41 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
       if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
+    let isTextSearch = false;
     if (search) {
-      const searchRegex = { $regex: String(search), $options: 'i' };
-      filter.$or = [
-        { name: searchRegex },
-        { description: searchRegex },
-        { category: searchRegex },
-        { mainCategory: searchRegex },
-        { subCategory: searchRegex },
-        { ingredients: searchRegex },
-        { benefits: searchRegex },
-      ];
+      const searchStr = String(search).trim();
+      if (searchStr) {
+        if (searchStr.length >= 3) {
+          // Check if full-text index matches relevant catalog items
+          const textMatchedCount = await Product.countDocuments({
+            ...filter,
+            $text: { $search: searchStr },
+          });
+
+          if (textMatchedCount > 0) {
+            filter.$text = { $search: searchStr };
+            isTextSearch = true;
+          }
+        }
+
+        // Fallback to substring regex for short search terms (e.g. 1-2 chars) or partial typing
+        if (!isTextSearch) {
+          const searchRegex = { $regex: searchStr, $options: 'i' };
+          filter.$or = [
+            { name: searchRegex },
+            { tag: searchRegex },
+            { category: searchRegex },
+            { mainCategory: searchRegex },
+            { subCategory: searchRegex },
+            { ingredients: searchRegex },
+            { benefits: searchRegex },
+          ];
+        }
+      }
     }
 
-    // Sorting
-    let sortOption: any = { createdAt: -1 };
+    // Sorting: when text search is active without an explicit sort, sort by highest text match relevance score
+    let sortOption: any = isTextSearch && !sort ? { score: { $meta: 'textScore' } } : { createdAt: -1 };
     if (sort === 'price-asc') sortOption = { price: 1 };
     else if (sort === 'price-desc') sortOption = { price: -1 };
     else if (sort === 'rating') sortOption = { rating: -1, reviewsCount: -1 };
@@ -285,8 +305,10 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
     const limitNum = Math.max(1, parseInt(String(limit)));
     const skip = (pageNum - 1) * limitNum;
 
+    const findProjection = isTextSearch && !sort ? { score: { $meta: 'textScore' } } : undefined;
+
     const [products, totalCount] = await Promise.all([
-      Product.find(filter).sort(sortOption).skip(skip).limit(limitNum).lean(),
+      Product.find(filter, findProjection).sort(sortOption).skip(skip).limit(limitNum).lean(),
       Product.countDocuments(filter),
     ]);
 

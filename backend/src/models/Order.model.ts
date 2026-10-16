@@ -190,6 +190,11 @@ const OrderSchema = new Schema<IOrder>(
 // Compound indexes for fast order filtering and admin dashboard aggregations
 OrderSchema.index({ orderStatus: 1, createdAt: -1 });
 OrderSchema.index({ 'customer.email': 1, createdAt: -1 });
+OrderSchema.index({ 'customer.phone': 1, createdAt: -1 });
+OrderSchema.index({ user: 1, createdAt: -1 });
+OrderSchema.index({ deliveryTrackId: 1 });
+OrderSchema.index({ 'payment.razorpayOrderId': 1 });
+OrderSchema.index({ 'payment.razorpayPaymentId': 1 });
 OrderSchema.index({ createdAt: -1 });
 
 export const Order = mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);

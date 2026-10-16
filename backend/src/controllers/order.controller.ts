@@ -552,16 +552,31 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
     }
 
     if (search) {
-      const searchRegex = { $regex: String(search), $options: 'i' };
-      filter.$or = [
-        { orderId: searchRegex },
-        { deliveryTrackId: searchRegex },
-        { deliveryName: searchRegex },
-        { 'customer.fullName': searchRegex },
-        { 'customer.email': searchRegex },
-        { 'customer.phone': searchRegex },
-        { 'shippingAddress.city': searchRegex },
-      ];
+      const searchStr = String(search).trim();
+      const isDigitsOnly = /^[0-9+]{6,15}$/.test(searchStr);
+      const isOrderId = /^LH/i.test(searchStr);
+
+      if (isOrderId) {
+        // Fast index-backed Order ID lookup
+        filter.orderId = { $regex: `^${searchStr}`, $options: 'i' };
+      } else if (isDigitsOnly) {
+        // Fast index-backed Phone number / Tracking ID lookup
+        filter.$or = [
+          { 'customer.phone': { $regex: searchStr } },
+          { deliveryTrackId: { $regex: `^${searchStr}`, $options: 'i' } },
+        ];
+      } else {
+        const searchRegex = { $regex: searchStr, $options: 'i' };
+        filter.$or = [
+          { orderId: searchRegex },
+          { deliveryTrackId: searchRegex },
+          { deliveryName: searchRegex },
+          { 'customer.fullName': searchRegex },
+          { 'customer.email': searchRegex },
+          { 'customer.phone': searchRegex },
+          { 'shippingAddress.city': searchRegex },
+        ];
+      }
     }
 
     const pageNum = Math.max(1, parseInt(String(page)));

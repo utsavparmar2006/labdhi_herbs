@@ -117,9 +117,11 @@ const userSchema = new Schema<IUser>(
   }
 );
 
-// Indexes for fast administrative queries and sorting
+// Indexes for fast administrative queries, lookups and sorting
+userSchema.index({ phone: 1 });
 userSchema.index({ role: 1, createdAt: -1 });
 userSchema.index({ status: 1, createdAt: -1 });
+userSchema.index({ role: 1, status: 1, createdAt: -1 });
 userSchema.index({ createdAt: -1 });
 
 // Hash password before saving if modified

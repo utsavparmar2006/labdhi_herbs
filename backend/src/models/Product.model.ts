@@ -63,7 +63,35 @@ const ProductSchema: Schema = new Schema(
 ProductSchema.index({ mainCategory: 1, subCategory: 1, inStock: 1 });
 ProductSchema.index({ categoryId: 1, inStock: 1 });
 ProductSchema.index({ featured: 1, inStock: 1 });
+ProductSchema.index({ inStock: 1, price: 1 });
 ProductSchema.index({ createdAt: -1 });
+
+// High-performance weighted Full-Text Search Index for instant search queries
+ProductSchema.index(
+  {
+    name: 'text',
+    tag: 'text',
+    category: 'text',
+    mainCategory: 'text',
+    subCategory: 'text',
+    ingredients: 'text',
+    benefits: 'text',
+    description: 'text',
+  },
+  {
+    weights: {
+      name: 10,
+      tag: 8,
+      subCategory: 6,
+      category: 5,
+      mainCategory: 4,
+      ingredients: 3,
+      benefits: 2,
+      description: 1,
+    },
+    name: 'ProductCatalogTextIndex',
+  }
+);
 
 ProductSchema.pre('validate', function (next) {
   if (!this.id && this.name) {
