@@ -50,7 +50,7 @@ export default function StoriesClient() {
         setIsLoading(true);
         const [storiesRes, catsRes] = await Promise.all([
           getSuccessStories(),
-          getCategories(),
+          getCategories(true),
         ]);
         if (storiesRes.success && storiesRes.data && storiesRes.data.length > 0) {
           setStories(storiesRes.data);
@@ -65,16 +65,38 @@ export default function StoriesClient() {
       }
     };
     fetchData();
+
+    // Re-fetch categories automatically if an admin creates, edits or deletes categories
+    const handleCategoryUpdate = () => {
+      getCategories(true).then((cats) => {
+        if (Array.isArray(cats)) setCategories(cats);
+      });
+    };
+    window.addEventListener('category_updated', handleCategoryUpdate);
+    return () => window.removeEventListener('category_updated', handleCategoryUpdate);
   }, []);
 
   // Filtered stories according to customer selected category & subcategory
   const filteredStories = stories.filter((s) => {
     if (s.status !== 'active') return false;
     if (selectedCategory !== 'all') {
-      const matchCat =
-        s.mainCategory === selectedCategory ||
-        s.mainCategory?.toLowerCase() === selectedCategory.toLowerCase();
-      if (!matchCat) return false;
+      const selectedCatObj = categories.find(
+        (c) =>
+          c.id === selectedCategory ||
+          c.name.toLowerCase() === selectedCategory.toLowerCase() ||
+          c.slug?.toLowerCase() === selectedCategory.toLowerCase()
+      );
+      const targetIds = new Set(
+        [
+          selectedCategory.toLowerCase(),
+          selectedCatObj?.id?.toLowerCase(),
+          selectedCatObj?.name?.toLowerCase(),
+          selectedCatObj?.slug?.toLowerCase(),
+        ].filter(Boolean)
+      );
+
+      const storyCat = (s.mainCategory || '').toLowerCase();
+      if (!targetIds.has(storyCat)) return false;
     }
     if (selectedSubCategory !== 'all') {
       const matchSub =
@@ -103,29 +125,24 @@ export default function StoriesClient() {
     null;
 
   const activeCategoryObj = categories.find(
-    (c) => c.id === selectedCategory || c.name.toLowerCase() === selectedCategory.toLowerCase()
+    (c) =>
+      c.id === selectedCategory ||
+      c.name.toLowerCase() === selectedCategory.toLowerCase() ||
+      c.slug?.toLowerCase() === selectedCategory.toLowerCase()
   );
 
-  // Curated, unique categories for visual story portals (removes duplicate test categories)
+  // Dynamic active categories from Admin panel - automatically reflects any category added or removed
   const categoryHighlights = useMemo(() => {
-    const redundant = new Set(['skin-care', 'face-care', 'muscle-care', 'joint-care']);
-    const validCategories = categories.filter((c) => !redundant.has(c.id));
+    // Show all active main categories configured in Admin panel
+    const activeCats = categories.filter((c) => c && c.status !== 'inactive');
 
-    // Sort categories so those with verified customer stories appear first
-    return validCategories.sort((a, b) => {
-      const countA = stories.filter(
-        (s) =>
-          s.status === 'active' &&
-          (s.mainCategory === a.id || s.mainCategory?.toLowerCase() === a.id.toLowerCase())
-      ).length;
-      const countB = stories.filter(
-        (s) =>
-          s.status === 'active' &&
-          (s.mainCategory === b.id || s.mainCategory?.toLowerCase() === b.id.toLowerCase())
-      ).length;
-      return countB - countA;
+    return activeCats.sort((a, b) => {
+      if (typeof a.order === 'number' && typeof b.order === 'number' && a.order !== b.order) {
+        return a.order - b.order;
+      }
+      return (a.name || '').localeCompare(b.name || '');
     });
-  }, [categories, stories]);
+  }, [categories]);
 
   return (
     <SmoothScroll>
@@ -269,12 +286,21 @@ export default function StoriesClient() {
 
               {/* DYNAMIC CATEGORY STORY PORTALS */}
               {categoryHighlights.map((cat) => {
-                const isSelected = selectedCategory === cat.id;
+                const isSelected =
+                  selectedCategory === cat.id ||
+                  selectedCategory.toLowerCase() === cat.name.toLowerCase() ||
+                  selectedCategory.toLowerCase() === (cat.slug || '').toLowerCase();
+
+                const targetCatIds = new Set([
+                  cat.id.toLowerCase(),
+                  (cat.name || '').toLowerCase(),
+                  (cat.slug || '').toLowerCase(),
+                ].filter(Boolean));
+
                 const count = stories.filter(
                   (s) =>
                     s.status === 'active' &&
-                    (s.mainCategory === cat.id ||
-                      s.mainCategory?.toLowerCase() === cat.id.toLowerCase())
+                    targetCatIds.has((s.mainCategory || '').toLowerCase())
                 ).length;
 
                 // Rich photography based on category
