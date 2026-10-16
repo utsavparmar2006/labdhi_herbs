@@ -47,3 +47,34 @@ export const verifyRazorpaySignature = (
 
   return generatedSignature === signature;
 };
+
+/**
+ * Validates Razorpay Webhook HMAC-SHA256 digital signature
+ * Compares incoming x-razorpay-signature with hash of raw request payload
+ */
+export const verifyRazorpayWebhookSignature = (
+  rawBody: string | Buffer,
+  signature: string,
+  webhookSecret: string
+): boolean => {
+  if (!webhookSecret || !signature) return false;
+  try {
+    const expectedSignature = crypto
+      .createHmac('sha256', webhookSecret)
+      .update(rawBody)
+      .digest('hex');
+
+    const expectedBuffer = Buffer.from(expectedSignature, 'utf8');
+    const signatureBuffer = Buffer.from(signature, 'utf8');
+
+    if (expectedBuffer.length !== signatureBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(expectedBuffer, signatureBuffer);
+  } catch (err) {
+    console.error('[Razorpay Webhook] Signature verification error:', err);
+    return false;
+  }
+};
+

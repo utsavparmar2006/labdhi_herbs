@@ -91,8 +91,15 @@ app.use(
 // HTTP Request Logger
 app.use(morgan('dev'));
 
-// Body & Cookie Parser Middleware with explicit limits (Industry Standard Protection)
-app.use(express.json({ limit: '10mb' }));
+// Body & Cookie Parser Middleware with explicit limits & rawBody buffer capture for Webhooks
+app.use(
+  express.json({
+    limit: '10mb',
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
 
