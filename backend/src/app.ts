@@ -21,10 +21,14 @@ import reviewRoutes from './routes/review.routes.js';
 import subscriberRoutes from './routes/subscriber.routes.js';
 import translateRoutes from './routes/translate.routes.js';
 import compression from 'compression';
+import { globalLimiter } from './middlewares/rateLimiter.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 
 const app: Application = express();
 app.disable('x-powered-by');
+
+// Trust reverse proxies (Nginx, AWS ALB, Cloudflare) for accurate client IP rate limiting
+app.set('trust proxy', 1);
 
 // Security HTTP Headers with cross-origin resource sharing for uploads
 app.use(
@@ -91,6 +95,9 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
+
+// Anti-DDoS & Volumetric Scraping Protection for all /api endpoints
+app.use('/api', globalLimiter);
 
 // API Routes
 app.use('/api', healthRoutes);

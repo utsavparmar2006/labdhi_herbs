@@ -12,11 +12,12 @@ import {
   testWhatsAppGateway,
 } from '../controllers/subscriber.controller.js';
 import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
+import { submissionLimiter } from '../middlewares/rateLimiter.js';
 
 const router = Router();
 
 // Public routes: Customer lead capture & subscription status check
-router.post('/subscribe', subscribe);
+router.post('/subscribe', submissionLimiter, subscribe);
 router.get('/status', checkSubscriptionStatus);
 
 // Admin protected routes: Management, Configuration, Export

@@ -9,12 +9,13 @@ import {
   validateCoupon,
 } from '../controllers/coupon.controller.js';
 import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
+import { couponLimiter } from '../middlewares/rateLimiter.js';
 
 const router = Router();
 
 // Public routes for checkout
 router.get('/', getCoupons);
-router.post('/validate', validateCoupon);
+router.post('/validate', couponLimiter, validateCoupon);
 
 // Admin-only management routes
 router.get('/:id', verifyJWT, verifyAdmin, getCouponById);

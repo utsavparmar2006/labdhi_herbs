@@ -12,6 +12,7 @@ import {
   deleteReview,
 } from '../controllers/review.controller.js';
 import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
+import { submissionLimiter } from '../middlewares/rateLimiter.js';
 
 const router = Router();
 
@@ -82,9 +83,10 @@ const fixReviewPhotosUrl = (req: any, _res: any, next: any) => {
 // 1. Get approved reviews & aggregate statistics for a product
 router.get('/product/:productId', getProductReviews);
 
-// 2. Submit a customer review with up to 5 photos
+// 2. Submit a customer review with up to 5 photos (Protected against automated spam)
 router.post(
   '/product/:productId',
+  submissionLimiter,
   uploadReviewPhotos.array('images', 5),
   fixReviewPhotosUrl,
   createReview

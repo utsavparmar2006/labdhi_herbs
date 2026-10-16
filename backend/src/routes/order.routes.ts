@@ -8,14 +8,15 @@ import {
   trackOrderByNumber,
 } from '../controllers/order.controller.js';
 import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
+import { orderLimiter } from '../middlewares/rateLimiter.js';
 
 const router = Router();
 
 // Customer authenticated routes
 router.get('/my-orders', verifyJWT, getMyOrders);
 
-// Protected route: require user login to create order
-router.post('/', verifyJWT, createOrder);
+// Protected route: require user login & anti-spam order rate limit to create order
+router.post('/', orderLimiter, verifyJWT, createOrder);
 router.get('/track/:orderId', trackOrderByNumber);
 router.get('/:id', getOrderById);
 
