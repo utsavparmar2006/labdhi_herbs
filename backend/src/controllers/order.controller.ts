@@ -763,15 +763,28 @@ export const getMyOrders = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
-    const queryConditions: any[] = [{ user: req.user._id }];
-    if (req.user.email) {
-      queryConditions.push({ 'customer.email': req.user.email.toLowerCase() });
-    }
-    if (req.user.phone) {
-      queryConditions.push({ 'customer.phone': req.user.phone });
-    }
+    const userObjectId = req.user._id;
+    const userEmail = req.user.email ? req.user.email.toLowerCase().trim() : '';
 
-    const orders = await Order.find({ $or: queryConditions }).sort({ createdAt: -1 }).lean();
+    // Strict Industry Standard Identity-Bound Ownership:
+    // 1. Fetch orders placed directly by this authenticated account session (user === userObjectId)
+    // 2. Or unassigned legacy orders (where user is null/undefined) matching this user's verified registered email
+    // 3. NEVER match orders that belong to another distinct user account, even if contact details match
+    const queryFilter: any = {
+      $or: [
+        { user: userObjectId },
+        ...(userEmail
+          ? [
+              {
+                user: { $in: [null, undefined] },
+                'customer.email': userEmail,
+              },
+            ]
+          : []),
+      ],
+    };
+
+    const orders = await Order.find(queryFilter).sort({ createdAt: -1 }).lean();
 
     res.status(200).json({
       success: true,
