@@ -334,7 +334,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                   />
                 </div>
               </div>
@@ -349,7 +349,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                   />
                 </div>
               </div>
@@ -412,7 +412,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={registerFirstName}
                     onChange={(e) => setRegisterFirstName(e.target.value)}
                     placeholder="First name"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                   />
                 </div>
                 <div className="space-y-1">
@@ -423,7 +423,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={registerLastName}
                     onChange={(e) => setRegisterLastName(e.target.value)}
                     placeholder="Last name"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                   />
                 </div>
               </div>
@@ -436,7 +436,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   value={registerEmail}
                   onChange={(e) => setRegisterEmail(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                 />
               </div>
 
@@ -447,7 +447,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   value={registerPhone}
                   onChange={(e) => setRegisterPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                 />
               </div>
 
@@ -459,7 +459,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   value={registerPassword}
                   onChange={(e) => setRegisterPassword(e.target.value)}
                   placeholder="Create password (min 6 chars)"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                 />
               </div>
 
@@ -506,7 +506,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     placeholder="Enter your email (e.g. name@example.com)"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                   />
                 </div>
               </div>
@@ -595,7 +595,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={resetOtp}
                     onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ''))}
                     placeholder="Enter 6-digit code"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-sm font-mono tracking-widest text-slate-900 focus:outline-none focus:border-[#1F3A2E]"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base font-mono tracking-widest text-slate-900 focus:outline-none focus:border-[#1F3A2E]"
                   />
                 </div>
               </div>
@@ -611,7 +611,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={resetNewPassword}
                     onChange={(e) => setResetNewPassword(e.target.value)}
                     placeholder="Enter new password (min 6 chars)"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                   />
                   <button
                     type="button"
@@ -634,7 +634,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={resetConfirmPassword}
                     onChange={(e) => setResetConfirmPassword(e.target.value)}
                     placeholder="Re-type new password"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-xs text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                   />
                   <button
                     type="button"
