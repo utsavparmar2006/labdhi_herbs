@@ -79,6 +79,12 @@ export interface CartItem {
   quantity: number;
 }
 
+export interface BlogTranslation {
+  title?: string;
+  excerpt?: string;
+  content?: string;
+}
+
 export interface BlogPost {
   _id?: string;
   id: string;
@@ -97,6 +103,7 @@ export interface BlogPost {
   order?: number;
   tags?: string[];
   views?: number;
+  translations?: Record<string, BlogTranslation>;
   createdAt?: string;
   updatedAt?: string;
 }

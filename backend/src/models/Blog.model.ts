@@ -1,5 +1,11 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
+export interface IBlogTranslation {
+  title?: string;
+  excerpt?: string;
+  content?: string;
+}
+
 export interface IBlog extends Document {
   id: string;
   title: string;
@@ -17,6 +23,7 @@ export interface IBlog extends Document {
   order: number;
   tags: string[];
   views: number;
+  translations?: Record<string, IBlogTranslation>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +35,10 @@ const BlogSchema: Schema = new Schema(
     slug: { type: String, required: true, index: true },
     excerpt: { type: String, required: true, trim: true },
     content: { type: String, default: '', trim: true },
+    translations: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
     category: {
       type: String,
       required: true,

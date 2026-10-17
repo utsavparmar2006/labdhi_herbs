@@ -326,6 +326,7 @@ export const createBlog = async (req: Request, res: Response): Promise<void> => 
       status,
       order,
       tags,
+      translations,
     } = req.body;
 
     if (!title || !title.trim()) {
@@ -373,6 +374,7 @@ export const createBlog = async (req: Request, res: Response): Promise<void> => 
       title: title.trim(),
       excerpt: excerpt.trim(),
       content: content ? content.trim() : '',
+      translations: translations && typeof translations === 'object' ? translations : {},
       category: category ? category.trim() : 'Wellness',
       author: author ? author.trim() : 'Dr. Labdhi Parmar (Ayurvedic Specialist)',
       image: image.trim(),
