@@ -16,8 +16,42 @@ function setCached(key: string, value: string): void {
   translationCache.set(key, value);
 }
 
+const ITC_MAP: Record<string, string> = {
+  gu: 'gu-t-i0-und',
+  hi: 'hi-t-i0-und',
+  mr: 'mr-t-i0-und',
+  bn: 'bn-t-i0-und',
+  ta: 'ta-t-i0-und',
+  te: 'te-t-i0-und',
+  pa: 'pa-t-i0-und',
+};
+
+async function transliterateChunk(inputStr: string, targetLang: string): Promise<string> {
+  const itc = ITC_MAP[targetLang];
+  if (!itc) return inputStr;
+
+  try {
+    const url = `https://inputtools.google.com/request?text=${encodeURIComponent(
+      inputStr
+    )}&itc=${itc}&num=1`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data: any = await res.json();
+      if (Array.isArray(data) && data[0] === 'SUCCESS' && Array.isArray(data[1])) {
+        const words = data[1].map((item: any) => item[1]?.[0] || item[0]).join(' ');
+        if (words && words.trim()) {
+          return words;
+        }
+      }
+    }
+  } catch (err) {
+    // Ignore transliterate error
+  }
+  return inputStr;
+}
+
 /**
- * Robust Translation of a text chunk (meaning-based, 100% free, zero transliteration)
+ * Robust Translation of a text chunk (meaning-based primary, phonetic transliteration fallback)
  */
 async function translateChunk(inputStr: string, targetLang: string): Promise<string> {
   const trimmed = inputStr?.trim();
@@ -51,7 +85,7 @@ async function translateChunk(inputStr: string, targetLang: string): Promise<str
           .filter(Boolean)
           .join('');
 
-        if (translated && translated.trim()) {
+        if (translated && translated.trim() && translated.trim().toLowerCase() !== trimmed.toLowerCase()) {
           setCached(cacheKey, translated);
           return translated;
         }
@@ -82,7 +116,7 @@ async function translateChunk(inputStr: string, targetLang: string): Promise<str
           .filter(Boolean)
           .join('');
 
-        if (translated && translated.trim()) {
+        if (translated && translated.trim() && translated.trim().toLowerCase() !== trimmed.toLowerCase()) {
           setCached(cacheKey, translated);
           return translated;
         }
@@ -103,12 +137,27 @@ async function translateChunk(inputStr: string, targetLang: string): Promise<str
       const data: any = await res.json();
       if (data?.responseData?.translatedText) {
         const translated = data.responseData.translatedText;
-        setCached(cacheKey, translated);
-        return translated;
+        if (translated && translated.trim().toLowerCase() !== trimmed.toLowerCase()) {
+          setCached(cacheKey, translated);
+          return translated;
+        }
       }
     }
   } catch (err) {
     console.warn('[TranslateController] MyMemory error:', err);
+  }
+
+  // 4. Phonetic Transliteration Fallback:
+  // If Google Translate returned unchanged text (e.g. for proper nouns, names, or keyboard test inputs like 'dzfgvzd'),
+  // transliterate it phonetically into the target script (Gujarati, Hindi, etc.) so it always converts cleanly!
+  try {
+    const transliterated = await transliterateChunk(trimmed, targetLang);
+    if (transliterated && transliterated.trim().toLowerCase() !== trimmed.toLowerCase()) {
+      setCached(cacheKey, transliterated);
+      return transliterated;
+    }
+  } catch (err) {
+    // ignore
   }
 
   return inputStr;
