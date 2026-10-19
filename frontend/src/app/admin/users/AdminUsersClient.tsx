@@ -31,6 +31,17 @@ import {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
 
+const safeJson = async (res: Response) => {
+  try {
+    return await res.json();
+  } catch {
+    return {
+      success: false,
+      message: `Server returned HTTP ${res.status}. Please ensure you are connected to the live server.`,
+    };
+  }
+};
+
 interface UserData {
   _id: string;
   name: string;
@@ -139,7 +150,7 @@ export default function AdminUsersClient() {
         router.push('/admin/login');
         return;
       }
-      const data = await res.json();
+      const data = await safeJson(res);
       if (res.ok && data.success) {
         setStats(data.data);
       }
@@ -178,7 +189,7 @@ export default function AdminUsersClient() {
         return;
       }
 
-      const data = await res.json();
+      const data = await safeJson(res);
 
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Failed to load user records.');
@@ -208,7 +219,7 @@ export default function AdminUsersClient() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const data = await res.json();
+      const data = await safeJson(res);
       if (!res.ok || !data.success) {
         throw new Error(data.message || 'Failed to update user status.');
       }
@@ -245,7 +256,7 @@ export default function AdminUsersClient() {
       body: JSON.stringify(userData),
     });
 
-    const data = await res.json();
+    const data = await safeJson(res);
     if (!res.ok || !data.success) {
       throw new Error(data.message || 'Failed to create user account.');
     }
@@ -275,7 +286,7 @@ export default function AdminUsersClient() {
       body: JSON.stringify(updatedData),
     });
 
-    const data = await res.json();
+    const data = await safeJson(res);
     if (!res.ok || !data.success) {
       throw new Error(data.message || 'Failed to update user profile.');
     }
@@ -295,7 +306,7 @@ export default function AdminUsersClient() {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const data = await res.json();
+    const data = await safeJson(res);
     if (!res.ok || !data.success) {
       throw new Error(data.message || 'Failed to delete user account.');
     }
