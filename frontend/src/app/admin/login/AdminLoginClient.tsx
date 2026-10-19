@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import OriginalTransparentLogo from '../../../components/OriginalTransparentLogo';
-import { Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, ShieldCheck, ArrowRight, Loader2, AlertCircle, X, KeyRound, CheckCircle2 } from 'lucide-react';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -20,6 +20,17 @@ export default function AdminLoginClient() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Forgot Password Modal states
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotStep, setForgotStep] = useState<'email' | 'otp'>('email');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [resetOtp, setResetOtp] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalError, setModalError] = useState('');
+  const [modalSuccess, setModalSuccess] = useState('');
 
   useEffect(() => {
     // Prefill remembered email if saved
@@ -41,7 +52,7 @@ export default function AdminLoginClient() {
       const res = await fetch(`${API_BASE_URL}/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, adminOnly: true }),
+        body: JSON.stringify({ email: email.trim(), password, adminOnly: true }),
       });
 
       const data = await res.json();
@@ -68,7 +79,7 @@ export default function AdminLoginClient() {
         }
 
         if (rememberMe) {
-          localStorage.setItem('admin_remembered_email', email);
+          localStorage.setItem('admin_remembered_email', email.trim());
         } else {
           localStorage.removeItem('admin_remembered_email');
         }
@@ -84,6 +95,103 @@ export default function AdminLoginClient() {
     } catch (err: any) {
       setIsLoading(false);
       setErrorMessage(err.message || 'Unable to connect to server. Please check backend connection.');
+    }
+  };
+
+  // Open Forgot Password Modal
+  const handleOpenForgotModal = () => {
+    setForgotEmail(email.trim() || '');
+    setResetOtp('');
+    setResetNewPassword('');
+    setResetConfirmPassword('');
+    setModalError('');
+    setModalSuccess('');
+    setForgotStep('email');
+    setShowForgotModal(true);
+  };
+
+  // Request OTP for Admin
+  const handleRequestOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      setModalError('Please enter your administrator email address.');
+      return;
+    }
+
+    setModalLoading(true);
+    setModalError('');
+    setModalSuccess('');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/v1/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail.trim() }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to request password reset code.');
+      }
+
+      setModalSuccess(data.message || 'Verification code sent to your email.');
+      setTimeout(() => {
+        setForgotStep('otp');
+        setModalSuccess('');
+      }, 700);
+    } catch (err: any) {
+      setModalError(err.message || 'Could not send verification code. Please check email address.');
+    } finally {
+      setModalLoading(false);
+    }
+  };
+
+  // Submit OTP & New Password for Admin
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetOtp.trim()) {
+      setModalError('Please enter the 6-digit verification code.');
+      return;
+    }
+    if (resetNewPassword.length < 6) {
+      setModalError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (resetNewPassword !== resetConfirmPassword) {
+      setModalError('Passwords do not match. Please re-enter.');
+      return;
+    }
+
+    setModalLoading(true);
+    setModalError('');
+    setModalSuccess('');
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/v1/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: forgotEmail.trim(),
+          otp: resetOtp.trim(),
+          newPassword: resetNewPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Failed to reset password. Please verify the code.');
+      }
+
+      setEmail(forgotEmail.trim());
+      setPassword('');
+      setSuccessMessage('Password reset successfully! Please sign in with your new password.');
+      setShowForgotModal(false);
+    } catch (err: any) {
+      setModalError(err.message || 'Could not reset password. Code may be invalid or expired.');
+    } finally {
+      setModalLoading(false);
     }
   };
 
@@ -198,7 +306,7 @@ export default function AdminLoginClient() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="••••••••••••"
                   className="w-full pl-11 pr-11 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
                 />
                 <button
@@ -224,16 +332,13 @@ export default function AdminLoginClient() {
                 <span>Remember me</span>
               </label>
 
-              <a
-                href="#forgot"
-                onClick={(e) => {
-                  e.preventDefault();
-                  alert('Password reset link sent to registered admin email address.');
-                }}
-                className="text-[#1F3A2E] hover:underline font-bold"
+              <button
+                type="button"
+                onClick={handleOpenForgotModal}
+                className="text-[#1F3A2E] hover:underline font-bold transition-colors cursor-pointer"
               >
                 Forgot Password?
-              </a>
+              </button>
             </div>
 
             {/* Primary Submit Button */}
@@ -257,28 +362,177 @@ export default function AdminLoginClient() {
 
           </form>
 
-            {/* Default Admin Credentials Helper */}
-            <div className="p-3.5 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-left text-[11px] text-amber-900 space-y-1">
-              <span className="font-bold text-amber-950 flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-amber-700" /> Default Admin Login:
-              </span>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-0.5">
-                <div>Email: <code className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-amber-200 text-slate-800">admin@labdhiherbs.com</code></div>
-                <div>Password: <code className="font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-amber-200 text-slate-800">Admin@123456</code></div>
-              </div>
-            </div>
-
-            {/* Footer Security Note */}
-            <div className="pt-2 border-t border-[#EFE9DD] text-center">
-              <span className="text-[11px] text-slate-400 font-light flex items-center justify-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-                Restricted area • Authorized Labdhi Herbs administrators only.
-              </span>
-            </div>
+          {/* Footer Security Note */}
+          <div className="pt-4 border-t border-[#EFE9DD] text-center">
+            <span className="text-[11px] text-slate-400 font-light flex items-center justify-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
+              Restricted area • Authorized Labdhi Herbs administrators only.
+            </span>
+          </div>
 
         </div>
 
       </div>
+
+      {/* Admin Password Recovery Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-[#EFE9DD] relative animate-in zoom-in-95 duration-200">
+            
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowForgotModal(false)}
+              className="absolute top-5 right-5 p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 rounded-2xl bg-[#1F3A2E]/10 flex items-center justify-center text-[#1F3A2E]">
+                <KeyRound className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-serif text-lg font-bold text-[#14261E]">
+                  Admin Password Recovery
+                </h3>
+                <p className="text-xs text-slate-500">
+                  {forgotStep === 'email' ? 'Step 1 of 2: Verify Identity' : 'Step 2 of 2: Set New Password'}
+                </p>
+              </div>
+            </div>
+
+            {/* Alerts */}
+            {modalError && (
+              <div className="mb-4 p-3 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            {modalSuccess && (
+              <div className="mb-4 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{modalSuccess}</span>
+              </div>
+            )}
+
+            {/* Step 1: Email Input */}
+            {forgotStep === 'email' && (
+              <form onSubmit={handleRequestOtp} className="space-y-4">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Enter your registered administrator email address. We will send a secure 6-digit verification code to your inbox.
+                </p>
+
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Admin Email Address
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="admin@labdhiherbs.com"
+                      className="w-full pl-11 pr-4 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={modalLoading}
+                    className="flex-1 py-3 rounded-2xl bg-[#1F3A2E] hover:bg-[#15271F] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                  >
+                    {modalLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4A373]" /> : 'Send Code'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 2: OTP & New Password */}
+            {forgotStep === 'otp' && (
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  A 6-digit verification code has been dispatched to <strong>{forgotEmail}</strong>. Please enter the code and your new password below.
+                </p>
+
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    6-Digit Verification Code
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={resetOtp}
+                    onChange={(e) => setResetOtp(e.target.value)}
+                    placeholder="e.g. 583921"
+                    className="w-full px-4 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-center text-lg tracking-widest font-mono text-slate-800 font-bold focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={resetNewPassword}
+                    onChange={(e) => setResetNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full px-4 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    value={resetConfirmPassword}
+                    onChange={(e) => setResetConfirmPassword(e.target.value)}
+                    placeholder="Repeat new password"
+                    className="w-full px-4 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
+                  />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setForgotStep('email')}
+                    className="flex-1 py-3 rounded-2xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={modalLoading}
+                    className="flex-1 py-3 rounded-2xl bg-[#1F3A2E] hover:bg-[#15271F] disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                  >
+                    {modalLoading ? <Loader2 className="w-4 h-4 animate-spin text-[#D4A373]" /> : 'Update Password'}
+                  </button>
+                </div>
+              </form>
+            )}
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
