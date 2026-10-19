@@ -298,18 +298,25 @@ export const logoutUser = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    if (req.user?._id) {
+    const targetUserId = req.user?._id;
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+    if (targetUserId) {
       await User.findByIdAndUpdate(
-        req.user._id,
+        targetUserId,
         {
-          $set: {
-            isOnline: false,
-          },
-          $unset: {
-            refreshToken: 1,
-          },
+          $set: { isOnline: false },
+          $unset: { refreshToken: 1 },
         },
         { new: true }
+      );
+    } else if (incomingRefreshToken) {
+      await User.findOneAndUpdate(
+        { refreshToken: incomingRefreshToken },
+        {
+          $set: { isOnline: false },
+          $unset: { refreshToken: 1 },
+        }
       );
     }
 

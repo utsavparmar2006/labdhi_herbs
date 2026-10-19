@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { getHomePageConfig } from '../services/api';
+import { getHomePageConfig, authLogout } from '../services/api';
 import { AnnouncementBarConfig } from '../types';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useCart } from '../context/CartContext';
@@ -183,21 +183,12 @@ export default function Header({
   }, []);
 
   const handleLogout = async () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      sessionStorage.removeItem('labdhi_just_subscribed');
-      window.dispatchEvent(new Event('authChange'));
-    }
     setUser(null);
     setUserDropdownOpen(false);
-
-    try {
-      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
-      await fetch(`${apiBase}/v1/auth/logout`, { method: 'POST' });
-    } catch (e) {
-      // Ignore network logout errors
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('labdhi_just_subscribed');
     }
+    await authLogout();
   };
 
   useEffect(() => {

@@ -22,6 +22,9 @@ export interface IProduct extends Document {
   ingredients: string[];
   usage: string;
   inStock: boolean;
+  stockQuantity: number;
+  lowStockThreshold?: number;
+  sku?: string;
   featured: boolean;
   videoUrl?: string;
   howToUseVideoUrl?: string;
@@ -54,6 +57,9 @@ const ProductSchema: Schema = new Schema(
     ingredients: { type: [String], default: [] },
     usage: { type: String, default: '' },
     inStock: { type: Boolean, default: true, index: true },
+    stockQuantity: { type: Number, default: 100, min: 0, index: true },
+    lowStockThreshold: { type: Number, default: 5 },
+    sku: { type: String, default: '' },
     featured: { type: Boolean, default: false, index: true },
   },
   { timestamps: true, id: false }

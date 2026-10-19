@@ -55,6 +55,32 @@ export const verifyJWT = async (
   }
 };
 
+export const verifyJWTOptional = async (
+  req: AuthRequest,
+  _res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const token =
+      req.cookies?.accessToken ||
+      req.header('Authorization')?.replace('Bearer ', '');
+
+    if (token) {
+      const secret = process.env.ACCESS_TOKEN_SECRET || 'fallback_access_token_secret_2026';
+      const decoded = jwt.verify(token, secret, { ignoreExpiration: true }) as { _id: string };
+      if (decoded?._id) {
+        const user = await User.findById(decoded._id);
+        if (user) {
+          req.user = user;
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore verification errors for optional auth
+  }
+  next();
+};
+
 export const verifyAdmin = (
   req: AuthRequest,
   res: Response,

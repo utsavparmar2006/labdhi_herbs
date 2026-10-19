@@ -39,12 +39,16 @@ export interface IPricing {
 
 export interface IPayment {
   method: 'cod' | 'online';
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
   transactionId?: string;
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   razorpaySignature?: string;
   paidAt?: Date;
+  refundId?: string;
+  refundAmount?: number;
+  refundedAt?: Date;
+  refundReason?: string;
 }
 
 export type OrderStatusType =
@@ -134,12 +138,16 @@ const PricingSchema = new Schema<IPricing>(
 const PaymentSchema = new Schema<IPayment>(
   {
     method: { type: String, enum: ['cod', 'online'], default: 'cod' },
-    status: { type: String, enum: ['pending', 'completed', 'failed'], default: 'pending' },
+    status: { type: String, enum: ['pending', 'completed', 'failed', 'refunded'], default: 'pending' },
     transactionId: { type: String, default: '' },
     razorpayOrderId: { type: String, default: '' },
     razorpayPaymentId: { type: String, default: '' },
     razorpaySignature: { type: String, default: '' },
     paidAt: { type: Date },
+    refundId: { type: String, default: '' },
+    refundAmount: { type: Number, default: 0 },
+    refundedAt: { type: Date },
+    refundReason: { type: String, default: '' },
   },
   { _id: false }
 );

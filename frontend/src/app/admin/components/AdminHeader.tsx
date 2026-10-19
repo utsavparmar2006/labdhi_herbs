@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Menu, Bell, User, ChevronDown, LogOut, ShieldCheck } from 'lucide-react';
+import { authLogout } from '../../../services/api';
 
 interface AdminHeaderProps {
   onToggleMobileMenu: () => void;
@@ -42,11 +43,7 @@ export default function AdminHeader({ onToggleMobileMenu, title = 'User Manageme
   }, [router]);
 
   const handleLogout = async () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('user');
-      window.dispatchEvent(new Event('authChange'));
-    }
+    await authLogout();
     router.push('/admin/login');
   };
 

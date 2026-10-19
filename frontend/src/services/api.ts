@@ -12,12 +12,70 @@ export interface ApiRequestOptions extends RequestInit {
   token?: string;
 }
 
+// Shared promise for in-flight refresh token request to avoid race conditions
+let refreshTokenPromise: Promise<string | null> | null = null;
+
+export async function silentRefreshToken(): Promise<string | null> {
+  if (refreshTokenPromise) {
+    return refreshTokenPromise;
+  }
+
+  refreshTokenPromise = (async () => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/v1/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success && data?.data?.accessToken) {
+        const newAccessToken = data.data.accessToken;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('accessToken', newAccessToken);
+          window.dispatchEvent(new Event('authChange'));
+        }
+        return newAccessToken;
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      refreshTokenPromise = null;
+    }
+  })();
+
+  return refreshTokenPromise;
+}
+
+export async function authLogout(): Promise<void> {
+  const token = getAuthToken();
+  try {
+    await fetch(`${API_BASE_URL}/v1/auth/logout`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      credentials: 'include',
+    });
+  } catch {
+    // Graceful fallback
+  } finally {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('authChange'));
+    }
+  }
+}
+
 /**
- * Industry-standard resilient fetch wrapper with automatic auth, timeouts, and error handling
+ * Industry-standard resilient fetch wrapper with automatic auth, silent token refresh, timeouts, and error handling
  */
 export async function apiRequest<T = any>(
   endpoint: string,
-  options: ApiRequestOptions = {}
+  options: ApiRequestOptions = {},
+  isRetry = false
 ): Promise<{ success: boolean; data?: T; message?: string; error?: string }> {
   const { timeoutMs = 15000, token, headers, ...restOptions } = options;
   const authToken = token || getAuthToken();
@@ -41,9 +99,18 @@ export async function apiRequest<T = any>(
 
     const res = await fetch(url, {
       ...restOptions,
+      credentials: restOptions.credentials || 'include',
       headers: reqHeaders,
       signal: controller.signal,
     });
+
+    // Automatic 401 handling: Attempt silent refresh once if accessToken expired
+    if (res.status === 401 && !isRetry && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/refresh-token')) {
+      const refreshedToken = await silentRefreshToken();
+      if (refreshedToken) {
+        return apiRequest<T>(endpoint, { ...options, token: refreshedToken }, true);
+      }
+    }
 
     const data = await res.json().catch(() => null);
 

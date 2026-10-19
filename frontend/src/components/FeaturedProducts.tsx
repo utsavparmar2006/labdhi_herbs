@@ -64,21 +64,31 @@ export default function FeaturedProducts({
       )
     : activeProducts;
 
-  // Prepare 3 columns for infinite vertical marquee scrolling
+  // Helper to ensure continuous seamless infinite loop with CSS translateY(-50%)
+  const createSeamlessLoop = (arr: Product[]) => {
+    if (arr.length === 0) return [];
+    let base: Product[] = [...arr];
+    while (base.length < 4) {
+      base = [...base, ...arr];
+    }
+    // Duplicate exactly once to create 2 equal halves for 0% -> -50% CSS keyframe loop
+    return [...base, ...base];
+  };
+
+  // Full product sequence for mobile: all products display line-by-line in order
+  const mobileList = createSeamlessLoop(filteredProducts);
+
+  // Multi-column split for tablet (2 cols) and desktop (3 cols)
   const col1 = filteredProducts.filter((_, idx) => idx % 3 === 0);
   const col2 = filteredProducts.filter((_, idx) => idx % 3 === 1);
   const col3 = filteredProducts.filter((_, idx) => idx % 3 === 2);
 
-  // If column array is short, repeat items to ensure continuous infinite loop
-  const makeInfinite = (arr: Product[]) => {
-    if (arr.length === 0) return activeProducts;
-    if (arr.length < 4) return [...arr, ...arr, ...arr, ...arr];
-    return [...arr, ...arr];
-  };
+  const listCol1 = createSeamlessLoop(col1.length ? col1 : filteredProducts);
+  const listCol2 = createSeamlessLoop(col2.length ? col2 : filteredProducts);
+  const listCol3 = createSeamlessLoop(col3.length ? col3 : filteredProducts);
 
-  const listCol1 = makeInfinite(col1);
-  const listCol2 = makeInfinite(col2.length ? col2 : col1);
-  const listCol3 = makeInfinite(col3.length ? col3 : col1);
+  // Dynamic animation duration based on count (approx 5.5s per product)
+  const mobileDuration = `${Math.max(18, filteredProducts.length * 5.5)}s`;
 
   return (
     <section id="products" className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-10">
@@ -93,14 +103,27 @@ export default function FeaturedProducts({
         </p>
       </div>
 
-      {/* 3-Column Vertical Auto-Scrolling Product Showcase */}
-      <div className="relative h-[650px] overflow-hidden rounded-3xl bg-[#F8F6F0] p-4 sm:p-6 border border-[#EFE9DD] shadow-inner group/scroll-container">
+      {/* Auto-Scrolling Product Showcase */}
+      <div className="relative h-[560px] sm:h-[650px] overflow-hidden rounded-3xl bg-[#F8F6F0] p-4 sm:p-6 border border-[#EFE9DD] shadow-inner group/scroll-container">
         
         {/* Subtle Top & Bottom Gradient Masks for Smooth Dissolve */}
         <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[#F8F6F0] to-transparent z-20 pointer-events-none" />
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#F8F6F0] to-transparent z-20 pointer-events-none" />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 h-full">
+        {/* 1. Mobile View (All products scroll line-by-line sequentially 1 to N, then seamlessly loop) */}
+        <div className="block sm:hidden relative overflow-hidden h-full">
+          <div
+            className="flex flex-col gap-5 animate-vertical-scroll-up group-hover/scroll-container:[animation-play-state:paused]"
+            style={{ animationDuration: mobileDuration }}
+          >
+            {mobileList.map((product, i) => (
+              <ProductImageCard key={`mob-${product.id}-${i}`} product={product} />
+            ))}
+          </div>
+        </div>
+
+        {/* 2. Tablet & Desktop View (2 or 3 Multi-Column Counter-Scrolling) */}
+        <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6 h-full">
           
           {/* Column 1: Vertical Scroll Upwards */}
           <div className="relative overflow-hidden h-full">
@@ -112,7 +135,7 @@ export default function FeaturedProducts({
           </div>
 
           {/* Column 2: Vertical Scroll Downwards (Counter-Motion) */}
-          <div className="relative overflow-hidden h-full hidden sm:block">
+          <div className="relative overflow-hidden h-full">
             <div className="flex flex-col gap-6 animate-vertical-scroll-down group-hover/scroll-container:[animation-play-state:paused]">
               {listCol2.map((product, i) => (
                 <ProductImageCard key={`col2-${product.id}-${i}`} product={product} />
@@ -120,7 +143,7 @@ export default function FeaturedProducts({
             </div>
           </div>
 
-          {/* Column 3: Vertical Scroll Upwards */}
+          {/* Column 3: Vertical Scroll Upwards (Desktop) */}
           <div className="relative overflow-hidden h-full hidden lg:block">
             <div className="flex flex-col gap-6 animate-vertical-scroll-up group-hover/scroll-container:[animation-play-state:paused]">
               {listCol3.map((product, i) => (

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Product } from '../models/Product.model.js';
 import { Review } from '../models/Review.model.js';
+import { cache } from '../utils/cache.js';
 
 const INITIAL_PRODUCTS = [
   {
@@ -208,6 +209,14 @@ const ensureInitialProducts = async () => {
  */
 export const getProducts = async (req: Request, res: Response): Promise<void> => {
   try {
+    const cacheKey = `products:list:${JSON.stringify(req.query)}`;
+    const cachedData = await cache.get<any>(cacheKey);
+    if (cachedData) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+      res.status(200).json(cachedData);
+      return;
+    }
 
     const {
       category,
@@ -314,8 +323,7 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 
     const totalPages = Math.ceil(totalCount / limitNum) || 1;
 
-    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
-    res.status(200).json({
+    const responsePayload = {
       success: true,
       data: products,
       pagination: {
@@ -325,7 +333,14 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
         limit: limitNum,
         hasMore: pageNum < totalPages,
       },
-    });
+    };
+
+    // Cache list for 2 minutes to reduce MongoDB load
+    await cache.set(cacheKey, responsePayload, 120);
+
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    res.status(200).json(responsePayload);
   } catch (error: any) {
     res.status(500).json({
       success: false,
@@ -343,6 +358,18 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 export const getProductById = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
+    const cacheKey = `products:detail:${id}`;
+
+    const cachedProduct = await cache.get<any>(cacheKey);
+    if (cachedProduct) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+      res.status(200).json({
+        success: true,
+        data: cachedProduct,
+      });
+      return;
+    }
 
     const product = await Product.findOne({
       $or: [{ id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }],
@@ -356,6 +383,10 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
       return;
     }
 
+    // Cache individual product for 3 minutes
+    await cache.set(cacheKey, product, 180);
+
+    res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
     res.status(200).json({
       success: true,
@@ -467,6 +498,9 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       featured: featured !== undefined ? featured : false,
     });
 
+    // Invalidate product caches
+    await cache.delByPattern('products:*');
+
     res.status(201).json({
       success: true,
       message: 'Product created successfully',
@@ -544,6 +578,9 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
 
     const updatedProduct = await Product.findOne({ id: product.id });
 
+    // Invalidate product caches
+    await cache.delByPattern('products:*');
+
     res.status(200).json({
       success: true,
       message: 'Product updated successfully',
@@ -578,6 +615,9 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
       });
       return;
     }
+
+    // Invalidate product caches
+    await cache.delByPattern('products:*');
 
     res.status(200).json({
       success: true,

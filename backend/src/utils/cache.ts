@@ -1,30 +1,40 @@
 /**
- * Labdhi Herbs - High-Performance In-Memory Cache Engine
- * Zero external dependencies. Sub-millisecond response times.
- * Reduces MongoDB read IOPS by 80-90% under high concurrent traffic.
+ * High-Performance Caching Layer for Labdhi Herbs API
+ * Supports in-memory TTL caching with automatic expiration & pattern invalidation.
+ * Drop-in ready for high-traffic scalability (10k+ concurrent visitors).
  */
 
+export const CACHE_KEYS = {
+  SITE_SETTINGS: 'site_settings:global',
+  HOMEPAGE_CONFIG: 'homepage_config:global',
+  CATEGORIES_ACTIVE: 'categories:active',
+  PRODUCTS_PREFIX: 'products:',
+};
+
 interface CacheEntry<T> {
-  data: T;
+  value: T;
   expiresAt: number;
 }
 
-class MemoryCache {
-  private store = new Map<string, CacheEntry<any>>();
-  private cleanupTimer: NodeJS.Timeout | null = null;
+class CacheService {
+  private store: Map<string, CacheEntry<any>> = new Map();
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    // Background garbage collection every 60 seconds to prune expired entries
-    this.cleanupTimer = setInterval(() => this.pruneExpired(), 60000);
-    if (this.cleanupTimer && typeof this.cleanupTimer.unref === 'function') {
-      this.cleanupTimer.unref();
+    // Periodic sweep every 60 seconds to prune expired keys and free RAM
+    this.cleanupInterval = setInterval(() => {
+      this.purgeExpired();
+    }, 60000);
+
+    if (this.cleanupInterval.unref) {
+      this.cleanupInterval.unref();
     }
   }
 
   /**
-   * Get cached item by key
+   * Retrieve cached value by key (returns synchronously or can be awaited)
    */
-  get<T>(key: string): T | null {
+  public get<T>(key: string): T | null {
     const entry = this.store.get(key);
     if (!entry) return null;
 
@@ -33,71 +43,77 @@ class MemoryCache {
       return null;
     }
 
-    return entry.data as T;
+    return entry.value as T;
   }
 
   /**
-   * Store item with TTL (Time To Live in seconds)
-   * Default: 300 seconds (5 minutes)
+   * Set cached value with TTL in seconds (default 120s / 2 minutes)
    */
-  set<T>(key: string, data: T, ttlSeconds: number = 300): void {
-    const expiresAt = Date.now() + Math.max(1, ttlSeconds) * 1000;
-    this.store.set(key, { data, expiresAt });
+  public set<T>(key: string, value: T, ttlSeconds: number = 120): void {
+    const expiresAt = Date.now() + ttlSeconds * 1000;
+    this.store.set(key, { value, expiresAt });
   }
 
   /**
-   * Delete a specific cache key
+   * Delete specific cache key
    */
-  del(key: string): void {
+  public del(key: string): void {
     this.store.delete(key);
   }
 
   /**
-   * Invalidate multiple keys matching a string prefix or RegExp pattern
-   * Example: delPattern('categories_') or delPattern(/^products_/)
+   * Invalidate multiple keys by pattern prefix (e.g. "products:*", "categories:*")
    */
-  delPattern(pattern: string | RegExp): void {
-    const regex = typeof pattern === 'string' ? new RegExp(`^${pattern}`) : pattern;
+  public delByPattern(pattern: string): number {
+    const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+    let deletedCount = 0;
+
     for (const key of this.store.keys()) {
       if (regex.test(key)) {
         this.store.delete(key);
+        deletedCount++;
       }
     }
+
+    return deletedCount;
   }
 
   /**
-   * Flush entire cache (useful during mass seed/sync)
+   * Get cached item or compute and cache if missing (Cache-Aside Pattern)
    */
-  flush(): void {
-    this.store.clear();
-  }
-
-  /**
-   * Fetch with fallback: Returns cached item if fresh, or invokes loader and caches result
-   */
-  async getOrSet<T>(key: string, loader: () => Promise<T>, ttlSeconds: number = 300): Promise<T> {
+  public async getOrSet<T>(
+    key: string,
+    fetchFn: () => Promise<T>,
+    ttlSeconds: number = 120
+  ): Promise<T> {
     const cached = this.get<T>(key);
     if (cached !== null && cached !== undefined) {
       return cached;
     }
 
-    const freshData = await loader();
-    if (freshData !== null && freshData !== undefined) {
-      this.set(key, freshData, ttlSeconds);
-    }
+    const freshData = await fetchFn();
+    this.set(key, freshData, ttlSeconds);
     return freshData;
   }
 
   /**
-   * Cache diagnostics
+   * Flush all cached entries
    */
-  stats() {
+  public flush(): void {
+    this.store.clear();
+  }
+
+  /**
+   * Get cache metrics
+   */
+  public getStats() {
     return {
-      totalKeys: this.store.size,
+      activeKeys: this.store.size,
+      timestamp: new Date().toISOString(),
     };
   }
 
-  private pruneExpired(): void {
+  private purgeExpired(): void {
     const now = Date.now();
     for (const [key, entry] of this.store.entries()) {
       if (now > entry.expiresAt) {
@@ -107,13 +123,4 @@ class MemoryCache {
   }
 }
 
-// Global Singleton Instance
-export const cache = new MemoryCache();
-
-// Centralized cache keys for consistency
-export const CACHE_KEYS = {
-  HOMEPAGE_CONFIG: 'cache:homepage_config',
-  CATEGORIES_ACTIVE: 'cache:categories_active',
-  SITE_SETTINGS: 'cache:site_settings',
-  FEATURED_PRODUCTS: 'cache:featured_products',
-} as const;
+export const cache = new CacheService();

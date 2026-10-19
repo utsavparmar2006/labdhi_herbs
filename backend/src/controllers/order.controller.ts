@@ -3,10 +3,14 @@ import mongoose from 'mongoose';
 import { Order, IOrderItem } from '../models/Order.model.js';
 import { Product } from '../models/Product.model.js';
 import { Coupon } from '../models/Coupon.model.js';
+import { Cart } from '../models/Cart.model.js';
 import { AuthRequest } from '../middlewares/auth.middleware.js';
 import { getRazorpayConfig, getRazorpayInstance } from '../config/razorpay.js';
-import { calculateGstInclusive, sendOrderInvoiceEmail } from '../utils/orderInvoiceTemplate.js';
+import { calculateGstInclusive } from '../utils/orderInvoiceTemplate.js';
 import SiteSettings from '../models/SiteSettings.model.js';
+import { withTransaction } from '../utils/transaction.js';
+import { cache } from '../utils/cache.js';
+import { taskQueue } from '../utils/taskQueue.js';
 
 // Supported Promotional Coupons
 const VALID_COUPONS: Record<string, { type: 'percent' | 'flat'; value: number; minSubtotal: number }> = {
@@ -354,46 +358,118 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       resolvedExchangeRate = matchedCurr?.exchangeRate && Number(matchedCurr.exchangeRate) > 0 ? Number(matchedCurr.exchangeRate) : 1;
     }
 
-    const newOrder = await Order.create({
-      orderId,
-      ...(userId ? { user: userId } : {}),
-      customer: {
-        fullName: customer.fullName.trim(),
-        email: customer.email.trim().toLowerCase(),
-        phone: customer.phone.trim(),
-      },
-      shippingAddress: {
-        fullName: shippingAddress.fullName || customer.fullName.trim(),
-        email: customer.email.trim().toLowerCase(),
-        phone: shippingAddress.phone || customer.phone.trim(),
-        address: shippingAddress.address.trim(),
-        landmark: (shippingAddress.landmark || '').trim(),
-        city: shippingAddress.city.trim(),
-        state: shippingAddress.state.trim(),
-        pincode: shippingAddress.pincode.trim(),
-        country: customerCountry,
-      },
-      items: formattedItems,
-      pricing: {
-        subtotal,
-        discount,
-        shipping,
-        tax,
-        sgst,
-        cgst,
-        igst: gstCalc.igst,
-        taxableAmount: gstCalc.taxableAmount,
-        total,
-      },
-      couponCode: discount > 0 ? normalizedCoupon : '',
-      payment,
-      currency: resolvedCurrency,
-      exchangeRate: resolvedExchangeRate,
-      deliveryName: '',
-      deliveryTrackId: '',
-      orderStatus: 'pending',
-      notes: (notes || '').trim(),
+    // 1. Strict Stock Availability Check prior to placement
+    for (const item of formattedItems) {
+      const slugKey = String(item.product?.id || '').trim().toLowerCase();
+      const dbProduct = dbProductMap.get(slugKey);
+      if (dbProduct) {
+        if (dbProduct.inStock === false || (dbProduct.stockQuantity !== undefined && dbProduct.stockQuantity < item.quantity)) {
+          res.status(400).json({
+            success: false,
+            message: `Sorry, "${dbProduct.name}" does not have enough stock available (${dbProduct.stockQuantity || 0} left in stock). Please reduce quantity or remove it to proceed.`,
+          });
+          return;
+        }
+      }
+    }
+
+    // 2. Execute Order Creation & Stock Decrement within ACID Transaction
+    const createdOrder = await withTransaction(async (session) => {
+      // Atomically decrement stock
+      for (const item of formattedItems) {
+        const slugKey = String(item.product?.id || '').trim().toLowerCase();
+        const dbProduct = dbProductMap.get(slugKey);
+        if (dbProduct?._id) {
+          const updated = await Product.findByIdAndUpdate(
+            dbProduct._id,
+            { $inc: { stockQuantity: -item.quantity } },
+            { new: true, session }
+          );
+          if (updated && updated.stockQuantity <= 0) {
+            await Product.findByIdAndUpdate(dbProduct._id, { $set: { inStock: false } }, { session });
+          }
+        }
+      }
+
+      // Create Order
+      const [orderDoc] = await Order.create(
+        [
+          {
+            orderId,
+            ...(userId ? { user: userId } : {}),
+            customer: {
+              fullName: customer.fullName.trim(),
+              email: customer.email.trim().toLowerCase(),
+              phone: customer.phone.trim(),
+            },
+            shippingAddress: {
+              fullName: shippingAddress.fullName || customer.fullName.trim(),
+              email: customer.email.trim().toLowerCase(),
+              phone: shippingAddress.phone || customer.phone.trim(),
+              address: shippingAddress.address.trim(),
+              landmark: (shippingAddress.landmark || '').trim(),
+              city: shippingAddress.city.trim(),
+              state: shippingAddress.state.trim(),
+              pincode: shippingAddress.pincode.trim(),
+              country: customerCountry,
+            },
+            items: formattedItems,
+            pricing: {
+              subtotal,
+              discount,
+              shipping,
+              tax,
+              sgst,
+              cgst,
+              igst: gstCalc.igst,
+              taxableAmount: gstCalc.taxableAmount,
+              total,
+            },
+            couponCode: discount > 0 ? normalizedCoupon : '',
+            payment,
+            currency: resolvedCurrency,
+            exchangeRate: resolvedExchangeRate,
+            deliveryName: '',
+            deliveryTrackId: '',
+            orderStatus: 'pending',
+            notes: (notes || '').trim(),
+          },
+        ],
+        { session }
+      );
+
+      // Increment coupon usage count
+      if (couponRecord && discount > 0) {
+        await Coupon.findByIdAndUpdate(
+          couponRecord._id,
+          {
+            $inc: { usageCount: 1 },
+            ...(userId ? { $addToSet: { usedBy: String(userId) } } : {}),
+          },
+          { session }
+        );
+      }
+
+      // Mark user/guest cart as converted
+      await Cart.updateMany(
+        {
+          $or: [
+            ...(userId ? [{ user: userId }] : []),
+            ...(customer.email ? [{ 'customer.email': customer.email.trim().toLowerCase() }] : []),
+          ],
+          status: { $ne: 'converted' },
+        },
+        { $set: { status: 'converted' } },
+        { session }
+      );
+
+      return orderDoc;
     });
+
+    const newOrder = createdOrder;
+
+    // Invalidate product catalog cache immediately so catalog reflects new stock
+    await cache.delByPattern('products:*');
 
     // Auto-sync customer phone & address to user profile
     if (req.user) {
@@ -446,24 +522,9 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
       }
     }
 
-    // Increment coupon usage count and record customer
-    if (couponRecord && discount > 0) {
-      try {
-        couponRecord.usageCount = (couponRecord.usageCount || 0) + 1;
-        if (userId && !couponRecord.usedBy?.includes(String(userId))) {
-          couponRecord.usedBy.push(String(userId));
-        }
-        await couponRecord.save();
-      } catch (cErr) {
-        console.warn('Could not update coupon usage count:', cErr);
-      }
-    }
-
-    // For COD orders, dispatch order confirmation invoice email immediately
+    // For COD orders, enqueue order confirmation invoice email in background worker
     if (!isOnline) {
-      sendOrderInvoiceEmail(newOrder).catch((e) =>
-        console.error('[Order Invoice Email COD Error]', e?.message || e)
-      );
+      taskQueue.enqueue('EMAIL_ORDER_INVOICE', newOrder);
     }
 
     res.status(201).json({
@@ -660,6 +721,23 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
         message: 'Order not found',
       });
       return;
+    }
+
+    // If order is transitioning to cancelled or returned, automatically restore inventory stock
+    const isNowCancelled = ['cancelled_by_seller', 'returned_by_customer'].includes(status);
+    const wasAlreadyCancelled = ['cancelled_by_seller', 'returned_by_customer'].includes(order.orderStatus);
+
+    if (isNowCancelled && !wasAlreadyCancelled && Array.isArray(order.items)) {
+      for (const item of order.items) {
+        const pId = String(item.product?.id || '').trim().toLowerCase();
+        if (pId) {
+          await Product.findOneAndUpdate(
+            { $or: [{ id: pId }, { name: item.product?.name }] },
+            { $inc: { stockQuantity: item.quantity }, $set: { inStock: true } }
+          );
+        }
+      }
+      await cache.delByPattern('products:*');
     }
 
     if (status) {

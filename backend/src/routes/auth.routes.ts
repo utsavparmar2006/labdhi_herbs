@@ -11,7 +11,7 @@ import {
   verifyResetOtp,
   resetPassword,
 } from '../controllers/auth.controller.js';
-import { verifyJWT } from '../middlewares/auth.middleware.js';
+import { verifyJWT, verifyJWTOptional } from '../middlewares/auth.middleware.js';
 import { authLimiter } from '../middlewares/rateLimiter.js';
 
 const router = Router();
@@ -25,7 +25,7 @@ router.post('/verify-reset-otp', authLimiter, verifyResetOtp);
 router.post('/reset-password', authLimiter, resetPassword);
 
 // Protected Authentication Routes
-router.post('/logout', verifyJWT, logoutUser);
+router.post('/logout', verifyJWTOptional, logoutUser);
 router.get('/me', verifyJWT, getCurrentUser);
 router.put('/profile', verifyJWT, updateUserProfile);
 router.put('/change-password', verifyJWT, changeUserPassword);

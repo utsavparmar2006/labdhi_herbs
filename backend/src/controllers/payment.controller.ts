@@ -1,12 +1,14 @@
 import { Request, Response } from 'express';
 import { Order } from '../models/Order.model.js';
+import { Product } from '../models/Product.model.js';
 import {
   getRazorpayConfig,
   getRazorpayInstance,
   verifyRazorpaySignature,
   verifyRazorpayWebhookSignature,
 } from '../config/razorpay.js';
-import { sendOrderInvoiceEmail } from '../utils/orderInvoiceTemplate.js';
+import { taskQueue } from '../utils/taskQueue.js';
+import { cache } from '../utils/cache.js';
 
 /**
  * @desc Get Public Razorpay Key ID & Status
@@ -141,12 +143,13 @@ export const verifyRazorpayPayment = async (req: Request, res: Response): Promis
 
     if (!isValid) {
       if (orderId) {
-        await Order.findOneAndUpdate(
+        const failedOrder = await Order.findOneAndUpdate(
           {
             $or: [
               { orderId: orderId },
               { _id: orderId.match(/^[0-9a-fA-F]{24}$/) ? orderId : null },
             ],
+            'payment.status': { $ne: 'completed' },
           },
           {
             'payment.status': 'failed',
@@ -154,8 +157,23 @@ export const verifyRazorpayPayment = async (req: Request, res: Response): Promis
             'payment.razorpayOrderId': razorpayOrderId,
             'payment.razorpayPaymentId': razorpayPaymentId,
             'payment.razorpaySignature': razorpaySignature,
-          }
+          },
+          { new: true }
         );
+
+        // Auto-restore inventory so stock is never artificially locked
+        if (failedOrder && Array.isArray(failedOrder.items)) {
+          for (const item of failedOrder.items) {
+            const slugKey = String(item.product?.id || '').trim().toLowerCase();
+            if (slugKey) {
+              await Product.findOneAndUpdate(
+                { $or: [{ id: slugKey }, { name: item.product?.name }] },
+                { $inc: { stockQuantity: item.quantity }, $set: { inStock: true } }
+              );
+            }
+          }
+          await cache.delByPattern('products:*');
+        }
       }
 
       res.status(400).json({
@@ -188,11 +206,9 @@ export const verifyRazorpayPayment = async (req: Request, res: Response): Promis
         { new: true }
       );
 
-      // Dispatch order confirmation invoice email upon verified payment
+      // Enqueue order confirmation invoice email in background worker
       if (updatedOrder) {
-        sendOrderInvoiceEmail(updatedOrder).catch((err) =>
-          console.error('[Order Invoice Email Online Error]', err?.message || err)
-        );
+        taskQueue.enqueue('EMAIL_ORDER_INVOICE', updatedOrder);
       }
     }
 
@@ -293,10 +309,8 @@ export const handleRazorpayWebhook = async (req: Request, res: Response): Promis
 
       console.log(`[Razorpay Webhook] ✓ Successfully confirmed Order #${order.orderId} via server-to-server webhook.`);
 
-      // Auto-dispatch confirmation invoice email to customer and admin
-      sendOrderInvoiceEmail(order).catch((err) =>
-        console.error('[Razorpay Webhook Email Error]', err?.message || err)
-      );
+      // Auto-dispatch confirmation invoice email to customer and admin via background worker
+      taskQueue.enqueue('EMAIL_ORDER_INVOICE', order);
 
       res.status(200).json({ success: true, message: 'Order confirmed successfully via webhook' });
       return;
@@ -319,7 +333,21 @@ export const handleRazorpayWebhook = async (req: Request, res: Response): Promis
         order.payment.status = 'failed';
         order.payment.transactionId = paymentEntity?.id || '';
         await order.save();
-        console.log(`[Razorpay Webhook] Recorded payment failure for Order #${order.orderId}`);
+
+        // Restore inventory if stock was locked on order creation
+        if (Array.isArray(order.items)) {
+          for (const item of order.items) {
+            const slugKey = String(item.product?.id || '').trim().toLowerCase();
+            if (slugKey) {
+              await Product.findOneAndUpdate(
+                { $or: [{ id: slugKey }, { name: item.product?.name }] },
+                { $inc: { stockQuantity: item.quantity }, $set: { inStock: true } }
+              );
+            }
+          }
+          await cache.delByPattern('products:*');
+        }
+        console.log(`[Razorpay Webhook] Recorded payment failure and restocked items for Order #${order.orderId}`);
       }
 
       res.status(200).json({ success: true, message: 'Payment failure recorded' });
@@ -331,6 +359,143 @@ export const handleRazorpayWebhook = async (req: Request, res: Response): Promis
   } catch (error: any) {
     console.error('[Razorpay Webhook Handler Error]', error);
     res.status(500).json({ success: false, message: 'Webhook processing error', error: error.message });
+  }
+};
+
+/**
+ * @desc 1-Click Automated Razorpay Refund for Online Orders
+ * @route POST /api/v1/payment/razorpay/refund
+ * @access Private (Admin only)
+ */
+export const createRazorpayRefund = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { orderId, amount, reason = 'Customer Cancellation / Admin Approved Refund', restoreStock = true } = req.body;
+
+    if (!orderId) {
+      res.status(400).json({
+        success: false,
+        message: 'Order ID is required to process refund',
+      });
+      return;
+    }
+
+    const order = await Order.findOne({
+      $or: [
+        { orderId },
+        { _id: orderId.match(/^[0-9a-fA-F]{24}$/) ? orderId : null },
+      ],
+    });
+
+    if (!order) {
+      res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
+      return;
+    }
+
+    // Validation: Only completed online orders can be refunded via Razorpay
+    if (order.payment?.method !== 'online') {
+      res.status(400).json({
+        success: false,
+        message: 'Only online prepaid orders can be refunded via Razorpay gateway.',
+      });
+      return;
+    }
+
+    if (order.payment?.status !== 'completed') {
+      res.status(400).json({
+        success: false,
+        message: `Order payment status is "${order.payment?.status}". Only completed payments can be refunded.`,
+      });
+      return;
+    }
+
+    const paymentId = order.payment?.razorpayPaymentId || order.payment?.transactionId;
+    if (!paymentId) {
+      res.status(400).json({
+        success: false,
+        message: 'Missing Razorpay Payment ID on this order record.',
+      });
+      return;
+    }
+
+    // Determine refundable amount (in rupees and paise)
+    const orderTotal = Number(order.pricing?.total || 0);
+    const refundRupees = Number(amount) > 0 ? Number(amount) : orderTotal;
+    const amountInPaise = Math.round(refundRupees * 100);
+
+    const config = getRazorpayConfig();
+    if (!config.isConfigured) {
+      res.status(503).json({
+        success: false,
+        message: 'Razorpay keys not configured on server.',
+      });
+      return;
+    }
+
+    const razorpay = getRazorpayInstance();
+
+    // Call Razorpay Refund API
+    const refundResponse: any = await (razorpay.payments as any).refund(paymentId, {
+      amount: amountInPaise,
+      notes: {
+        orderId: order.orderId,
+        reason: String(reason).slice(0, 250),
+      },
+    });
+
+    // Update Order payment and status
+    order.payment.status = 'refunded';
+    order.payment.refundId = refundResponse.id;
+    order.payment.refundAmount = refundRupees;
+    order.payment.refundedAt = new Date();
+    order.payment.refundReason = reason;
+
+    if (!['cancelled_by_seller', 'returned_by_customer', 'return_received'].includes(order.orderStatus)) {
+      order.orderStatus = 'cancelled_by_seller';
+    }
+
+    await order.save();
+
+    // Restore stock if requested
+    if (restoreStock && Array.isArray(order.items)) {
+      for (const item of order.items) {
+        const slugKey = String(item.product?.id || '').trim().toLowerCase();
+        if (slugKey) {
+          await Product.findOneAndUpdate(
+            { $or: [{ id: slugKey }, { name: item.product?.name }] },
+            { $inc: { stockQuantity: item.quantity }, $set: { inStock: true } }
+          );
+        }
+      }
+      await cache.delByPattern('products:*');
+    }
+
+    console.log(`[Razorpay Refund] ✓ Successfully issued refund ${refundResponse.id} for Order #${order.orderId} (₹${refundRupees})`);
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully processed refund of ₹${refundRupees} via Razorpay (Refund ID: ${refundResponse.id})`,
+      data: {
+        refundId: refundResponse.id,
+        amount: refundRupees,
+        paymentId,
+        order,
+      },
+    });
+  } catch (error: any) {
+    console.error('[Razorpay Refund Error]', error);
+    const errorMessage =
+      error?.error?.description ||
+      error?.message ||
+      (typeof error === 'string' ? error : 'Failed to process Razorpay refund');
+
+    res.status(500).json({
+      success: false,
+      message: errorMessage,
+      error: error?.message || errorMessage,
+    });
   }
 };
 

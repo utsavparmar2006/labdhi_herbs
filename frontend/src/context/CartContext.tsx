@@ -55,7 +55,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
 
-  // Save cart to localStorage whenever items change (after initial hydration)
+  // Save cart to localStorage and debounced sync to backend for abandoned cart recovery
   useEffect(() => {
     if (!isHydrated) return;
     try {
@@ -63,6 +63,46 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (e) {
       console.warn('Failed to persist cart items to storage', e);
     }
+
+    // Debounced sync to backend
+    const syncTimer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        let guestId = localStorage.getItem('labdhi_guest_id');
+        if (!guestId) {
+          guestId = `gst_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          localStorage.setItem('labdhi_guest_id', guestId);
+        }
+
+        let customer: any = null;
+        try {
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+            const u = JSON.parse(userStr);
+            customer = { fullName: u.name, email: u.email, phone: u.phone };
+          }
+        } catch {}
+
+        const token = localStorage.getItem('accessToken') || '';
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+
+        fetch(`${apiBase}/v1/cart/sync`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            guestId,
+            items,
+            customer,
+            status: items.length === 0 ? 'converted' : 'active',
+          }),
+        }).catch(() => {});
+      }
+    }, 1200);
+
+    return () => clearTimeout(syncTimer);
   }, [items, isHydrated]);
 
   // Handle successful login: automatically add pending item & open cart

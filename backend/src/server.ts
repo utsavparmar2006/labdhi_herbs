@@ -2,7 +2,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import mongoose from 'mongoose';
 
-// Load environment variables before initializing app or db (Delivery & SMTP Active)
+// Load environment variables before initializing app or db (Razorpay Live Active)
 dotenv.config();
 
 import app from './app.js';

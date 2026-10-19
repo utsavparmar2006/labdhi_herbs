@@ -20,6 +20,7 @@ import paymentRoutes from './routes/payment.routes.js';
 import reviewRoutes from './routes/review.routes.js';
 import subscriberRoutes from './routes/subscriber.routes.js';
 import translateRoutes from './routes/translate.routes.js';
+import cartRoutes from './routes/cart.routes.js';
 import compression from 'compression';
 import { globalLimiter } from './middlewares/rateLimiter.js';
 import { errorHandler } from './middlewares/errorHandler.js';
@@ -52,10 +53,14 @@ app.use(
         allowedOrigins.includes(origin) ||
         allowedOrigins.includes('*') ||
         origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
         origin.includes('15.207.248.254') ||
         origin.endsWith('labdhiherbs.com')
       ) {
         return callback(null, true);
+      }
+      if (process.env.NODE_ENV === 'production') {
+        return callback(new Error(`Origin ${origin} not allowed by CORS`));
       }
       return callback(null, true);
     },
@@ -135,6 +140,8 @@ app.use('/api/public/subscribers', subscriberRoutes);
 app.use('/api/translate', translateRoutes);
 app.use('/api/v1/translate', translateRoutes);
 app.use('/api/public/translate', translateRoutes);
+app.use('/api/v1/cart', cartRoutes);
+app.use('/api/public/cart', cartRoutes);
 
 // Root Route welcome message
 app.get('/', (_req: Request, res: Response) => {
