@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { User, IUser } from '../models/User.model.js';
 import Subscriber from '../models/Subscriber.model.js';
 import { AuthRequest } from '../middlewares/auth.middleware.js';
+import { sendEmail } from '../utils/mailer.js';
 
 // Helper function to generate Access & Refresh tokens and save Refresh Token to DB
 const generateAccessAndRefreshTokens = async (
@@ -561,9 +562,37 @@ export const forgotPassword = async (
 
     console.log(`[Auth] Password Reset OTP for ${normalizedEmail}: ${otp}`);
 
+    // Dispatch OTP email to user inbox
+    try {
+      await sendEmail({
+        to: normalizedEmail,
+        subject: '🌿 Labdhi Herbs - Password Reset Verification Code',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 25px; background: #F8F6F0; border-radius: 12px; border: 1px solid #EFE9DD;">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <h2 style="color: #14261E; margin-bottom: 6px;">Labdhi Herbs</h2>
+              <p style="color: #666; font-size: 13px; margin: 0;">Authentic Ayurvedic Health & Wellness</p>
+            </div>
+            <div style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #e2ddd3;">
+              <h3 style="color: #14261E; margin-top: 0;">Password Reset Request</h3>
+              <p style="color: #444; font-size: 14px; line-height: 1.6;">Hello <strong>${user.name || 'Valued Customer'}</strong>,</p>
+              <p style="color: #444; font-size: 14px; line-height: 1.6;">We received a request to reset your password for your Labdhi Herbs account.</p>
+              <div style="margin: 20px 0; padding: 15px; background: #F8F6F0; border-radius: 8px; border: 2px dashed #14261E; text-align: center;">
+                <p style="margin: 0; font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 1px;">Your 6-Digit Verification Code</p>
+                <p style="margin: 8px 0 0 0; font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #14261E;">${otp}</p>
+              </div>
+              <p style="font-size: 12px; color: #777; line-height: 1.5;">This code is valid for <strong>15 minutes</strong>. If you did not request this password reset, you can safely ignore this email.</p>
+            </div>
+          </div>
+        `,
+      });
+    } catch (mailErr) {
+      console.error('[Auth] Failed to send password reset email:', mailErr);
+    }
+
     res.status(200).json({
       success: true,
-      message: `A 6-digit verification code has been generated for ${normalizedEmail}.`,
+      message: `A 6-digit verification code has been sent to ${normalizedEmail}.`,
       // Return devOtp in non-production for zero-friction testing
       ...(process.env.NODE_ENV !== 'production' && { devOtp: otp }),
     });
