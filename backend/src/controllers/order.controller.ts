@@ -19,10 +19,18 @@ const VALID_COUPONS: Record<string, { type: 'percent' | 'flat'; value: number; m
   WELCOME50: { type: 'flat', value: 50, minSubtotal: 299 },
 };
 
-const generateOrderNumber = (): string => {
+const generateOrderNumber = async (): Promise<string> => {
   const dateStr = new Date().toISOString().slice(2, 10).replace(/-/g, '');
-  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-  return `LH-${dateStr}-${randomSuffix}`;
+  const totalOrders = await Order.countDocuments();
+  let sequenceNum = totalOrders + 1;
+  let orderNumber = `LH-${dateStr}-${String(sequenceNum).padStart(4, '0')}`;
+
+  // Ensure uniqueness in case of race condition or gaps
+  while (await Order.exists({ orderId: orderNumber })) {
+    sequenceNum++;
+    orderNumber = `LH-${dateStr}-${String(sequenceNum).padStart(4, '0')}`;
+  }
+  return orderNumber;
 };
 
 /**
@@ -301,7 +309,7 @@ export const createOrder = async (req: AuthRequest, res: Response): Promise<void
     const sgst = gstCalc.sgst;
     const cgst = gstCalc.cgst;
 
-    const orderId = generateOrderNumber();
+    const orderId = await generateOrderNumber();
 
     // Payment Info
     const isOnline = paymentMethod === 'online';
