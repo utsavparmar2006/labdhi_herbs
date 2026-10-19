@@ -115,10 +115,13 @@ export async function sendEmail({
 
     // If SMTP credentials are fully provided, deliver via actual SMTP transport
     if (transporter && user) {
+      const cleanSender = (sender || 'Labdhi Herbs').replace(/"/g, '').trim();
+      const plainText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
       const info = await transporter.sendMail({
-        from: `"${sender}" <${user}>`,
+        from: `"${cleanSender}" <${user}>`,
         to,
         subject,
+        text: plainText,
         html,
       });
 
