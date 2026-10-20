@@ -535,7 +535,7 @@ export default function AdminUsersClient() {
                 </button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto min-h-[280px]">
                 <table className="w-full text-left border-collapse">
                   
                   {/* Table Header */}
@@ -553,7 +553,7 @@ export default function AdminUsersClient() {
 
                   {/* Table Rows */}
                   <tbody className="divide-y divide-[#EFE9DD] text-xs font-medium text-slate-800">
-                    {users.map((u) => {
+                    {users.map((u, index) => {
                       const initials = u.name
                         .split(' ')
                         .map((n) => n[0])
@@ -561,8 +561,10 @@ export default function AdminUsersClient() {
                         .toUpperCase()
                         .slice(0, 2);
 
+                      const isNearBottom = index >= Math.max(0, users.length - 2);
+
                       return (
-                        <tr key={u._id} className="hover:bg-[#F8F6F0]/50 transition-colors group">
+                        <tr key={u._id} className={`hover:bg-[#F8F6F0]/50 transition-colors group ${activeMenuId === u._id ? 'relative z-30' : ''}`}>
                           
                           {/* User Name & Initials */}
                           <td className="py-4 px-6">
@@ -634,7 +636,7 @@ export default function AdminUsersClient() {
                           </td>
 
                           {/* Actions Column */}
-                          <td className="py-4 px-6 text-right relative">
+                          <td className={`py-4 px-6 text-right relative ${activeMenuId === u._id ? 'z-50' : ''}`}>
                             <div className="relative inline-block text-left">
                               <button
                                 onClick={() => setActiveMenuId(activeMenuId === u._id ? null : u._id)}
@@ -645,61 +647,72 @@ export default function AdminUsersClient() {
 
                               {/* Actions Dropdown Menu */}
                               {activeMenuId === u._id && (
-                                <div className="absolute right-0 mt-1 w-44 bg-white rounded-2xl shadow-xl border border-[#EFE9DD] py-1.5 z-40 text-left font-medium animate-in fade-in zoom-in-95 duration-150">
-                                  
-                                  <button
-                                    onClick={() => {
-                                      setActiveMenuId(null);
-                                      setSelectedUserForDrawer(u);
-                                    }}
-                                    className="w-full px-4 py-2 hover:bg-[#F8F6F0] text-slate-700 flex items-center gap-2 cursor-pointer"
+                                <>
+                                  {/* Click outside backdrop */}
+                                  <div
+                                    className="fixed inset-0 z-40 bg-transparent"
+                                    onClick={() => setActiveMenuId(null)}
+                                  />
+                                  <div
+                                    className={`absolute right-0 w-44 bg-white rounded-2xl shadow-2xl border border-[#EFE9DD] py-1.5 z-50 text-left font-medium animate-in fade-in zoom-in-95 duration-150 ${
+                                      isNearBottom ? 'bottom-full mb-1 origin-bottom-right' : 'top-full mt-1 origin-top-right'
+                                    }`}
                                   >
-                                    <Eye className="w-3.5 h-3.5 text-[#1F3A2E]" />
-                                    <span>View Profile</span>
-                                  </button>
+                                    
+                                    <button
+                                      onClick={() => {
+                                        setActiveMenuId(null);
+                                        setSelectedUserForDrawer(u);
+                                      }}
+                                      className="w-full px-4 py-2 hover:bg-[#F8F6F0] text-slate-700 flex items-center gap-2 cursor-pointer"
+                                    >
+                                      <Eye className="w-3.5 h-3.5 text-[#1F3A2E]" />
+                                      <span>View Profile</span>
+                                    </button>
 
-                                  <button
-                                    onClick={() => handleToggleStatus(u._id)}
-                                    className="w-full px-4 py-2 hover:bg-[#F8F6F0] text-slate-700 flex items-center gap-2 cursor-pointer"
-                                  >
-                                    {u.status === 'active' ? (
-                                      <>
-                                        <UserX className="w-3.5 h-3.5 text-amber-600" />
-                                        <span>Deactivate</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                        <span>Activate</span>
-                                      </>
-                                    )}
-                                  </button>
+                                    <button
+                                      onClick={() => handleToggleStatus(u._id)}
+                                      className="w-full px-4 py-2 hover:bg-[#F8F6F0] text-slate-700 flex items-center gap-2 cursor-pointer"
+                                    >
+                                      {u.status === 'active' ? (
+                                        <>
+                                          <UserX className="w-3.5 h-3.5 text-amber-600" />
+                                          <span>Deactivate</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+                                          <span>Activate</span>
+                                        </>
+                                      )}
+                                    </button>
 
-                                  <button
-                                    onClick={() => {
-                                      setActiveMenuId(null);
-                                      setSelectedUserForEdit(u);
-                                    }}
-                                    className="w-full px-4 py-2 hover:bg-[#F8F6F0] text-slate-700 flex items-center gap-2 cursor-pointer"
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5 text-[#B58A5A]" />
-                                    <span>Edit User</span>
-                                  </button>
+                                    <button
+                                      onClick={() => {
+                                        setActiveMenuId(null);
+                                        setSelectedUserForEdit(u);
+                                      }}
+                                      className="w-full px-4 py-2 hover:bg-[#F8F6F0] text-slate-700 flex items-center gap-2 cursor-pointer"
+                                    >
+                                      <Edit2 className="w-3.5 h-3.5 text-[#B58A5A]" />
+                                      <span>Edit User</span>
+                                    </button>
 
-                                  <div className="border-t border-[#EFE9DD] my-1" />
+                                    <div className="border-t border-[#EFE9DD] my-1" />
 
-                                  <button
-                                    onClick={() => {
-                                      setActiveMenuId(null);
-                                      setSelectedUserForDelete(u);
-                                    }}
-                                    className="w-full px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 cursor-pointer"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                    <span>Delete Account</span>
-                                  </button>
+                                    <button
+                                      onClick={() => {
+                                        setActiveMenuId(null);
+                                        setSelectedUserForDelete(u);
+                                      }}
+                                      className="w-full px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 cursor-pointer"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                      <span>Delete Account</span>
+                                    </button>
 
-                                </div>
+                                  </div>
+                                </>
                               )}
                             </div>
                           </td>
