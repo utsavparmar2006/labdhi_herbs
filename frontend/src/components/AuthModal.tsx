@@ -48,6 +48,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [resetOtp, setResetOtp] = useState('');
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [devOtpBadge, setDevOtpBadge] = useState('');
@@ -62,19 +64,59 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     return () => clearInterval(interval);
   }, [resendCooldown]);
 
+  // Prevent background scrolling on mobile & desktop when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    const originalOverscroll = document.body.style.overscrollBehavior;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'none';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.overscrollBehavior = originalOverscroll;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
+
+    const trimmedEmail = loginEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!trimmedEmail) {
+      setErrorMessage('Please enter your email address.');
+      return;
+    }
+
+    if (!emailRegex.test(trimmedEmail)) {
+      setErrorMessage('Please enter a valid email address (e.g. name@example.com).');
+      return;
+    }
+
+    if (!loginPassword) {
+      setErrorMessage('Please enter your password.');
+      return;
+    }
+
+    if (loginPassword.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const res = await fetch(`${API_BASE_URL}/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+        body: JSON.stringify({ email: trimmedEmail, password: loginPassword }),
       });
 
       const data = await res.json();
@@ -103,11 +145,39 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
 
-    const fullName = `${registerFirstName.trim()} ${registerLastName.trim()}`.trim();
+    const trimmedFirstName = registerFirstName.trim();
+    const trimmedLastName = registerLastName.trim();
+    const fullName = `${trimmedFirstName} ${trimmedLastName}`.trim();
+    const trimmedEmail = registerEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!trimmedFirstName || trimmedFirstName.length < 2) {
+      setErrorMessage('First name must be at least 2 characters long.');
+      return;
+    }
+
+    if (!trimmedEmail || !emailRegex.test(trimmedEmail)) {
+      setErrorMessage('Please enter a valid email address (e.g. name@example.com).');
+      return;
+    }
+
+    if (registerPhone.trim()) {
+      const cleanPhone = registerPhone.replace(/\D/g, '');
+      if (cleanPhone.length !== 10) {
+        setErrorMessage('Please enter a valid 10-digit mobile number.');
+        return;
+      }
+    }
+
+    if (!registerPassword || registerPassword.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const res = await fetch(`${API_BASE_URL}/v1/auth/register`, {
@@ -115,8 +185,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: fullName,
-          email: registerEmail,
-          phone: registerPhone,
+          email: trimmedEmail,
+          phone: registerPhone.trim(),
           password: registerPassword,
         }),
       });
@@ -147,8 +217,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   // Step 1: Send OTP to email
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!forgotEmail.trim()) {
+    const trimmedEmail = forgotEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!trimmedEmail) {
       setErrorMessage('Please enter your registered email address.');
+      return;
+    }
+
+    if (!emailRegex.test(trimmedEmail)) {
+      setErrorMessage('Please enter a valid registered email address.');
       return;
     }
 
@@ -157,7 +235,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setSuccessMessage('');
 
     try {
-      const res = await forgotPassword(forgotEmail.trim());
+      const res = await forgotPassword(trimmedEmail);
 
       if (!res.success) {
         throw new Error(res.message || 'Failed to send password reset code.');
@@ -183,8 +261,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   // Step 2: Reset password using OTP & auto-login
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetOtp.trim()) {
+    const cleanOtp = resetOtp.trim();
+
+    if (!cleanOtp) {
       setErrorMessage('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    if (!/^\d{6}$/.test(cleanOtp)) {
+      setErrorMessage('Verification code must be exactly 6 numeric digits.');
       return;
     }
 
@@ -236,8 +321,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-[#F8F6F0] rounded-3xl overflow-hidden shadow-2xl border border-[#EFE9DD] animate-in zoom-in-95 duration-200">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto overscroll-contain"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md max-h-[90vh] flex flex-col bg-[#F8F6F0] rounded-3xl overflow-hidden shadow-2xl border border-[#EFE9DD] animate-in zoom-in-95 duration-200 my-auto"
+      >
         
         {/* Close Button */}
         <button
@@ -300,7 +393,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         )}
 
         {/* Body */}
-        <div className="p-8 space-y-6">
+        <div className="p-6 sm:p-8 space-y-6 overflow-y-auto overscroll-contain flex-1">
 
           {/* Feedback Alerts */}
           {errorMessage && (
@@ -344,13 +437,21 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                   <input
-                    type="password"
+                    type={showLoginPassword ? 'text' : 'password'}
                     required
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    title={showLoginPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
@@ -453,14 +554,24 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">Password</label>
-                <input
-                  type="password"
-                  required
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
-                  placeholder="Create password (min 6 chars)"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
-                />
+                <div className="relative">
+                  <input
+                    type={showRegisterPassword ? 'text' : 'password'}
+                    required
+                    value={registerPassword}
+                    onChange={(e) => setRegisterPassword(e.target.value)}
+                    placeholder="Create password (min 6 chars)"
+                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    title={showRegisterPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showRegisterPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button

@@ -28,6 +28,8 @@ export default function AdminLoginClient() {
   const [resetOtp, setResetOtp] = useState('');
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
+  const [showModalNewPassword, setShowModalNewPassword] = useState(false);
+  const [showModalConfirmPassword, setShowModalConfirmPassword] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalError, setModalError] = useState('');
   const [modalSuccess, setModalSuccess] = useState('');
@@ -42,17 +44,50 @@ export default function AdminLoginClient() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!showForgotModal) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [showForgotModal]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMessage('');
     setSuccessMessage('');
+
+    const trimmedEmail = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!trimmedEmail) {
+      setErrorMessage('Please enter your administrator email address.');
+      return;
+    }
+
+    if (!emailRegex.test(trimmedEmail)) {
+      setErrorMessage('Please enter a valid email address (e.g. admin@example.com).');
+      return;
+    }
+
+    if (!password) {
+      setErrorMessage('Please enter your administrator password.');
+      return;
+    }
+
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const res = await fetch(`${API_BASE_URL}/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password, adminOnly: true }),
+        body: JSON.stringify({ email: trimmedEmail, password, adminOnly: true }),
       });
 
       const data = await res.json();
@@ -104,6 +139,8 @@ export default function AdminLoginClient() {
     setResetOtp('');
     setResetNewPassword('');
     setResetConfirmPassword('');
+    setShowModalNewPassword(false);
+    setShowModalConfirmPassword(false);
     setModalError('');
     setModalSuccess('');
     setForgotStep('email');
@@ -112,9 +149,16 @@ export default function AdminLoginClient() {
 
   // Request OTP for Admin
   const handleRequestOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!forgotEmail.trim()) {
+    const trimmedEmail = forgotEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!trimmedEmail) {
       setModalError('Please enter your administrator email address.');
+      return;
+    }
+
+    if (!emailRegex.test(trimmedEmail)) {
+      setModalError('Please enter a valid administrator email address.');
       return;
     }
 
@@ -126,7 +170,7 @@ export default function AdminLoginClient() {
       const res = await fetch(`${API_BASE_URL}/v1/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail.trim() }),
+        body: JSON.stringify({ email: trimmedEmail }),
       });
 
       const data = await res.json();
@@ -150,8 +194,13 @@ export default function AdminLoginClient() {
   // Submit OTP & New Password for Admin
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!resetOtp.trim()) {
+    const cleanOtp = resetOtp.trim();
+    if (!cleanOtp) {
       setModalError('Please enter the 6-digit verification code.');
+      return;
+    }
+    if (!/^\d{6}$/.test(cleanOtp)) {
+      setModalError('Verification code must be exactly 6 numeric digits.');
       return;
     }
     if (resetNewPassword.length < 6) {
@@ -288,7 +337,7 @@ export default function AdminLoginClient() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@labdhiherbs.com"
+                  placeholder="labdhiclinic@gmail.com"
                   className="w-full pl-11 pr-4 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
                 />
               </div>
@@ -436,7 +485,7 @@ export default function AdminLoginClient() {
                       required
                       value={forgotEmail}
                       onChange={(e) => setForgotEmail(e.target.value)}
-                      placeholder="admin@labdhiherbs.com"
+                      placeholder="labdhiclinic@gmail.com"
                       className="w-full pl-11 pr-4 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
                     />
                   </div>
@@ -487,28 +536,48 @@ export default function AdminLoginClient() {
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     New Password
                   </label>
-                  <input
-                    type="password"
-                    required
-                    value={resetNewPassword}
-                    onChange={(e) => setResetNewPassword(e.target.value)}
-                    placeholder="At least 6 characters"
-                    className="w-full px-4 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showModalNewPassword ? 'text' : 'password'}
+                      required
+                      value={resetNewPassword}
+                      onChange={(e) => setResetNewPassword(e.target.value)}
+                      placeholder="At least 6 characters"
+                      className="w-full pl-4 pr-11 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowModalNewPassword(!showModalNewPassword)}
+                      className="absolute right-3.5 top-3.5 p-0.5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      title={showModalNewPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showModalNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-1.5 text-left">
                   <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Confirm New Password
                   </label>
-                  <input
-                    type="password"
-                    required
-                    value={resetConfirmPassword}
-                    onChange={(e) => setResetConfirmPassword(e.target.value)}
-                    placeholder="Repeat new password"
-                    className="w-full px-4 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showModalConfirmPassword ? 'text' : 'password'}
+                      required
+                      value={resetConfirmPassword}
+                      onChange={(e) => setResetConfirmPassword(e.target.value)}
+                      placeholder="Repeat new password"
+                      className="w-full pl-4 pr-11 py-3 rounded-2xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]/20 focus:bg-white transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowModalConfirmPassword(!showModalConfirmPassword)}
+                      className="absolute right-3.5 top-3.5 p-0.5 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                      title={showModalConfirmPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showModalConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex gap-2 pt-2">
