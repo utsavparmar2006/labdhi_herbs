@@ -18,6 +18,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { subscribeToNewsletter } from '../services/api';
+import { useToast } from '../context/ToastContext';
 
 interface NewsletterSubscribeModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export default function NewsletterSubscribeModal({
   const [isSuccess, setIsSuccess] = useState(false);
   const [couponCode, setCouponCode] = useState('WELCOME10');
   const [copied, setCopied] = useState(false);
+  const { showToast } = useToast();
 
   // Reset and pre-populate when modal opens
   useEffect(() => {
@@ -90,16 +92,22 @@ export default function NewsletterSubscribeModal({
     setErrorMessage('');
 
     if (!name.trim()) {
-      setErrorMessage('Please enter your full name');
+      const msg = 'Please enter your full name';
+      setErrorMessage(msg);
+      showToast(msg, 'warning');
       return;
     }
     if (!email.trim() || !email.includes('@')) {
-      setErrorMessage('Please enter a valid email address');
+      const msg = 'Please enter a valid email address';
+      setErrorMessage(msg);
+      showToast(msg, 'warning');
       return;
     }
     const cleanDigits = phone.replace(/\D/g, '');
     if (cleanDigits.length < 10) {
-      setErrorMessage('Please enter a valid 10-digit WhatsApp phone number');
+      const msg = 'Please enter a valid 10-digit WhatsApp phone number';
+      setErrorMessage(msg);
+      showToast(msg, 'warning');
       return;
     }
 
@@ -117,6 +125,7 @@ export default function NewsletterSubscribeModal({
         const assignedCoupon = res.couponCode || 'WELCOME10';
         setCouponCode(assignedCoupon);
         setIsSuccess(true);
+        showToast('Welcome to Labdhi Herbs! Here is your exclusive 10% coupon.', 'success');
 
         try {
           // 1. Save subscription details
@@ -149,10 +158,14 @@ export default function NewsletterSubscribeModal({
           // ignore
         }
       } else {
-        setErrorMessage(res.message || 'Subscription failed. Please verify your details.');
+        const msg = res.message || 'Subscription failed. Please verify your details.';
+        setErrorMessage(msg);
+        showToast(msg, 'error');
       }
     } catch (err: any) {
-      setErrorMessage(err?.message || 'Network error occurred. Please try again.');
+      const msg = err?.message || 'Network error occurred. Please try again.';
+      setErrorMessage(msg);
+      showToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -161,6 +174,7 @@ export default function NewsletterSubscribeModal({
   const handleCopyCoupon = () => {
     navigator.clipboard.writeText(couponCode);
     setCopied(true);
+    showToast(`Coupon code "${couponCode}" copied to clipboard!`, 'success');
     setTimeout(() => setCopied(false), 2000);
   };
 

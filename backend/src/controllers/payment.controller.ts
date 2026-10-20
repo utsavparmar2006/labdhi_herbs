@@ -83,6 +83,7 @@ export const createRazorpayOrder = async (req: Request, res: Response): Promise<
       amount: amountInPaise,
       currency: currency.toUpperCase(),
       receipt: receiptId.slice(0, 40),
+      payment_capture: 1,
       notes: {
         orderId: orderDoc ? orderDoc.orderId : '',
         customerName: orderDoc?.customer?.fullName || '',

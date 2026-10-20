@@ -11,6 +11,7 @@ import SearchModal from '../../components/SearchModal';
 import AdminInvoiceModal from '../admin/orders/components/AdminInvoiceModal';
 import { trackOrderByOrderId } from '../../services/api';
 import { useCart } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
 import { Order } from '../../types';
 import {
   Search,
@@ -55,6 +56,7 @@ export default function TrackOrderClient() {
   const [isSearching, setIsSearching] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showInvoice, setShowInvoice] = useState(false);
+  const { showToast } = useToast();
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -63,7 +65,9 @@ export default function TrackOrderClient() {
   const handleTrack = async (idToSearch?: string) => {
     const targetId = (idToSearch !== undefined ? idToSearch : orderInput).trim();
     if (!targetId) {
-      setErrorMessage('Please enter an Order ID or Tracking Number to track.');
+      const msg = 'Please enter an Order ID or Tracking Number to track.';
+      setErrorMessage(msg);
+      showToast(msg, 'warning');
       return;
     }
 
@@ -75,13 +79,16 @@ export default function TrackOrderClient() {
       const res = await trackOrderByOrderId(targetId);
       if (res.success && res.data) {
         setOrderData(res.data);
+        showToast(`Order details loaded for #${res.data.orderId}`, 'success');
       } else {
-        setErrorMessage(
-          res.message || `No active order found with ID or Tracking No "${targetId}". Please check your order confirmation details.`
-        );
+        const msg = res.message || `No active order found with ID or Tracking No "${targetId}". Please check your order confirmation details.`;
+        setErrorMessage(msg);
+        showToast(msg, 'error');
       }
     } catch (err: any) {
-      setErrorMessage(err.message || 'Unable to connect to order tracking service. Please try again.');
+      const msg = err.message || 'Unable to connect to order tracking service. Please try again.';
+      setErrorMessage(msg);
+      showToast(msg, 'error');
     } finally {
       setIsSearching(false);
     }

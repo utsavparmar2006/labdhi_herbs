@@ -17,6 +17,7 @@ import OriginalTransparentLogo from '../../components/OriginalTransparentLogo';
 import AuthModal from '../../components/AuthModal';
 import { useSiteSettings } from '../../context/SiteSettingsContext';
 import { useCurrency } from '../../context/CurrencyContext';
+import { useToast } from '../../context/ToastContext';
 import { GLOBAL_COUNTRIES, COUNTRIES_BY_NAME, CountryInfo } from '../../utils/geoCurrency';
 import {
   ShieldCheck,
@@ -200,6 +201,17 @@ export default function CheckoutClient() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [razorpayKeyId, setRazorpayKeyId] = useState<string>('');
+  const { showToast } = useToast();
+
+  const showError = (msg: string) => {
+    setErrorMessage(msg);
+    showToast(msg, 'error');
+  };
+
+  const showWarning = (msg: string) => {
+    setErrorMessage(msg);
+    showToast(msg, 'warning');
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -352,10 +364,12 @@ export default function CheckoutClient() {
           discountAmount: res.data.discountAmount,
           description: res.data.description,
         });
+        showToast(`Promo coupon "${res.data.code}" applied! You saved ₹${res.data.discountAmount}`, 'success');
         setCouponInput('');
         return;
       } else if (res.message) {
         setCouponError(res.message);
+        showToast(res.message, 'error');
         return;
       }
     } catch (apiErr) {
@@ -365,12 +379,16 @@ export default function CheckoutClient() {
     // Fallback to local coupons if server endpoint uncontactable
     const coupon = availableCoupons.find((c) => c.code === code);
     if (!coupon) {
-      setCouponError('Invalid promo code. Try HERBAL10 for 10% off.');
+      const err = 'Invalid promo code. Try HERBAL10 for 10% off.';
+      setCouponError(err);
+      showToast(err, 'error');
       return;
     }
 
     if (subtotal < coupon.min) {
-      setCouponError(`This code requires a minimum order of ₹${coupon.min}`);
+      const err = `This code requires a minimum order of ₹${coupon.min}`;
+      setCouponError(err);
+      showToast(err, 'error');
       return;
     }
 
@@ -386,12 +404,14 @@ export default function CheckoutClient() {
       discountAmount: calculatedDiscount,
       description: coupon.desc,
     });
+    showToast(`Promo code "${coupon.code}" applied successfully!`, 'success');
     setCouponInput('');
   };
 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null);
     setCouponError('');
+    showToast('Promo coupon removed', 'info');
   };
 
   // Form Submit & Place Order
@@ -402,14 +422,14 @@ export default function CheckoutClient() {
     // Real-world e-commerce requirement: User MUST be logged in
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (!token || !currentUser) {
-      setErrorMessage('Please sign in or create an account to complete your order.');
+      showError('Please sign in or create an account to complete your order.');
       setIsAuthOpen(true);
       return;
     }
 
     // Validations
     if (!formData.fullName.trim()) {
-      setErrorMessage('Please enter your full recipient name');
+      showError('Please enter your full recipient name');
       return;
     }
 
@@ -417,28 +437,28 @@ export default function CheckoutClient() {
     if (isIndia) {
       const pureDigits = cleanPhone.replace(/\D/g, '');
       if (pureDigits.length !== 10) {
-        setErrorMessage('Please enter a valid 10-digit Indian mobile number');
+        showError('Please enter a valid 10-digit Indian mobile number');
         return;
       }
     } else {
       if (cleanPhone.length < 6) {
-        setErrorMessage('Please enter a valid mobile number with country dial code');
+        showError('Please enter a valid mobile number with country dial code');
         return;
       }
     }
 
     if (!formData.email.trim() || !formData.email.includes('@')) {
-      setErrorMessage('Please enter a valid email address for order notifications');
+      showError('Please enter a valid email address for order notifications');
       return;
     }
 
     if (!formData.address.trim()) {
-      setErrorMessage('Please enter your complete delivery street address');
+      showError('Please enter your complete delivery street address');
       return;
     }
 
     if (!formData.city.trim()) {
-      setErrorMessage('Please enter your city');
+      showError('Please enter your city');
       return;
     }
 
@@ -446,23 +466,23 @@ export default function CheckoutClient() {
     if (isIndia) {
       const numericPin = cleanPincode.replace(/\D/g, '');
       if (numericPin.length !== 6) {
-        setErrorMessage('Please enter a valid 6-digit postal PIN code');
+        showError('Please enter a valid 6-digit postal PIN code');
         return;
       }
     } else {
       if (!cleanPincode) {
-        setErrorMessage('Please enter your postal / ZIP code');
+        showError('Please enter your postal / ZIP code');
         return;
       }
     }
 
     if (!isIndia && paymentMethod === 'cod') {
-      setErrorMessage('Cash on Delivery is available for domestic deliveries in India only. Please choose Online Payment.');
+      showError('Cash on Delivery is available for domestic deliveries in India only. Please choose Online Payment.');
       return;
     }
 
     if (items.length === 0) {
-      setErrorMessage('Your shopping cart is empty');
+      showError('Your shopping cart is empty');
       return;
     }
 
@@ -508,9 +528,10 @@ export default function CheckoutClient() {
 
         if (res.success && res.data?.orderId) {
           clearCart();
+          showToast('Order placed successfully! Cash on Delivery confirmed.', 'success');
           router.push(`/order-success/${res.data.orderId}`);
         } else {
-          setErrorMessage(res.message || 'Failed to place order. Please check your details.');
+          showError(res.message || 'Failed to place order. Please check your details.');
           setIsSubmitting(false);
         }
         return;
@@ -519,7 +540,7 @@ export default function CheckoutClient() {
       // Online Payment via Razorpay
       const isRazorpayLoaded = await loadRazorpayScript();
       if (!isRazorpayLoaded) {
-        setErrorMessage(
+        showError(
           'Unable to load Razorpay payment SDK. Please check your network connection or select Cash on Delivery.'
         );
         setIsSubmitting(false);
@@ -529,7 +550,7 @@ export default function CheckoutClient() {
       // 1. Create order in MongoDB first with payment status 'pending'
       const orderRes = await createOrder(payload);
       if (!orderRes.success || !orderRes.data?.orderId) {
-        setErrorMessage(orderRes.message || 'Failed to initiate order. Please try again.');
+        showError(orderRes.message || 'Failed to initiate order. Please try again.');
         setIsSubmitting(false);
         return;
       }
@@ -545,7 +566,7 @@ export default function CheckoutClient() {
         });
 
         if (!rzpRes.success || !rzpRes.data) {
-          setErrorMessage(
+          showError(
             rzpRes.message ||
               'Payment gateway initialization failed. Please check your keys or choose Cash on Delivery.'
           );
@@ -564,7 +585,7 @@ export default function CheckoutClient() {
       }
 
       if (!keyId) {
-        setErrorMessage(
+        showError(
           'Razorpay Test Key ID is not configured. Please contact administrator or choose Cash on Delivery.'
         );
         setIsSubmitting(false);
@@ -592,16 +613,17 @@ export default function CheckoutClient() {
 
             if (verifyRes.success) {
               clearCart();
+              showToast('Payment verified successfully!', 'success');
               router.push(`/order-success/${createdOrder.orderId}?payment=success`);
             } else {
-              setErrorMessage(
+              showError(
                 verifyRes.message ||
                   'Payment verification failed. If money was debited, please contact customer support.'
               );
               setIsSubmitting(false);
             }
           } catch (verifyErr: any) {
-            setErrorMessage(verifyErr.message || 'An error occurred while verifying payment.');
+            showError(verifyErr.message || 'An error occurred while verifying payment.');
             setIsSubmitting(false);
           }
         },
@@ -620,7 +642,7 @@ export default function CheckoutClient() {
         modal: {
           ondismiss: function () {
             setIsSubmitting(false);
-            setErrorMessage('Payment was cancelled or closed. You can retry paying or select Cash on Delivery.');
+            showWarning('Payment was cancelled or closed. You can retry paying or select Cash on Delivery.');
           },
         },
       };
@@ -628,13 +650,13 @@ export default function CheckoutClient() {
       const razorpayInstance = new (window as any).Razorpay(rzpOptions);
       razorpayInstance.on('payment.failed', function (response: any) {
         setIsSubmitting(false);
-        setErrorMessage(
+        showError(
           `Payment failed: ${response.error?.description || 'Transaction was declined.'}`
         );
       });
       razorpayInstance.open();
     } catch (err: any) {
-      setErrorMessage(err.message || 'An unexpected error occurred. Please try again.');
+      showError(err.message || 'An unexpected error occurred. Please try again.');
       setIsSubmitting(false);
     }
   };

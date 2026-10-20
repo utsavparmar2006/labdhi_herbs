@@ -9,6 +9,7 @@ import CartDrawer from '../../components/CartDrawer';
 import AuthModal from '../../components/AuthModal';
 import SearchModal from '../../components/SearchModal';
 import { useCart } from '../../context/CartContext';
+import { useToast } from '../../context/ToastContext';
 import { getCurrentUserProfile, updateUserProfile, changeUserPassword } from '../../services/api';
 import { User } from '../../types';
 import {
@@ -72,6 +73,7 @@ const INDIAN_STATES = [
 export default function ProfileClient() {
   const router = useRouter();
   const { items, cartCount, openCart, isCartOpen, closeCart, removeFromCart, updateQuantity } = useCart();
+  const { showToast } = useToast();
 
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -195,13 +197,19 @@ export default function ProfileClient() {
         setUser(res.data.user);
         localStorage.setItem('user', JSON.stringify(res.data.user));
         window.dispatchEvent(new Event('authChange'));
-        setProfileSuccessMsg('Your profile and default address were updated successfully!');
+        const msg = 'Your profile and default address were updated successfully!';
+        setProfileSuccessMsg(msg);
+        showToast(msg, 'success');
         setTimeout(() => setProfileSuccessMsg(''), 4000);
       } else {
-        setProfileErrorMsg(res.message || 'Failed to update profile. Please try again.');
+        const msg = res.message || 'Failed to update profile. Please try again.';
+        setProfileErrorMsg(msg);
+        showToast(msg, 'error');
       }
     } catch (err: any) {
-      setProfileErrorMsg(err.message || 'Server error while saving profile.');
+      const msg = err.message || 'Server error while saving profile.';
+      setProfileErrorMsg(msg);
+      showToast(msg, 'error');
     } finally {
       setIsSavingProfile(false);
     }
@@ -214,17 +222,23 @@ export default function ProfileClient() {
     setPasswordSuccessMsg('');
 
     if (!currentPassword) {
-      setPasswordErrorMsg('Please enter your current password.');
+      const msg = 'Please enter your current password.';
+      setPasswordErrorMsg(msg);
+      showToast(msg, 'warning');
       return;
     }
 
     if (!newPassword || newPassword.length < 6) {
-      setPasswordErrorMsg('New password must be at least 6 characters long.');
+      const msg = 'New password must be at least 6 characters long.';
+      setPasswordErrorMsg(msg);
+      showToast(msg, 'warning');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordErrorMsg('New password and confirm password do not match.');
+      const msg = 'New password and confirm password do not match.';
+      setPasswordErrorMsg(msg);
+      showToast(msg, 'warning');
       return;
     }
 
@@ -236,16 +250,22 @@ export default function ProfileClient() {
       });
 
       if (res.success) {
-        setPasswordSuccessMsg('Password updated successfully! Keep it safe.');
+        const msg = 'Password updated successfully! Keep it safe.';
+        setPasswordSuccessMsg(msg);
+        showToast(msg, 'success');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
         setTimeout(() => setPasswordSuccessMsg(''), 4000);
       } else {
-        setPasswordErrorMsg(res.message || 'Failed to change password. Check your current password.');
+        const msg = res.message || 'Failed to change password. Check your current password.';
+        setPasswordErrorMsg(msg);
+        showToast(msg, 'error');
       }
     } catch (err: any) {
-      setPasswordErrorMsg(err.message || 'Server error while updating password.');
+      const msg = err.message || 'Server error while updating password.';
+      setPasswordErrorMsg(msg);
+      showToast(msg, 'error');
     } finally {
       setIsSavingPassword(false);
     }

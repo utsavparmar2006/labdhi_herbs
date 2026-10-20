@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '../context/ToastContext';
 import {
   X,
   Star,
@@ -49,6 +50,7 @@ export default function WriteReviewModal({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const { showToast } = useToast();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -136,12 +138,15 @@ export default function WriteReviewModal({
       }
 
       setIsSuccess(true);
+      showToast('Thank you! Your Ayurvedic review was submitted successfully.', 'success');
       setTimeout(() => {
         onReviewSubmitted();
         handleClose();
       }, 1800);
     } catch (err: any) {
-      setErrorMsg(err.message || 'An unexpected error occurred.');
+      const msg = err.message || 'An unexpected error occurred.';
+      setErrorMsg(msg);
+      showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
     }

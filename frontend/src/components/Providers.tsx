@@ -5,6 +5,8 @@ import { CartProvider } from '../context/CartContext';
 import { SiteSettingsProvider } from '../context/SiteSettingsContext';
 import { CurrencyProvider } from '../context/CurrencyContext';
 
+import { ToastProvider } from '../context/ToastContext';
+
 /**
  * Automatically wipes any legacy Google Translate browser cookies
  * so that Home, Shop, and other store pages remain 100% in pure English.
@@ -26,13 +28,15 @@ function CookieCleanupManager() {
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SiteSettingsProvider>
-      <CurrencyProvider>
-        <CartProvider>
-          <CookieCleanupManager />
-          {children}
-        </CartProvider>
-      </CurrencyProvider>
-    </SiteSettingsProvider>
+    <ToastProvider>
+      <SiteSettingsProvider>
+        <CurrencyProvider>
+          <CartProvider>
+            <CookieCleanupManager />
+            {children}
+          </CartProvider>
+        </CurrencyProvider>
+      </SiteSettingsProvider>
+    </ToastProvider>
   );
 }
