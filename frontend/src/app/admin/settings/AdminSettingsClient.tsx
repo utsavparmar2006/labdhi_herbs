@@ -303,25 +303,61 @@ function ImageUpload({
   onChange,
   hint,
   onError,
+  recommendedDimensions,
+  allowedFormats = ['JPG', 'JPEG', 'PNG', 'WEBP', 'SVG'],
 }: {
   label: string;
   value: string;
   onChange: (url: string) => void;
   hint?: string;
   onError?: (msg: string) => void;
+  recommendedDimensions?: string;
+  allowedFormats?: string[];
 }) {
   const [uploading, setUploading] = useState(false);
+  const [localError, setLocalError] = useState('');
+  const [detectedSpecs, setDetectedSpecs] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const inspectDimensions = (file: File): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to read image dimensions'));
+      };
+      img.src = objectUrl;
+    });
+  };
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      const msg = 'File size exceeds 10MB limit.';
+    setLocalError('');
+    setDetectedSpecs(null);
+
+    // 1. Format check
+    const ext = (file.name.split('.').pop() || '').toUpperCase();
+    const isAllowedExt = allowedFormats.map((f) => f.toUpperCase()).includes(ext);
+    if (!isAllowedExt) {
+      const msg = `Invalid format (.${ext.toLowerCase()}). Allowed: ${allowedFormats.join(', ')}.`;
+      setLocalError(msg);
       if (onError) onError(msg);
-      else alert(msg);
       return;
+    }
+
+    // 2. Dimension inspection
+    try {
+      const { width, height } = await inspectDimensions(file);
+      setDetectedSpecs(`${width} × ${height} px`);
+    } catch {
+      // Non-blocking
     }
 
     setUploading(true);
@@ -349,11 +385,13 @@ function ImageUpload({
         onChange(data.url);
       } else {
         const errorMsg = data.message || 'Image upload failed. Please check file format.';
+        setLocalError(errorMsg);
         if (onError) onError(errorMsg);
         else alert(errorMsg);
       }
     } catch (err: any) {
       const errorMsg = err?.message || 'Network error during upload. Please try again.';
+      setLocalError(errorMsg);
       if (onError) onError(errorMsg);
       else alert(errorMsg);
     } finally {
@@ -364,7 +402,17 @@ function ImageUpload({
 
   return (
     <div>
-      <label className="block text-xs font-semibold text-slate-600 mb-1.5">{label}</label>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="block text-xs font-semibold text-slate-700">{label}</label>
+        <div className="flex items-center gap-1.5">
+          {recommendedDimensions && (
+            <span className="text-[10px] font-semibold text-[#1F3A2E] bg-[#1F3A2E]/8 px-2 py-0.5 rounded-md border border-[#1F3A2E]/15">
+              📐 {recommendedDimensions}
+            </span>
+          )}
+        </div>
+      </div>
+
       <div className="flex gap-3 items-center">
         {value && (
           <div className="w-16 h-16 rounded-xl border border-[#EFE9DD] overflow-hidden bg-[#F8F6F0] flex-shrink-0">
@@ -405,11 +453,27 @@ function ImageUpload({
               </button>
             )}
           </div>
-          {value && <p className="text-[11px] text-slate-400 font-mono truncate max-w-sm">{value}</p>}
-          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFile} />
+          {value && (
+            <div className="flex items-center gap-2">
+              <p className="text-[11px] text-slate-400 font-mono truncate max-w-sm">{value}</p>
+              {detectedSpecs && (
+                <span className="text-[10px] font-semibold text-[#1F3A2E] bg-[#1F3A2E]/10 px-1.5 py-0.2 rounded shrink-0">
+                  {detectedSpecs}
+                </span>
+              )}
+            </div>
+          )}
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/svg+xml,image/gif"
+            className="hidden"
+            onChange={handleFile}
+          />
         </div>
       </div>
       {hint && <p className="text-[11px] text-slate-400 mt-1">{hint}</p>}
+      {localError && <p className="text-xs font-semibold text-red-600 mt-1">✕ {localError}</p>}
     </div>
   );
 }
@@ -1487,6 +1551,7 @@ export default function AdminSettingsClient() {
                   value={settings.profile.profileImage}
                   onChange={(url) => setProfileField('profileImage', url)}
                   hint="Upload a square profile photo. Recommended: 200×200px"
+                  recommendedDimensions="200 × 200 px (1:1 Square)"
                 />
 
                 <SaveButton onClick={saveProfile} loading={saving} label="Save Profile Details" />
@@ -3134,6 +3199,8 @@ export default function AdminSettingsClient() {
                     setField('logoDark', url);
                   }}
                   hint="Upload your official brand logo. Transparent PNG or SVG is recommended."
+                  recommendedDimensions="500 × 160 px (Transparent)"
+                  allowedFormats={['PNG', 'SVG', 'WEBP']}
                 />
               </div>
 
@@ -3238,7 +3305,9 @@ export default function AdminSettingsClient() {
                       label="Banner Image *"
                       value={bannerForm.image}
                       onChange={(url) => setBannerForm((p) => ({ ...p, image: url }))}
-                      hint="Recommended: 1200×400px (JPG, PNG, WebP)"
+                      hint="Recommended: 1920×640 px (Wide Desktop) or 1200×400 px (JPG, PNG, WebP)"
+                      recommendedDimensions="1920 × 640 px (Wide Banner)"
+                      allowedFormats={['JPG', 'JPEG', 'PNG', 'WEBP']}
                     />
 
                     <FormField label="Link URL">

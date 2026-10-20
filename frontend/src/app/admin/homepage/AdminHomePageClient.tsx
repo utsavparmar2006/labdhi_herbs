@@ -548,7 +548,9 @@ export default function AdminHomePageClient() {
                       }))
                     }
                     label="Hero Section Video (.mp4, .webm, .mov)"
-                    helperText="Select or drag & drop a video file from your computer folder (supports all video sizes)."
+                    helperText="Select or drag & drop a widescreen 16:9 video file from your computer folder."
+                    aspectRatio="landscape"
+                    recommendedResolution="1920 × 1080 px (16:9 Widescreen Full HD)"
                   />
                 </div>
               </div>

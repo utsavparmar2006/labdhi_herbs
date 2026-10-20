@@ -21,6 +21,9 @@ interface MultiImageFolderPickerProps {
   label?: string;
   helperText?: string;
   maxImages?: number;
+  aspectRatio?: 'square' | 'any';
+  recommendedDimensions?: string;
+  allowedFormats?: string[];
 }
 
 export default function MultiImageFolderPicker({
@@ -29,6 +32,9 @@ export default function MultiImageFolderPicker({
   label = 'Product Photography Set',
   helperText = 'Upload multiple high-resolution photos for this product from your computer folder.',
   maxImages = 8,
+  aspectRatio = 'square',
+  recommendedDimensions = '1000 × 1000 px (1:1 Square)',
+  allowedFormats = ['JPG', 'JPEG', 'PNG', 'WebP'],
 }: MultiImageFolderPickerProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -36,24 +42,82 @@ export default function MultiImageFolderPicker({
   const [uploadStatusText, setUploadStatusText] = useState('');
   const [dragOver, setDragOver] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [warningMessage, setWarningMessage] = useState('');
+
+  // Helper to read image dimensions
+  const inspectImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+        resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Failed to load image'));
+      };
+      img.src = objectUrl;
+    });
+  };
 
   const handleMultipleFiles = async (fileList: FileList | File[]) => {
     const filesArray = Array.from(fileList);
     if (filesArray.length === 0) return;
 
-    // Filter images only
-    const validFiles = filesArray.filter((f) => f.type.startsWith('image/'));
-    if (validFiles.length === 0) {
-      setUploadError('Please select valid image files (JPG, PNG, WebP, SVG, GIF).');
-      return;
+    setUploadError('');
+    setWarningMessage('');
+
+    // 1. Filter valid extensions & formats
+    const allowedUpper = allowedFormats.map((f) => f.toUpperCase());
+    const validFiles: File[] = [];
+    const invalidFormatFiles: string[] = [];
+
+    for (const file of filesArray) {
+      const ext = (file.name.split('.').pop() || '').toUpperCase();
+      if (file.type.startsWith('image/') && allowedUpper.includes(ext)) {
+        validFiles.push(file);
+      } else {
+        invalidFormatFiles.push(file.name);
+      }
     }
 
+    if (invalidFormatFiles.length > 0) {
+      setUploadError(
+        `Some files were skipped due to unsupported format: ${invalidFormatFiles.join(
+          ', '
+        )}. Allowed: ${allowedFormats.join(', ')}.`
+      );
+    }
+
+    if (validFiles.length === 0) return;
+
     if (images.length + validFiles.length > maxImages) {
-      setUploadError(`You can attach a maximum of ${maxImages} images per product.`);
+      setUploadError(`Maximum limit is ${maxImages} images. Only first allowed will be attached.`);
+    }
+
+    // 2. Aspect ratio inspection & warnings
+    const nonSquareNames: string[] = [];
+    if (aspectRatio === 'square') {
+      for (const file of validFiles) {
+        try {
+          const { width, height } = await inspectImageDimensions(file);
+          const ratio = width / height;
+          if (ratio < 0.85 || ratio > 1.15) {
+            nonSquareNames.push(`${file.name} (${width}×${height})`);
+          }
+        } catch {
+          // ignore inspection errors
+        }
+      }
+      if (nonSquareNames.length > 0) {
+        setWarningMessage(
+          `Notice: ${nonSquareNames.length} image(s) are not square (${nonSquareNames.slice(0, 2).join(', ')}...). 1:1 Square (${recommendedDimensions}) is recommended to avoid cropped product cards.`
+        );
+      }
     }
 
     setIsUploading(true);
-    setUploadError('');
     const uploadedUrls: string[] = [];
 
     for (let i = 0; i < validFiles.length; i++) {
@@ -71,8 +135,8 @@ export default function MultiImageFolderPicker({
 
     if (uploadedUrls.length > 0) {
       onChange([...images, ...uploadedUrls]);
-    } else {
-      setUploadError('Failed to upload selected images.');
+    } else if (validFiles.length > 0 && !uploadError) {
+      setUploadError('Failed to upload selected images from folder.');
     }
   };
 
@@ -128,10 +192,15 @@ export default function MultiImageFolderPicker({
           {helperText && <p className="text-[11px] text-slate-400 font-light">{helperText}</p>}
         </div>
 
-        <span className="text-[11px] font-semibold text-[#1F3A2E] bg-[#1F3A2E]/10 px-2.5 py-0.5 rounded-full flex items-center gap-1 self-start sm:self-auto">
-          <FolderOpen className="w-3 h-3 text-[#B58A5A]" />
-          <span>Upload From Folder</span>
-        </span>
+        {/* Aspect Ratio & Format Guidance Badges */}
+        <div className="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
+          <span className="text-[10px] font-semibold text-[#1F3A2E] bg-[#1F3A2E]/8 px-2 py-0.5 rounded-md border border-[#1F3A2E]/15">
+            📐 {recommendedDimensions}
+          </span>
+          <span className="text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+            {allowedFormats.join(', ')}
+          </span>
+        </div>
       </div>
 
       {/* Hidden Multiple File Input */}
@@ -165,7 +234,7 @@ export default function MultiImageFolderPicker({
             <div className="py-6 space-y-2">
               <Loader2 className="w-8 h-8 text-[#1F3A2E] animate-spin mx-auto" />
               <p className="text-xs font-bold text-[#1F3A2E]">{uploadStatusText || 'Uploading photos from folder...'}</p>
-              <p className="text-[11px] text-slate-400">Saving images to store media assets</p>
+              <p className="text-[11px] text-slate-400">Saving to store gallery</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -177,8 +246,11 @@ export default function MultiImageFolderPicker({
                 <p className="text-xs font-bold text-slate-800">
                   Click to select or drag &amp; drop photos from folder
                 </p>
-                <p className="text-[11px] text-slate-400 font-light">
-                  Hold Ctrl / Shift to select multiple images from your computer folder at once (up to {maxImages} images)
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Recommended Aspect Ratio: <span className="font-bold text-[#1F3A2E]">{recommendedDimensions}</span>
+                </p>
+                <p className="text-[10px] text-slate-400 font-light">
+                  Hold Ctrl / Shift to select multiple images • Formats: {allowedFormats.join(', ')}
                 </p>
               </div>
 
@@ -192,7 +264,17 @@ export default function MultiImageFolderPicker({
           )}
 
           {uploadError && (
-            <p className="mt-2 text-xs font-semibold text-red-600">{uploadError}</p>
+            <div className="mt-3 p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-600 flex items-center justify-center gap-1.5">
+              <span>✕</span>
+              <span>{uploadError}</span>
+            </div>
+          )}
+
+          {warningMessage && !uploadError && (
+            <div className="mt-3 p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-xs font-medium text-amber-800 flex items-center justify-center gap-1.5">
+              <span>⚠️</span>
+              <span>{warningMessage}</span>
+            </div>
           )}
         </div>
       )}

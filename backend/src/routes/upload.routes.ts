@@ -55,7 +55,7 @@ const fileFilter = (
 
 const upload = multer({
   storage,
-  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB limit for high-res images
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB generous buffer
   fileFilter,
 });
 
@@ -80,7 +80,7 @@ const videoFilter = (
 
 const uploadVideo = multer({
   storage,
-  limits: { fileSize: 2048 * 1024 * 1024 }, // 2GB limit (Virtually unrestricted for high-def web video assets)
+  limits: { fileSize: 2048 * 1024 * 1024 }, // 2GB unconstrained buffer
   fileFilter: videoFilter,
 });
 
@@ -93,7 +93,23 @@ router.post(
   ['/image', '/'],
   verifyJWT,
   verifyAdmin,
-  upload.single('file'),
+  (req: Request, res: Response, next: any) => {
+    upload.single('file')(req, res, (err: any) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({
+            success: false,
+            message: 'Image file size exceeds maximum server limit of 15MB.',
+          });
+        }
+        return res.status(400).json({
+          success: false,
+          message: err.message || 'Error occurred while processing image upload',
+        });
+      }
+      next();
+    });
+  },
   async (req: Request, res: Response): Promise<void> => {
     try {
       if (!req.file) {

@@ -1153,6 +1153,8 @@ export default function AdminProductsClient() {
                         label="Product Photography Set"
                         helperText="Select or drag & drop multiple photos from your folder. The 1st photo with the gold badge is your main cover; additional photos appear in the product page gallery."
                         maxImages={8}
+                        aspectRatio="square"
+                        recommendedDimensions="1000 × 1000 px (1:1 Square)"
                       />
 
                       {/* Video Demonstration Picker */}
@@ -1162,6 +1164,7 @@ export default function AdminProductsClient() {
                           onChange={(url) => setFormData((prev) => ({ ...prev, videoUrl: url }))}
                           label="Product Video Demonstration (Optional)"
                           helperText="Upload or choose an MP4, WebM, or MOV video showcasing product application, texture, unboxing, or customer review."
+                          recommendedResolution="1920 × 1080 px (16:9) or 1080 × 1920 px (9:16)"
                         />
                       </div>
                     </div>
@@ -1196,6 +1199,7 @@ export default function AdminProductsClient() {
                           }
                           label="How to Use — Video Demonstration"
                           helperText="Upload an MP4, WebM, or MOV video file directly from your computer folder showcasing application ritual or how to use."
+                          recommendedResolution="1920 × 1080 px (16:9) or 1080 × 1920 px (9:16)"
                         />
                       </div>
                     </div>

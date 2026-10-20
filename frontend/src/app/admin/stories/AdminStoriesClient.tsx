@@ -1262,6 +1262,8 @@ export default function AdminStoriesClient() {
                           onChange={(url) => setFormData((prev) => ({ ...prev, beforeImage: url }))}
                           label="Before Image"
                           helperText="Upload or choose photo showing condition before formulation."
+                          aspectRatio="square"
+                          recommendedDimensions="800 × 800 px (1:1 Square)"
                         />
                       </div>
 
@@ -1278,6 +1280,8 @@ export default function AdminStoriesClient() {
                           onChange={(url) => setFormData((prev) => ({ ...prev, afterImage: url }))}
                           label="After Image"
                           helperText="Upload or choose photo showing the successful recovery/glow."
+                          aspectRatio="square"
+                          recommendedDimensions="800 × 800 px (1:1 Square)"
                         />
                       </div>
                     </div>
@@ -1303,6 +1307,8 @@ export default function AdminStoriesClient() {
                         onChange={(url) => setFormData((prev) => ({ ...prev, videoUrl: url }))}
                         label="Customer Video Story"
                         helperText="Upload or choose customer video interview, testimonial, or transformation reel."
+                        aspectRatio="portrait"
+                        recommendedResolution="1080 × 1920 px (9:16 Vertical Reel)"
                       />
                     </div>
 
@@ -1319,6 +1325,8 @@ export default function AdminStoriesClient() {
                         onChange={(url) => setFormData((prev) => ({ ...prev, videoPoster: url }))}
                         label="Video Poster Image"
                         helperText="Displays before the customer plays the video. If empty, a default cover is used."
+                        aspectRatio="portrait"
+                        recommendedDimensions="1080 × 1920 px (9:16) or 1200 × 675 px"
                       />
                     </div>
 
@@ -1418,6 +1426,7 @@ export default function AdminStoriesClient() {
                                   }
                                   label={`Video ${idx + 2}`}
                                   helperText="Upload or choose an additional video clip."
+                                  recommendedResolution="1080 × 1920 px (9:16) or 1920 × 1080 px"
                                 />
                               </div>
 
@@ -1435,6 +1444,7 @@ export default function AdminStoriesClient() {
                                   }
                                   label={`Poster ${idx + 2}`}
                                   helperText="Thumbnail shown before the video plays."
+                                  recommendedDimensions="1080 × 1920 px (9:16) or 1200 × 675 px"
                                 />
                               </div>
                             </div>

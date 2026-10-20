@@ -930,6 +930,8 @@ export default function AdminCategoriesClient() {
                     onChange={(url) => setMainFormData((prev) => ({ ...prev, image: url }))}
                     label="Category Cover Photography"
                     helperText="Upload photo from your computer folder or drag & drop."
+                    aspectRatio="square"
+                    recommendedDimensions="600 × 600 px (1:1 Square)"
                   />
 
                   <div className="space-y-1.5">
@@ -1109,6 +1111,8 @@ export default function AdminCategoriesClient() {
                     onChange={(url) => setSubFormData((prev) => ({ ...prev, image: url }))}
                     label="Sub-Category Thumbnail Photography"
                     helperText="Upload photo from your computer folder or drag & drop."
+                    aspectRatio="square"
+                    recommendedDimensions="400 × 400 px (1:1 Square)"
                   />
 
                   {/* Description */}

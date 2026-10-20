@@ -535,7 +535,7 @@ export default function AdminUsersClient() {
                 </button>
               </div>
             ) : (
-              <div className="overflow-x-auto min-h-[280px]">
+              <div className="overflow-x-auto min-h-[360px] pb-36">
                 <table className="w-full text-left border-collapse">
                   
                   {/* Table Header */}
@@ -561,7 +561,8 @@ export default function AdminUsersClient() {
                         .toUpperCase()
                         .slice(0, 2);
 
-                      const isNearBottom = index >= Math.max(0, users.length - 2);
+                      // Only open upwards if table has more than 3 rows AND row is strictly at the bottom
+                      const isNearBottom = users.length > 3 && index >= users.length - 2;
 
                       return (
                         <tr key={u._id} className={`hover:bg-[#F8F6F0]/50 transition-colors group ${activeMenuId === u._id ? 'relative z-30' : ''}`}>

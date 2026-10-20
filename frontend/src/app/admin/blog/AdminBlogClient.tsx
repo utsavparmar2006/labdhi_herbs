@@ -952,7 +952,9 @@ export default function AdminBlogClient() {
                     value={formData.image}
                     onChange={(url) => setFormData((prev) => ({ ...prev, image: url }))}
                     label="Article Cover Image"
-                    helperText="Upload photo from your computer folder or drag & drop. Recommended ratio 16:10."
+                    helperText="Upload photo from your computer folder or drag & drop. Recommended: 1200×675 px (16:9 Landscape)."
+                    aspectRatio="landscape"
+                    recommendedDimensions="1200 × 675 px (16:9 Landscape)"
                   />
                 </div>
 
