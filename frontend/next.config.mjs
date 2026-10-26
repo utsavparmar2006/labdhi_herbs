@@ -60,6 +60,8 @@ const nextConfig = {
 
   async redirects() {
     return [
+      // Legacy Old Site Redirects
+      { source: '/index.php', destination: '/', permanent: true },
       { source: '/Terms_condition', destination: '/terms', permanent: true },
       { source: '/Privacy_Policy', destination: '/privacy', permanent: true },
       { source: '/Privacy_policy', destination: '/privacy', permanent: true },
@@ -69,7 +71,14 @@ const nextConfig = {
       { source: '/Shipping_Policy', destination: '/shipping', permanent: true },
       { source: '/About_us', destination: '/about', permanent: true },
       { source: '/Aboutus', destination: '/about', permanent: true },
+      { source: '/about-us', destination: '/about', permanent: true },
       { source: '/faq_management', destination: '/faq', permanent: true },
+      { source: '/success-stories', destination: '/stories', permanent: true },
+      { source: '/trackorder', destination: '/track-order', permanent: true },
+      { source: '/products/:id', destination: '/product/:id', permanent: true },
+      { source: '/products', destination: '/shop', permanent: true },
+      { source: '/site', destination: '/', permanent: true },
+      { source: '/news', destination: '/blog', permanent: true },
     ];
   },
 
