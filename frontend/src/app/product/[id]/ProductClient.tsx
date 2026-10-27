@@ -137,6 +137,11 @@ export default function ProductClient({ productId }: ProductClientProps) {
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null;
 
+  // Clean short intro excerpt for the upper section
+  const plainDesc = (product.description || '').replace(/<\/?[a-z][\s\S]*>/gi, ' ').replace(/\s+/g, ' ').trim();
+  const firstParagraph = (product.description || '').split(/\r?\n\r?\n/)[0]?.replace(/<\/?[a-z][\s\S]*>/gi, ' ').trim() || plainDesc;
+  const shortExcerpt = firstParagraph.length <= 220 ? firstParagraph : firstParagraph.slice(0, 220) + '...';
+
   const handleAddToCart = (targetProduct = product, qty = quantity) => {
     if (!targetProduct) return;
     const added = addToCart(targetProduct, qty);
@@ -261,10 +266,20 @@ export default function ProductClient({ productId }: ProductClientProps) {
                 <p className="text-[11px] text-emerald-700 font-medium">Inclusive of all taxes • Global express dispatch from Surat</p>
               </div>
 
-              {/* Short Description */}
-              <p className="text-xs sm:text-sm text-slate-600 font-light leading-relaxed">
-                {product.description}
-              </p>
+              {/* Short Description Excerpt */}
+              <div className="text-xs sm:text-sm text-slate-600 font-light leading-relaxed">
+                <p>
+                  {shortExcerpt}
+                  {product.description && product.description.length > 220 && (
+                    <a
+                      href="#product-tabs"
+                      className="text-xs font-semibold text-[#1F3A2E] hover:underline inline-flex items-center gap-1 ml-1 cursor-pointer"
+                    >
+                      Read full points &amp; details &darr;
+                    </a>
+                  )}
+                </p>
+              </div>
 
               {/* Quantity Counter */}
               <div className="space-y-2">

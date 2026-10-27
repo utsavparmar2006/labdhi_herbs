@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatYouTubeEmbedUrl, extractYouTubeVideoId, isYouTubeUrl } from '../utils/youtube';
+import FormattedDescription from './FormattedDescription';
 
 interface ProductTabsProps {
   description: string;
@@ -44,7 +45,7 @@ export default function ProductTabs({
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-[#EFE9DD] p-6 sm:p-8 shadow-xs">
+    <div id="product-tabs" className="bg-white rounded-3xl border border-[#EFE9DD] p-6 sm:p-8 shadow-xs scroll-mt-28">
       
       {/* Desktop Horizontal Tabs Bar */}
       <div className="hidden md:flex items-center gap-8 border-b border-[#EFE9DD] pb-4 mb-6">
@@ -88,10 +89,10 @@ export default function ProductTabs({
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="space-y-4 text-slate-600 text-sm font-light leading-relaxed"
+              className="space-y-4"
             >
-              <p>{description}</p>
-              <p>
+              <FormattedDescription content={description} />
+              <p className="text-xs text-slate-500 font-light italic pt-4 border-t border-[#EFE9DD]/60">
                 Handcrafted under the supervision of Ayurvedic experts in Surat, Gujarat. Each batch undergoes rigorous quality testing to preserve the natural potency of every herb.
               </p>
             </motion.div>
@@ -226,8 +227,8 @@ export default function ProductTabs({
             <ChevronDown className={`w-4 h-4 transition-transform ${openMobileSection === 'desc' ? 'rotate-180' : ''}`} />
           </button>
           {openMobileSection === 'desc' && (
-            <div className="p-4 text-xs text-slate-600 font-light leading-relaxed space-y-2 border-t border-[#EFE9DD]">
-              <p>{description}</p>
+            <div className="p-4 border-t border-[#EFE9DD]">
+              <FormattedDescription content={description} />
             </div>
           )}
         </div>

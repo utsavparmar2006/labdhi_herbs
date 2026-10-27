@@ -1177,17 +1177,53 @@ export default function AdminProductsClient() {
                       </h4>
 
                       {/* Description */}
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">Product Description</label>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between flex-wrap gap-2">
+                          <label className="text-xs font-bold text-slate-700">
+                            Product Description (Formatted Points &amp; Headings)
+                          </label>
+                          <div className="flex items-center gap-1.5 text-[11px]">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  description: prev.description ? `${prev.description}\n- ` : '- ',
+                                }));
+                              }}
+                              className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-bold border border-emerald-200 hover:bg-emerald-100 transition-colors"
+                            >
+                              + Bullet Point (-)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  description: prev.description ? `${prev.description}\n\nKey Benefits:\n- ` : 'Key Benefits:\n- ',
+                                }));
+                              }}
+                              className="px-2 py-0.5 rounded-md bg-[#F8F6F0] text-[#1F3A2E] font-bold border border-[#EFE9DD] hover:bg-[#EFE9DD] transition-colors"
+                            >
+                              + Section Title
+                            </button>
+                          </div>
+                        </div>
+
                         <textarea
-                          rows={4}
+                          rows={10}
                           value={formData.description}
                           onChange={(e) =>
                             setFormData((prev) => ({ ...prev, description: e.target.value }))
                           }
-                          placeholder="Authentic botanical formulation handcrafted with 100% natural herbs..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                          placeholder="Write or paste your product description...&#10;&#10;Key Benefits:&#10;- Relaxes muscles and joints&#10;- Softens skin&#10;- 100% pure herbal formulation"
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
                         />
+
+                        <p className="text-[11px] text-slate-500 font-light flex items-center gap-1.5">
+                          <span className="font-bold text-emerald-700">✓ Auto-Formatted on Website:</span>
+                          <span>Lines starting with <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-700">-</code> or <code className="bg-slate-100 px-1 py-0.5 rounded font-mono text-slate-700">•</code> automatically become styled bullet points.</span>
+                        </p>
                       </div>
 
                       {/* How to Use - Video Demonstration (Upload from Folder) */}

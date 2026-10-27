@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Product } from '../types';
 import { useCurrency } from '../context/CurrencyContext';
 import { X, Star, ShoppingBag, Check, ShieldCheck, Leaf } from 'lucide-react';
@@ -90,9 +91,18 @@ export default function QuickViewModal({ product, onClose, onAddToCart }: QuickV
               </div>
 
               {/* Description */}
-              <p className="text-xs text-slate-600 font-light leading-relaxed">
-                {product.description}
-              </p>
+              <div className="space-y-1 text-xs text-slate-600 font-light leading-relaxed">
+                <p className="line-clamp-3">
+                  {product.description?.replace(/<\/?[a-z][\s\S]*>/gi, ' ').replace(/\s+/g, ' ').trim()}
+                </p>
+                <Link
+                  href={`/product/${product.id}`}
+                  onClick={onClose}
+                  className="inline-block text-[11px] font-semibold text-[#1F3A2E] hover:underline pt-0.5 cursor-pointer"
+                >
+                  View full formulation &amp; points &rarr;
+                </Link>
+              </div>
             </div>
 
             {/* Quantity and Add to Cart */}

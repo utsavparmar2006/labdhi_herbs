@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,6 +14,7 @@ import {
   Film,
   Image as ImageIcon,
 } from 'lucide-react';
+import { isYouTubeUrl, formatYouTubeEmbedUrl } from '../utils/youtube';
 
 interface ProductGalleryProps {
   images: string[];
@@ -22,6 +23,10 @@ interface ProductGalleryProps {
   videoUrl?: string;
 }
 
+export type MediaSlide =
+  | { type: 'image'; url: string }
+  | { type: 'video'; url: string };
+
 export default function ProductGallery({
   images,
   productName,
@@ -29,10 +34,10 @@ export default function ProductGallery({
   videoUrl,
 }: ProductGalleryProps) {
   const [mounted, setMounted] = useState(false);
-  const [activeMedia, setActiveMedia] = useState<'image' | 'video'>('image');
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -46,42 +51,71 @@ export default function ProductGallery({
       : ['https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=800'];
 
   const hasVideo = Boolean(videoUrl && videoUrl.trim().length > 0);
-  const hasMultipleImages = galleryImages.length > 1;
 
-  // Next / Previous Navigation Handlers
+  // Unify Images and Video into a single, seamless list of slides
+  const mediaItems: MediaSlide[] = useMemo(() => {
+    const items: MediaSlide[] = galleryImages.map((img) => ({
+      type: 'image',
+      url: img,
+    }));
+
+    if (hasVideo && videoUrl) {
+      items.push({
+        type: 'video',
+        url: videoUrl.trim(),
+      });
+    }
+
+    return items;
+  }, [galleryImages, hasVideo, videoUrl]);
+
+  const totalSlides = mediaItems.length;
+  const currentMedia = mediaItems[currentIndex] || mediaItems[0];
+  const isCurrentVideo = currentMedia?.type === 'video';
+  const videoIndex = hasVideo ? totalSlides - 1 : -1;
+
+  // Next / Previous Navigation Handlers (Seamless cycling across images & video)
   const handleNext = useCallback(
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       setIsZoomed(false);
-      if (activeMedia === 'video') {
-        setActiveMedia('image');
-        setSelectedImageIndex(0);
-        return;
-      }
-      setSelectedImageIndex((prev) => (prev + 1) % galleryImages.length);
+      setCurrentIndex((prev) => (prev + 1) % totalSlides);
     },
-    [activeMedia, galleryImages.length]
+    [totalSlides]
   );
 
   const handlePrev = useCallback(
     (e?: React.MouseEvent) => {
       e?.stopPropagation();
       setIsZoomed(false);
-      if (activeMedia === 'video') {
-        setActiveMedia('image');
-        setSelectedImageIndex(galleryImages.length - 1);
-        return;
-      }
-      setSelectedImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+      setCurrentIndex((prev) => (prev - 1 + totalSlides) % totalSlides);
     },
-    [activeMedia, galleryImages.length]
+    [totalSlides]
   );
+
+  // Touch swipe support for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchStartX - touchEndX;
+
+    // Threshold of 40px to trigger swipe
+    if (diff > 40) {
+      handleNext();
+    } else if (diff < -40) {
+      handlePrev();
+    }
+    setTouchStartX(null);
+  };
 
   // Open Full-Screen Lightbox
   const handleOpenLightbox = (index?: number) => {
     if (typeof index === 'number') {
-      setSelectedImageIndex(index);
-      setActiveMedia('image');
+      setCurrentIndex(index);
     }
     setIsZoomed(false);
     setIsLightboxOpen(true);
@@ -102,75 +136,145 @@ export default function ProductGallery({
       }
     };
 
-    // Lock background scrolling and mark lightbox active
-    const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    document.documentElement.classList.add('lightbox-active');
     window.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.body.style.overflow = originalOverflow;
-      document.documentElement.classList.remove('lightbox-active');
+      document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isLightboxOpen, handleNext, handlePrev]);
 
+  // Video renderer helper
+  const renderVideoPlayer = (url: string, isLightBoxView = false) => {
+    const isYouTube = isYouTubeUrl(url);
+    const embedUrl = isYouTube ? formatYouTubeEmbedUrl(url, true) : null;
+
+    if (isYouTube && embedUrl) {
+      return (
+        <iframe
+          src={embedUrl}
+          title={`${productName} Video`}
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          className="w-full h-full border-0 rounded-2xl"
+        />
+      );
+    }
+
+    return (
+      <video
+        src={url}
+        controls
+        autoPlay
+        playsInline
+        loop
+        className={`w-full h-full ${isLightBoxView ? 'max-h-[calc(100vh-220px)] object-contain' : 'object-contain'} bg-black`}
+      >
+        Your browser does not support the video tag.
+      </video>
+    );
+  };
+
   return (
-    <div className="space-y-3 max-w-[460px] mx-auto">
-      {/* Main Media Display Box */}
-      <div className="relative aspect-square max-w-[460px] max-h-[440px] sm:max-h-[460px] w-full rounded-3xl bg-[#F8F6F0] border border-[#EFE9DD] overflow-hidden shadow-xs group mx-auto">
+    <div className="space-y-4 select-none w-full max-w-[480px] mx-auto">
+      {/* Main Media Display Box (Swipeable) */}
+      <div
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="relative aspect-square max-w-[460px] max-h-[440px] sm:max-h-[460px] w-full rounded-3xl bg-[#F8F6F0] border border-[#EFE9DD] overflow-hidden shadow-xs group mx-auto"
+      >
         <AnimatePresence mode="wait">
-          {activeMedia === 'video' && hasVideo ? (
+          {isCurrentVideo ? (
+            /* Video Slide */
             <motion.div
-              key="video-player"
+              key="slide-video"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
+              transition={{ duration: 0.2 }}
               className="w-full h-full bg-black relative flex items-center justify-center"
             >
-              <video
-                src={videoUrl}
-                controls
-                autoPlay
-                playsInline
-                loop
-                className="w-full h-full object-contain bg-black"
-              >
-                Your browser does not support the video tag.
-              </video>
+              {renderVideoPlayer(currentMedia.url)}
 
               {/* Video Badge */}
-              <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-white text-xs font-semibold">
+              <div className="absolute top-3.5 left-3.5 z-10 flex items-center gap-2 px-3 py-1 rounded-full bg-black/70 backdrop-blur-md border border-white/10 text-white text-xs font-semibold pointer-events-none">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <Film className="w-3.5 h-3.5 text-[#D4A373]" />
                 <span>Product Video Demo</span>
               </div>
 
-              {/* Switch Back to Photos Button */}
-              <button
-                type="button"
-                onClick={() => setActiveMedia('image')}
-                className="absolute top-4 right-4 z-10 px-3 py-1.5 rounded-full bg-black/70 hover:bg-black text-white text-xs font-semibold backdrop-blur-md border border-white/10 flex items-center gap-1.5 transition-all shadow-md cursor-pointer"
-              >
-                <ImageIcon className="w-3.5 h-3.5 text-[#D4A373]" />
-                <span>View Photos</span>
-              </button>
+              {/* Fullscreen Button */}
+              <div className="absolute top-3.5 right-3.5 z-10">
+                <button
+                  type="button"
+                  onClick={() => handleOpenLightbox(currentIndex)}
+                  className="px-2.5 py-1.5 rounded-full bg-black/70 hover:bg-black text-white backdrop-blur-md shadow-md transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer border border-white/20"
+                  title="Watch full screen"
+                >
+                  <Maximize2 className="w-3.5 h-3.5 text-[#D4A373]" />
+                  <span className="hidden sm:inline text-[10px] font-bold">Full View</span>
+                </button>
+              </div>
+
+              {/* Navigation Arrows for Video Slide */}
+              {totalSlides > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handlePrev}
+                    aria-label="Previous item"
+                    className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/85 hover:bg-white text-[#1F3A2E] shadow-md backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-[#EFE9DD] cursor-pointer"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleNext}
+                    aria-label="Next item"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/85 hover:bg-white text-[#1F3A2E] shadow-md backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-[#EFE9DD] cursor-pointer"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+
+              {/* Bottom Row: Slide Counter + Switch to Photos */}
+              <div className="absolute bottom-3.5 inset-x-3.5 z-10 flex items-center justify-between pointer-events-none">
+                <span className="px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-[#D4A373] text-[10px] font-bold shadow-md tracking-wider flex items-center gap-1">
+                  <PlayCircle className="w-3 h-3 text-[#D4A373]" />
+                  <span>Video ({currentIndex + 1} / {totalSlides})</span>
+                </span>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setCurrentIndex(0);
+                  }}
+                  className="pointer-events-auto px-3 py-1.5 rounded-full bg-white/90 hover:bg-white text-[#1F3A2E] text-xs font-bold backdrop-blur-md border border-[#EFE9DD] flex items-center gap-1.5 transition-all shadow-md hover:scale-105 cursor-pointer"
+                >
+                  <ImageIcon className="w-3.5 h-3.5 text-[#1F3A2E]" />
+                  <span className="text-[11px]">View Photos</span>
+                </button>
+              </div>
             </motion.div>
           ) : (
+            /* Image Slide */
             <motion.div
-              key={`image-${selectedImageIndex}`}
+              key={`slide-img-${currentIndex}`}
               initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.25 }}
-              onClick={() => handleOpenLightbox(selectedImageIndex)}
+              transition={{ duration: 0.2 }}
+              onClick={() => handleOpenLightbox(currentIndex)}
               className="w-full h-full relative cursor-zoom-in"
               title="Click to view full screen"
             >
               <img
-                src={galleryImages[selectedImageIndex] || galleryImages[0]}
-                alt={`${productName} - Photo ${selectedImageIndex + 1} of ${galleryImages.length}`}
+                src={currentMedia.url}
+                alt={`${productName} - Photo ${currentIndex + 1} of ${totalSlides}`}
                 loading="eager"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src =
@@ -192,7 +296,7 @@ export default function ProductGallery({
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleOpenLightbox(selectedImageIndex);
+                    handleOpenLightbox(currentIndex);
                   }}
                   className="px-2.5 py-1.5 rounded-full bg-white/85 hover:bg-white text-[#1F3A2E] backdrop-blur-md shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-1.5 text-xs font-semibold cursor-pointer border border-[#EFE9DD]"
                   title="Open full view"
@@ -203,12 +307,12 @@ export default function ProductGallery({
               </div>
 
               {/* Navigation Arrows (Previous / Next Photo) */}
-              {hasMultipleImages && (
+              {totalSlides > 1 && (
                 <>
                   <button
                     type="button"
                     onClick={handlePrev}
-                    aria-label="Previous photo"
+                    aria-label="Previous item"
                     className="absolute left-2.5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/85 hover:bg-white text-[#1F3A2E] shadow-md backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-[#EFE9DD] cursor-pointer"
                   >
                     <ChevronLeft className="w-4 h-4" />
@@ -217,7 +321,7 @@ export default function ProductGallery({
                   <button
                     type="button"
                     onClick={handleNext}
-                    aria-label="Next photo"
+                    aria-label="Next item"
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white/85 hover:bg-white text-[#1F3A2E] shadow-md backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-[#EFE9DD] cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -225,22 +329,22 @@ export default function ProductGallery({
                 </>
               )}
 
-              {/* Bottom Row: Counter Badge + Watch Video Button */}
+              {/* Bottom Row: Counter Badge + Watch Video Shortcut */}
               <div className="absolute bottom-3.5 inset-x-3.5 z-10 flex items-center justify-between pointer-events-none">
                 {/* Image Counter Badge */}
-                {hasMultipleImages && (
+                {totalSlides > 1 && (
                   <span className="px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[10px] font-bold shadow-md tracking-wider">
-                    {selectedImageIndex + 1} / {galleryImages.length}
+                    {currentIndex + 1} / {totalSlides}
                   </span>
                 )}
 
                 {/* Quick Watch Video Float Button */}
-                {hasVideo && (
+                {hasVideo && videoIndex !== -1 && (
                   <button
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveMedia('video');
+                      setCurrentIndex(videoIndex);
                     }}
                     className="pointer-events-auto ml-auto px-3 py-1.5 rounded-full bg-[#1F3A2E]/90 hover:bg-[#1F3A2E] text-white text-xs font-bold backdrop-blur-md border border-white/20 flex items-center gap-1.5 transition-all shadow-lg hover:scale-105 cursor-pointer"
                   >
@@ -249,32 +353,58 @@ export default function ProductGallery({
                   </button>
                 )}
               </div>
-
-              {/* Subtle hover overlay hint */}
-              <div className="absolute inset-x-0 bottom-0 py-1.5 text-center bg-gradient-to-t from-black/40 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                <span className="text-[10px] text-white/90 font-medium tracking-wide">
-                  Click image for full view & zoom
-                </span>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Thumbnails Row (Images + Video Card) */}
-      {(galleryImages.length > 1 || hasVideo) && (
-        <div className="flex items-center gap-2.5 overflow-x-auto pb-1 scrollbar-none justify-start">
-          {/* Image Thumbnails */}
-          {galleryImages.map((img, idx) => {
-            const isSelected = activeMedia === 'image' && selectedImageIndex === idx;
+      {/* Swipe Hint (Small text below image) */}
+      {totalSlides > 1 && (
+        <p className="text-center text-[11px] text-slate-400 font-light">
+          Swipe or click arrows to view photos &amp; video ({totalSlides} items)
+        </p>
+      )}
+
+      {/* Thumbnails Row (Images + Video Unified) */}
+      {totalSlides > 1 && (
+        <div className="flex items-center gap-2.5 overflow-x-auto pb-2 pt-1 scrollbar-thin scrollbar-thumb-slate-300 max-w-full">
+          {mediaItems.map((item, idx) => {
+            const isSelected = currentIndex === idx;
+
+            if (item.type === 'video') {
+              return (
+                <button
+                  key="thumb-video"
+                  type="button"
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer bg-[#1A201C] shrink-0 relative flex flex-col items-center justify-center text-white group ${
+                    isSelected
+                      ? 'border-[#B58A5A] ring-2 ring-[#B58A5A]/30 shadow-md scale-105'
+                      : 'border-[#EFE9DD] opacity-80 hover:opacity-100'
+                  }`}
+                  title="Watch Video Slide"
+                >
+                  <img
+                    src={galleryImages[0]}
+                    alt="Video thumbnail"
+                    className="absolute inset-0 w-full h-full object-cover opacity-35 group-hover:scale-110 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-black/40" />
+                  <div className="relative z-10 flex flex-col items-center gap-0.5">
+                    <PlayCircle className="w-5 h-5 text-[#D4A373] drop-shadow-md group-hover:scale-110 transition-transform" />
+                    <span className="text-[9px] font-bold tracking-wider uppercase text-[#EFE9DD]">
+                      Video
+                    </span>
+                  </div>
+                </button>
+              );
+            }
+
             return (
               <button
                 key={`thumb-img-${idx}`}
                 type="button"
-                onClick={() => {
-                  setActiveMedia('image');
-                  setSelectedImageIndex(idx);
-                }}
+                onClick={() => setCurrentIndex(idx)}
                 className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer bg-white shrink-0 relative group/thumb ${
                   isSelected
                     ? 'border-[#1F3A2E] ring-2 ring-[#1F3A2E]/20 shadow-md scale-105'
@@ -282,45 +412,18 @@ export default function ProductGallery({
                 }`}
               >
                 <img
-                  src={img}
+                  src={item.url}
                   alt={`${productName} thumbnail ${idx + 1}`}
                   className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
                 />
               </button>
             );
           })}
-
-          {/* Dedicated Video Thumbnail */}
-          {hasVideo && (
-            <button
-              key="thumb-video"
-              type="button"
-              onClick={() => setActiveMedia('video')}
-              className={`w-16 h-16 sm:w-18 sm:h-18 rounded-2xl overflow-hidden border-2 transition-all cursor-pointer bg-[#1A201C] shrink-0 relative flex flex-col items-center justify-center text-white group ${
-                activeMedia === 'video'
-                  ? 'border-[#B58A5A] ring-2 ring-[#B58A5A]/30 shadow-md scale-105'
-                  : 'border-[#EFE9DD] opacity-85 hover:opacity-100'
-              }`}
-            >
-              <img
-                src={galleryImages[0]}
-                alt="Video thumbnail background"
-                className="absolute inset-0 w-full h-full object-cover opacity-30 group-hover:scale-110 transition-transform duration-300"
-              />
-              <div className="absolute inset-0 bg-black/40" />
-              <div className="relative z-10 flex flex-col items-center gap-1">
-                <PlayCircle className="w-5 h-5 text-[#D4A373] drop-shadow-md group-hover:scale-110 transition-transform" />
-                <span className="text-[9px] font-bold tracking-wider uppercase text-[#EFE9DD]">
-                  Video
-                </span>
-              </div>
-            </button>
-          )}
         </div>
       )}
 
       {/* ========================================================================= */}
-      {/* FULL-SCREEN LIGHTBOX MODAL (Rendered directly in Body via React Portal)  */}
+      {/* FULL-SCREEN LIGHTBOX MODAL (Supports Photos & Video)                      */}
       {/* ========================================================================= */}
       {mounted &&
         createPortal(
@@ -341,37 +444,38 @@ export default function ProductGallery({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-2.5 h-2.5 rounded-full bg-[#D4A373] shadow-[0_0_8px_#D4A373] shrink-0" />
-                    <h3 className="font-serif text-white font-bold text-sm sm:text-base tracking-wide truncate max-w-[200px] sm:max-w-md">
+                    <span className="font-serif text-white font-bold text-sm sm:text-base truncate max-w-xs sm:max-w-md">
                       {productName}
-                    </h3>
-                    {hasMultipleImages && (
-                      <span className="px-2.5 py-0.5 rounded-full bg-white/10 border border-white/15 text-[#D4A373] text-xs font-bold font-mono shrink-0">
-                        {selectedImageIndex + 1} / {galleryImages.length}
+                    </span>
+                    {totalSlides > 1 && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-[#D4A373] text-xs font-bold shrink-0">
+                        {isCurrentVideo ? '▶ Video' : `${currentIndex + 1} / ${totalSlides}`}
                       </span>
                     )}
                   </div>
 
                   <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                    {/* Zoom Toggle Button */}
-                    <button
-                      type="button"
-                      onClick={() => setIsZoomed((prev) => !prev)}
-                      className="px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer border border-white/10"
-                      title={isZoomed ? 'Zoom Out' : 'Zoom In'}
-                    >
-                      {isZoomed ? (
-                        <>
-                          <ZoomOut className="w-4 h-4 text-[#D4A373]" />
-                          <span className="hidden sm:inline">Zoom Out</span>
-                        </>
-                      ) : (
-                        <>
-                          <ZoomIn className="w-4 h-4 text-[#D4A373]" />
-                          <span className="hidden sm:inline">Zoom In</span>
-                        </>
-                      )}
-                    </button>
+                    {/* Zoom Toggle Button (only for images) */}
+                    {!isCurrentVideo && (
+                      <button
+                        type="button"
+                        onClick={() => setIsZoomed((prev) => !prev)}
+                        className="px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all flex items-center gap-2 text-xs font-semibold cursor-pointer border border-white/10"
+                        title={isZoomed ? 'Zoom Out' : 'Zoom In'}
+                      >
+                        {isZoomed ? (
+                          <>
+                            <ZoomOut className="w-4 h-4 text-[#D4A373]" />
+                            <span className="hidden sm:inline">Zoom Out</span>
+                          </>
+                        ) : (
+                          <>
+                            <ZoomIn className="w-4 h-4 text-[#D4A373]" />
+                            <span className="hidden sm:inline">Zoom In</span>
+                          </>
+                        )}
+                      </button>
+                    )}
 
                     {/* Close Button */}
                     <button
@@ -391,44 +495,50 @@ export default function ProductGallery({
                   onClick={(e) => e.stopPropagation()}
                 >
                   {/* Left Arrow Button */}
-                  {hasMultipleImages && (
+                  {totalSlides > 1 && (
                     <button
                       type="button"
                       onClick={handlePrev}
                       className="absolute left-4 sm:left-8 z-30 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/15 cursor-pointer shadow-2xl"
-                      title="Previous photo (Left Arrow)"
+                      title="Previous (Left Arrow)"
                     >
                       <ChevronLeft className="w-7 h-7" />
                     </button>
                   )}
 
-                  {/* Central Full-View Image */}
-                  <div
-                    className={`relative max-h-full max-w-full flex items-center justify-center transition-transform duration-300 ${
-                      isZoomed ? 'scale-150 sm:scale-175 cursor-zoom-out' : 'scale-100 cursor-zoom-in'
-                    }`}
-                    onClick={() => setIsZoomed((prev) => !prev)}
-                    title={isZoomed ? 'Click to zoom out' : 'Click to zoom in'}
-                  >
-                    <motion.img
-                      key={selectedImageIndex}
-                      src={galleryImages[selectedImageIndex]}
-                      alt={`${productName} - Full View ${selectedImageIndex + 1}`}
-                      initial={{ opacity: 0, scale: 0.96 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.96 }}
-                      transition={{ duration: 0.2 }}
-                      className="max-h-[calc(100vh-210px)] max-w-[88vw] object-contain rounded-2xl shadow-2xl select-none"
-                    />
-                  </div>
+                  {/* Central Full-View Media */}
+                  {isCurrentVideo ? (
+                    <div className="w-full max-w-4xl h-full max-h-[calc(100vh-210px)] flex items-center justify-center p-2">
+                      {renderVideoPlayer(currentMedia.url, true)}
+                    </div>
+                  ) : (
+                    <div
+                      className={`relative max-h-full max-w-full flex items-center justify-center transition-transform duration-300 ${
+                        isZoomed ? 'scale-150 sm:scale-175 cursor-zoom-out' : 'scale-100 cursor-zoom-in'
+                      }`}
+                      onClick={() => setIsZoomed((prev) => !prev)}
+                      title={isZoomed ? 'Click to zoom out' : 'Click to zoom in'}
+                    >
+                      <motion.img
+                        key={currentIndex}
+                        src={currentMedia.url}
+                        alt={`${productName} - Full View ${currentIndex + 1}`}
+                        initial={{ opacity: 0, scale: 0.96 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.96 }}
+                        transition={{ duration: 0.2 }}
+                        className="max-h-[calc(100vh-210px)] max-w-[88vw] object-contain rounded-2xl shadow-2xl select-none"
+                      />
+                    </div>
+                  )}
 
                   {/* Right Arrow Button */}
-                  {hasMultipleImages && (
+                  {totalSlides > 1 && (
                     <button
                       type="button"
                       onClick={handleNext}
                       className="absolute right-4 sm:right-8 z-30 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/10 hover:bg-white/25 text-white backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/15 cursor-pointer shadow-2xl"
-                      title="Next photo (Right Arrow)"
+                      title="Next (Right Arrow)"
                     >
                       <ChevronRight className="w-7 h-7" />
                     </button>
@@ -442,31 +552,60 @@ export default function ProductGallery({
                 >
                   {/* Thumbnail Strip */}
                   <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto max-w-full pb-1 scrollbar-none">
-                    {galleryImages.map((img, idx) => (
-                      <button
-                        key={`lb-thumb-${idx}`}
-                        type="button"
-                        onClick={() => {
-                          setSelectedImageIndex(idx);
-                          setIsZoomed(false);
-                        }}
-                        className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-white/5 shrink-0 ${
-                          selectedImageIndex === idx
-                            ? 'border-[#D4A373] ring-2 ring-[#D4A373]/30 scale-105 shadow-lg'
-                            : 'border-white/20 opacity-50 hover:opacity-100'
-                        }`}
-                      >
-                        <img
-                          src={img}
-                          alt={`Full view thumbnail ${idx + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
+                    {mediaItems.map((item, idx) => {
+                      const isSelected = currentIndex === idx;
+
+                      if (item.type === 'video') {
+                        return (
+                          <button
+                            key="lb-thumb-video"
+                            type="button"
+                            onClick={() => {
+                              setCurrentIndex(idx);
+                              setIsZoomed(false);
+                            }}
+                            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-[#1A201C] shrink-0 relative flex items-center justify-center ${
+                              isSelected
+                                ? 'border-[#D4A373] ring-2 ring-[#D4A373]/40 scale-105 shadow-lg'
+                                : 'border-white/20 opacity-60 hover:opacity-100'
+                            }`}
+                          >
+                            <img
+                              src={galleryImages[0]}
+                              alt="Video slide"
+                              className="w-full h-full object-cover opacity-40"
+                            />
+                            <PlayCircle className="w-6 h-6 text-[#D4A373] absolute z-10" />
+                          </button>
+                        );
+                      }
+
+                      return (
+                        <button
+                          key={`lb-thumb-${idx}`}
+                          type="button"
+                          onClick={() => {
+                            setCurrentIndex(idx);
+                            setIsZoomed(false);
+                          }}
+                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl overflow-hidden border-2 transition-all cursor-pointer bg-white/5 shrink-0 ${
+                            isSelected
+                              ? 'border-[#D4A373] ring-2 ring-[#D4A373]/30 scale-105 shadow-lg'
+                              : 'border-white/20 opacity-50 hover:opacity-100'
+                          }`}
+                        >
+                          <img
+                            src={item.url}
+                            alt={`Full view thumbnail ${idx + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <p className="text-[11px] text-white/50 tracking-wider">
-                    Click photo to zoom • Use ← → arrow keys to browse • ESC to close
+                    Use ← → arrow keys to browse photos &amp; video • ESC to close
                   </p>
                 </div>
               </motion.div>

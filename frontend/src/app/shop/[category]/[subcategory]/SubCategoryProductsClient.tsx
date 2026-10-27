@@ -316,10 +316,6 @@ export default function SubCategoryProductsClient({ mainCategory, subCategory }:
                           <h3 className="font-serif text-xs sm:text-base font-bold text-[#1A201C] group-hover:text-[#1F3A2E] transition-colors hover:underline line-clamp-2 min-h-[32px] sm:min-h-0">
                             {product.name}
                           </h3>
-
-                          <p className="hidden sm:block text-xs text-slate-500 line-clamp-2 font-light">
-                            {product.description}
-                          </p>
                         </Link>
 
                         {/* Price & Add to Cart */}
