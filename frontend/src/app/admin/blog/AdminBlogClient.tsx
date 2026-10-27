@@ -35,12 +35,8 @@ import {
   FileText,
   SlidersHorizontal,
   Layers,
-  Globe,
-  RefreshCw,
-  Languages,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { translateArticleBundle } from '../../../utils/blogTranslator';
 
 export interface BlogTranslationData {
   title: string;
@@ -134,9 +130,6 @@ export default function AdminBlogClient() {
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
   const [formData, setFormData] = useState<BlogFormData>(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
-  const [activeLangTab, setActiveLangTab] = useState<'en' | 'gu' | 'hi'>('en');
-  const [isAutoTranslating, setIsAutoTranslating] = useState(false);
-
   // Toast State
   const [toastMessage, setToastMessage] = useState<{
     text: string;
@@ -146,35 +139,6 @@ export default function AdminBlogClient() {
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage(null), 3500);
-  };
-
-  // 1-Click Auto-Translate for Gujarati & Hindi
-  const handleAutoTranslateAll = async () => {
-    if (!formData.title.trim()) {
-      showToast('Please enter an Article Headline first before translating.', 'error');
-      return;
-    }
-    setIsAutoTranslating(true);
-    try {
-      const [guResult, hiResult] = await Promise.all([
-        translateArticleBundle(formData.title, formData.excerpt, formData.content, 'gu'),
-        translateArticleBundle(formData.title, formData.excerpt, formData.content, 'hi'),
-      ]);
-
-      setFormData((prev) => ({
-        ...prev,
-        translations: {
-          gu: guResult,
-          hi: hiResult,
-        },
-      }));
-      showToast('✨ Translations generated for Gujarati and Hindi! Review them in the tabs below.');
-      setActiveLangTab('gu');
-    } catch (err: any) {
-      showToast('Translation error: ' + (err.message || 'Failed to auto-translate'), 'error');
-    } finally {
-      setIsAutoTranslating(false);
-    }
   };
 
   // Fetch blogs list from backend
@@ -253,7 +217,6 @@ export default function AdminBlogClient() {
 
   // Open Create Modal
   const handleOpenCreate = () => {
-    setActiveLangTab('en');
     setEditingBlog(null);
     setFormData({
       ...EMPTY_FORM,
@@ -269,7 +232,6 @@ export default function AdminBlogClient() {
 
   // Open Edit Modal
   const handleOpenEdit = (blog: BlogPost) => {
-    setActiveLangTab('en');
     setEditingBlog(blog);
     setFormData({
       title: blog.title,
@@ -958,283 +920,41 @@ export default function AdminBlogClient() {
                   />
                 </div>
 
-                {/* Section 3: Article Content & Multi-Language Translations */}
+                {/* Section 3: Article Content */}
                 <div className="space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#EFE9DD] pb-2">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#1F3A2E] flex items-center gap-1.5">
-                      <FileText className="w-3.5 h-3.5 text-[#B58A5A]" />
-                      <span>3. Article Body & Language Translations</span>
-                    </h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#1F3A2E] flex items-center gap-1.5 border-b border-[#EFE9DD] pb-2">
+                    <FileText className="w-3.5 h-3.5 text-[#B58A5A]" />
+                    <span>3. Article Body &amp; Content</span>
+                  </h4>
 
-                    {/* 1-Click Auto-Translate Button */}
-                    <button
-                      type="button"
-                      onClick={handleAutoTranslateAll}
-                      disabled={isAutoTranslating || !formData.title.trim()}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#D4A373] to-[#C28E5C] hover:from-[#c28e5c] hover:to-[#b07d4b] text-[#1F3A2E] font-bold text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Automatically translate English headline, excerpt, and content into Gujarati and Hindi"
-                    >
-                      {isAutoTranslating ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#1F3A2E]" />
-                      ) : (
-                        <Sparkles className="w-3.5 h-3.5 text-[#1F3A2E]" />
-                      )}
-                      <span>{isAutoTranslating ? 'Translating...' : '✨ 1-Click Auto-Translate (GU & HI)'}</span>
-                    </button>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">
+                      Short Excerpt / Teaser <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      required
+                      value={formData.excerpt}
+                      onChange={(e) =>
+                        setFormData((prev) => ({ ...prev, excerpt: e.target.value }))
+                      }
+                      placeholder="Brief 1-2 sentence overview of the article shown on cards and search results..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                    />
                   </div>
 
-                  {/* Language Tab Switcher */}
-                  <div className="flex items-center gap-2 border-b border-slate-200">
-                    <button
-                      type="button"
-                      onClick={() => setActiveLangTab('en')}
-                      className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
-                        activeLangTab === 'en'
-                          ? 'border-[#1F3A2E] text-[#1F3A2E]'
-                          : 'border-transparent text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      <span>🇬🇧 English (Original)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveLangTab('gu')}
-                      className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
-                        activeLangTab === 'gu'
-                          ? 'border-[#1F3A2E] text-[#1F3A2E]'
-                          : 'border-transparent text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      <span>🇮🇳 Gujarati (ગુજરાતી)</span>
-                      {formData.translations?.gu?.title && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" title="Translated" />
-                      )}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveLangTab('hi')}
-                      className={`px-3.5 py-2 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 cursor-pointer ${
-                        activeLangTab === 'hi'
-                          ? 'border-[#1F3A2E] text-[#1F3A2E]'
-                          : 'border-transparent text-slate-500 hover:text-slate-800'
-                      }`}
-                    >
-                      <span>🇮🇳 Hindi (हिन्दी)</span>
-                      {formData.translations?.hi?.title && (
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" title="Translated" />
-                      )}
-                    </button>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-700">
+                      Full Article Body Content (Markdown supported)
+                    </label>
+                    <textarea
+                      rows={12}
+                      value={formData.content}
+                      onChange={(e) => handleContentChange(e.target.value)}
+                      placeholder="Write the complete educational article here. You can use markdown headings (###), bullet points, and numbered lists..."
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                    />
                   </div>
-
-                  {/* TAB 1: English Content */}
-                  {activeLangTab === 'en' && (
-                    <div className="space-y-4">
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          Short Excerpt / Teaser <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                          rows={2}
-                          required
-                          value={formData.excerpt}
-                          onChange={(e) =>
-                            setFormData((prev) => ({ ...prev, excerpt: e.target.value }))
-                          }
-                          placeholder="Brief 1-2 sentence overview of the article shown on cards and search results..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          Full Article Body Content (Markdown supported)
-                        </label>
-                        <textarea
-                          rows={8}
-                          value={formData.content}
-                          onChange={(e) => handleContentChange(e.target.value)}
-                          placeholder="Write the complete educational article here. You can use markdown headings (###), bullet points, and numbered lists..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] text-xs font-mono focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 2: Gujarati Translation */}
-                  {activeLangTab === 'gu' && (
-                    <div className="space-y-4 p-4 rounded-2xl bg-amber-50/40 border border-amber-200/60">
-                      <div className="flex items-center justify-between text-xs text-amber-900 font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <Globe className="w-3.5 h-3.5 text-amber-700" />
-                          <span>Gujarati (ગુજરાતી) Stored Translation</span>
-                        </div>
-                        <span className="text-[10px] text-amber-700 font-normal">
-                          Provides instant 0ms reader speed
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          Gujarati Headline (શીર્ષક)
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.translations?.gu?.title || ''}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              translations: {
-                                ...prev.translations,
-                                gu: {
-                                  ...(prev.translations?.gu || { excerpt: '', content: '' }),
-                                  title: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          placeholder="દા.ત. ચમકતી ત્વચા માટે હર્બલ ફેસ પેકના પ્રાચીન રહસ્યો"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-amber-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          Gujarati Short Excerpt (ટૂંકો સારાંશ)
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={formData.translations?.gu?.excerpt || ''}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              translations: {
-                                ...prev.translations,
-                                gu: {
-                                  ...(prev.translations?.gu || { title: '', content: '' }),
-                                  excerpt: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          placeholder="દા.ત. સમય-ચકાસાયેલ આયુર્વેદિક ફોર્મ્યુલેશન વિશે જાણો..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-amber-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          Gujarati Article Body (સંપૂર્ણ લેખ)
-                        </label>
-                        <textarea
-                          rows={6}
-                          value={formData.translations?.gu?.content || ''}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              translations: {
-                                ...prev.translations,
-                                gu: {
-                                  ...(prev.translations?.gu || { title: '', excerpt: '' }),
-                                  content: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          placeholder="ગુજરાતીમાં સંપૂર્ણ લેખ અહીં લખો અથવા ઉપરના 1-Click Auto-Translate બટન પર ક્લિક કરો..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-amber-200 text-xs font-mono bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  {/* TAB 3: Hindi Translation */}
-                  {activeLangTab === 'hi' && (
-                    <div className="space-y-4 p-4 rounded-2xl bg-orange-50/40 border border-orange-200/60">
-                      <div className="flex items-center justify-between text-xs text-orange-900 font-medium">
-                        <div className="flex items-center gap-1.5">
-                          <Globe className="w-3.5 h-3.5 text-orange-700" />
-                          <span>Hindi (हिन्दी) Stored Translation</span>
-                        </div>
-                        <span className="text-[10px] text-orange-700 font-normal">
-                          Provides instant 0ms reader speed
-                        </span>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          Hindi Headline (शीर्षक)
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.translations?.hi?.title || ''}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              translations: {
-                                ...prev.translations,
-                                hi: {
-                                  ...(prev.translations?.hi || { excerpt: '', content: '' }),
-                                  title: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          placeholder="उदा. चमकदार त्वचा के लिए हर्बल फेस पैक के प्राचीन रहस्य"
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-orange-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          Hindi Short Excerpt (संक्षिप्त सारांश)
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={formData.translations?.hi?.excerpt || ''}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              translations: {
-                                ...prev.translations,
-                                hi: {
-                                  ...(prev.translations?.hi || { title: '', content: '' }),
-                                  excerpt: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          placeholder="उदा. समय-परीक्षित आयुर्वेदिक नुस्खों के बारे में जानें..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-orange-200 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                        />
-                      </div>
-
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-700">
-                          Hindi Article Body (संपूर्ण लेख)
-                        </label>
-                        <textarea
-                          rows={6}
-                          value={formData.translations?.hi?.content || ''}
-                          onChange={(e) =>
-                            setFormData((prev) => ({
-                              ...prev,
-                              translations: {
-                                ...prev.translations,
-                                hi: {
-                                  ...(prev.translations?.hi || { title: '', excerpt: '' }),
-                                  content: e.target.value,
-                                },
-                              },
-                            }))
-                          }
-                          placeholder="हिन्दी में पूरा लेख यहाँ लिखें या ऊपर दिए गए 1-Click Auto-Translate बटन पर क्लिक करें..."
-                          className="w-full px-3.5 py-2.5 rounded-xl border border-orange-200 text-xs font-mono bg-white focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
-                        />
-                      </div>
-                    </div>
-                  )}
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-slate-700 flex items-center gap-1">
