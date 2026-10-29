@@ -72,6 +72,19 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon-48.png', sizes: '48x48', type: 'image/png' },
+      { url: '/icon-96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 const jsonLdOrganization = {
@@ -79,7 +92,7 @@ const jsonLdOrganization = {
   '@type': 'Organization',
   name: 'Labdhi Herbs',
   url: 'https://labdhiherbs.com',
-  logo: 'https://labdhiherbs.com/uploads/logo/Main-logo-531.jpg',
+  logo: 'https://labdhiherbs.com/icon-512.png',
   description:
     'Manufacturer and seller of pure Ayurvedic herbal formulations for hair care, skin care, muscle care, and joint health.',
   address: {
@@ -120,6 +133,13 @@ export default function RootLayout({
     <html lang="en" className="notranslate" translate="no">
       <head>
         <meta name="google" content="notranslate" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/icon-96.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrganization) }}
