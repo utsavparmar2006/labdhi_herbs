@@ -29,6 +29,7 @@ import { getHomePageConfig, authLogout } from '../services/api';
 import { AnnouncementBarConfig } from '../types';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { useCart } from '../context/CartContext';
+import WebsiteLanguageTranslator from './WebsiteLanguageTranslator';
 
 interface HeaderProps {
   cartCount?: number;
@@ -219,8 +220,7 @@ export default function Header({
   return (
     <div
       data-header="true"
-      className="notranslate fixed top-0 left-0 right-0 z-50 transition-all duration-300"
-      translate="no"
+      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
     >
       
       {/* Dynamic Sticky Top Announcement Bar (Hero Line) */}
@@ -340,9 +340,12 @@ export default function Header({
             })}
           </nav>
 
-          {/* Action Icons (Search, Account, Cart) */}
-          <div className="flex items-center gap-3 sm:gap-4">
+          {/* Action Icons (Language, Search, Account, Cart) */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5">
             
+            {/* Website Full Multi-Language Selector */}
+            <WebsiteLanguageTranslator variant="header" />
+
             {/* Search Button */}
             <button
               onClick={onOpenSearch}
@@ -537,6 +540,11 @@ export default function Header({
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Mobile Website Language Selector */}
+              <div className="px-4 py-2.5 border-t border-[#EFE9DD] bg-white/60">
+                <WebsiteLanguageTranslator variant="mobile" />
               </div>
 
               {/* Bottom Account & Support Area */}

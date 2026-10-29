@@ -130,9 +130,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="notranslate" translate="no">
+    <html lang="en">
       <head>
-        <meta name="google" content="notranslate" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" type="image/png" sizes="48x48" href="/icon-48.png" />
         <link rel="icon" type="image/png" sizes="96x96" href="/icon-96.png" />
@@ -150,6 +149,7 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased bg-[#F8F6F0] text-[#1A201C] selection:bg-[#1F3A2E] selection:text-[#EFE9DD]">
+        <div id="google_translate_element" style={{ display: 'none' }} className="notranslate" translate="no" />
         <Providers>{children}</Providers>
       </body>
     </html>
