@@ -8,19 +8,41 @@ export interface WebsiteLanguageOption {
   code: string;
   name: string;
   nativeName: string;
-  flag: string;
+  country: 'gb' | 'in';
 }
+
+// Crisp SVG Flags (solves Windows emoji rendering where flags become "GB" / "IN" letters)
+const SVG_FLAGS: Record<string, React.ReactNode> = {
+  gb: (
+    <svg className="w-4 h-4 rounded-full shrink-0 shadow-2xs border border-black/10" viewBox="0 0 640 480">
+      <path fill="#012169" d="M0 0h640v480H0z" />
+      <path fill="#FFF" d="m75 0 244 181L562 0h78v62L400 240l240 178v62h-80L320 299 79 480H0v-60l239-180L0 60V0h75z" />
+      <path fill="#C8102E" d="m424 288 216 162v30h-40L384 318v-30h40zM640 0v10L440 160h40L640 10V0zM0 480v-10l200-150h-40L0 470v10zM216 192 0 30V0h40l216 162v30h-40z" />
+      <path fill="#FFF" d="M240 0h160v480H240zM0 160h640v160H0z" />
+      <path fill="#C8102E" d="M280 0h80v480h-80zM0 200h640v80H0z" />
+    </svg>
+  ),
+  in: (
+    <svg className="w-4 h-4 rounded-full shrink-0 shadow-2xs border border-black/10" viewBox="0 0 640 480">
+      <path fill="#FF9933" d="M0 0h640v160H0z" />
+      <path fill="#FFFFFF" d="M0 160h640v160H0z" />
+      <path fill="#128807" d="M0 320h640v160H0z" />
+      <circle cx="320" cy="240" r="50" fill="none" stroke="#000080" strokeWidth="6" />
+      <circle cx="320" cy="240" r="12" fill="#000080" />
+    </svg>
+  ),
+};
 
 // Default popular languages — ready to be updated with client's custom list
 export const WEBSITE_LANGUAGES: WebsiteLanguageOption[] = [
-  { code: 'en', name: 'English', nativeName: 'English', flag: '🇬🇧' },
-  { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', flag: '🇮🇳' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', flag: '🇮🇳' },
-  { code: 'mr', name: 'Marathi', nativeName: 'मराठी', flag: '🇮🇳' },
-  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', flag: '🇮🇳' },
-  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', flag: '🇮🇳' },
-  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', flag: '🇮🇳' },
-  { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ', flag: '🇮🇳' },
+  { code: 'en', name: 'English', nativeName: 'English', country: 'gb' },
+  { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', country: 'in' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', country: 'in' },
+  { code: 'mr', name: 'Marathi', nativeName: 'मराठी', country: 'in' },
+  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', country: 'in' },
+  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', country: 'in' },
+  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', country: 'in' },
+  { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬી', country: 'in' },
 ];
 
 declare global {
@@ -135,7 +157,7 @@ export default function WebsiteLanguageTranslator({
           onClick={() => setIsOpen(!isOpen)}
           className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-[#D4A373] transition-colors cursor-pointer"
         >
-          <span>{currentOption.flag}</span>
+          {SVG_FLAGS[currentOption.country] || SVG_FLAGS.in}
           <span>{currentOption.nativeName}</span>
           <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
@@ -149,7 +171,12 @@ export default function WebsiteLanguageTranslator({
               transition={{ duration: 0.15 }}
               className="absolute right-0 mt-1.5 w-44 bg-white text-slate-800 rounded-xl shadow-xl border border-[#EFE9DD] py-1.5 z-50 overflow-hidden"
             >
-              <div className="max-h-56 overflow-y-auto py-1 text-xs">
+              <div
+                className="max-h-56 overflow-y-auto overscroll-contain py-1 text-xs custom-scrollbar"
+                data-lenis-prevent="true"
+                onWheel={(e) => e.stopPropagation()}
+                onTouchMove={(e) => e.stopPropagation()}
+              >
                 {WEBSITE_LANGUAGES.map((lang) => {
                   const isSelected = selectedLang === lang.code;
                   return (
@@ -163,7 +190,7 @@ export default function WebsiteLanguageTranslator({
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span>{lang.flag}</span>
+                        {SVG_FLAGS[lang.country] || SVG_FLAGS.in}
                         <span>{lang.nativeName}</span>
                       </div>
                       {isSelected && <Check className="w-3.5 h-3.5 text-[#1F3A2E]" />}
@@ -190,12 +217,18 @@ export default function WebsiteLanguageTranslator({
               <Globe className="w-3.5 h-3.5 text-[#B58A5A]" />
               <span>Website Language</span>
             </span>
-            <span className="text-[11px] font-semibold text-slate-500">
-              {currentOption.flag} {currentOption.nativeName}
+            <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
+              {SVG_FLAGS[currentOption.country] || SVG_FLAGS.in}
+              <span>{currentOption.nativeName}</span>
             </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-1.5 pt-1">
+          <div
+            className="grid grid-cols-2 gap-1.5 pt-1 max-h-52 overflow-y-auto overscroll-contain custom-scrollbar"
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             {WEBSITE_LANGUAGES.map((lang) => {
               const isSelected = selectedLang === lang.code;
               return (
@@ -209,7 +242,7 @@ export default function WebsiteLanguageTranslator({
                   }`}
                 >
                   <span className="flex items-center gap-1.5 truncate">
-                    <span>{lang.flag}</span>
+                    {SVG_FLAGS[lang.country] || SVG_FLAGS.in}
                     <span className="truncate">{lang.nativeName}</span>
                   </span>
                   {isSelected && <Check className="w-3 h-3 text-[#D4A373] shrink-0" />}
@@ -234,7 +267,7 @@ export default function WebsiteLanguageTranslator({
         title="Select Website Language"
       >
         <Globe className="w-3.5 h-3.5 text-[#B58A5A]" />
-        <span className="hidden lg:inline">{currentOption.flag}</span>
+        <span className="hidden lg:inline">{SVG_FLAGS[currentOption.country] || SVG_FLAGS.in}</span>
         <span>{currentOption.nativeName}</span>
         <ChevronDown
           className={`w-3 h-3 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
@@ -248,14 +281,19 @@ export default function WebsiteLanguageTranslator({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-[#EFE9DD] py-2 z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-[#EFE9DD] py-2 z-50 overflow-hidden"
           >
-            <div className="px-3 py-1.5 border-b border-[#EFE9DD]/60 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <div className="px-3.5 py-1.5 border-b border-[#EFE9DD]/60 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
               <span>Select Language</span>
               <Globe className="w-3 h-3 text-[#B58A5A]" />
             </div>
 
-            <div className="max-h-60 overflow-y-auto py-1 text-xs">
+            <div
+              className="max-h-64 overflow-y-auto overscroll-contain py-1 text-xs custom-scrollbar"
+              data-lenis-prevent="true"
+              onWheel={(e) => e.stopPropagation()}
+              onTouchMove={(e) => e.stopPropagation()}
+            >
               {WEBSITE_LANGUAGES.map((lang) => {
                 const isSelected = selectedLang === lang.code;
                 return (
@@ -268,8 +306,8 @@ export default function WebsiteLanguageTranslator({
                         : 'hover:bg-[#F8F6F0] text-slate-700'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <span>{lang.flag}</span>
+                    <div className="flex items-center gap-2.5">
+                      {SVG_FLAGS[lang.country] || SVG_FLAGS.in}
                       <div>
                         <span className="font-semibold block leading-tight">{lang.nativeName}</span>
                         <span className="text-[10px] text-slate-400">{lang.name}</span>
