@@ -340,24 +340,21 @@ export default function Header({
             })}
           </nav>
 
-          {/* Action Icons (Language, Search, Account, Cart) */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5">
-            
-            {/* Website Full Multi-Language Selector */}
-            <WebsiteLanguageTranslator variant="header" />
+          {/* Action Icons (Search, Account, Language, Cart) */}
+          <div className="flex items-center gap-1.5 sm:gap-3">
 
             {/* Search Button */}
             <button
               onClick={onOpenSearch}
               aria-label="Search"
-              className="p-3 rounded-2xl bg-white/80 hover:bg-[#EFE9DD] text-[#1A201C] hover:text-[#1F3A2E] border border-[#EFE9DD] transition-all cursor-pointer shadow-xs"
+              className="p-2.5 sm:p-3 rounded-2xl bg-white/80 hover:bg-[#EFE9DD] text-[#1A201C] hover:text-[#1F3A2E] border border-[#EFE9DD] transition-all cursor-pointer shadow-xs shrink-0"
             >
               <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
             </button>
 
             {/* Account Profile / Login Button */}
             {user ? (
-              <div className="relative">
+              <div className="relative shrink-0">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                   className="hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold border border-[#EFE9DD] bg-white/80 hover:bg-[#EFE9DD] text-[#1A201C] transition-all cursor-pointer shadow-xs"
@@ -441,18 +438,21 @@ export default function Header({
             ) : (
               <button
                 onClick={onOpenAuth}
-                className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold border border-[#1F3A2E] text-[#1F3A2E] bg-white/80 hover:bg-[#1F3A2E] hover:text-white transition-all cursor-pointer shadow-xs"
+                className="hidden sm:flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold border border-[#1F3A2E] text-[#1F3A2E] bg-white/80 hover:bg-[#1F3A2E] hover:text-white transition-all cursor-pointer shadow-xs shrink-0"
               >
                 <User className="w-4 h-4 text-[#1F3A2E]" />
                 <span>Login</span>
               </button>
             )}
 
+            {/* Website Full Multi-Language Selector - Positioned on side */}
+            <WebsiteLanguageTranslator variant="header" />
+
             {/* Cart Trigger */}
             <button
               onClick={effectiveOnOpenCart}
               aria-label="Shopping Cart"
-              className="relative p-3 rounded-2xl bg-[#1F3A2E] hover:bg-[#15271F] text-white transition-all shadow-md cursor-pointer group"
+              className="relative p-2.5 sm:p-3 rounded-2xl bg-[#1F3A2E] hover:bg-[#15271F] text-white transition-all shadow-md cursor-pointer group shrink-0"
             >
               <ShoppingBag className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-[#D4A373]" />
               {effectiveCartCount > 0 && (

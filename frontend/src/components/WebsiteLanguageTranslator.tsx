@@ -1,49 +1,15 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Globe, Check, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Globe, Check, ChevronDown, Search, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-export interface WebsiteLanguageOption {
-  code: string;
-  name: string;
-  nativeName: string;
-  country: 'gb' | 'in';
-}
-
-// Crisp SVG Flags (solves Windows emoji rendering where flags become "GB" / "IN" letters)
-const SVG_FLAGS: Record<string, React.ReactNode> = {
-  gb: (
-    <svg className="w-4 h-4 rounded-full shrink-0 shadow-2xs border border-black/10" viewBox="0 0 640 480">
-      <path fill="#012169" d="M0 0h640v480H0z" />
-      <path fill="#FFF" d="m75 0 244 181L562 0h78v62L400 240l240 178v62h-80L320 299 79 480H0v-60l239-180L0 60V0h75z" />
-      <path fill="#C8102E" d="m424 288 216 162v30h-40L384 318v-30h40zM640 0v10L440 160h40L640 10V0zM0 480v-10l200-150h-40L0 470v10zM216 192 0 30V0h40l216 162v30h-40z" />
-      <path fill="#FFF" d="M240 0h160v480H240zM0 160h640v160H0z" />
-      <path fill="#C8102E" d="M280 0h80v480h-80zM0 200h640v80H0z" />
-    </svg>
-  ),
-  in: (
-    <svg className="w-4 h-4 rounded-full shrink-0 shadow-2xs border border-black/10" viewBox="0 0 640 480">
-      <path fill="#FF9933" d="M0 0h640v160H0z" />
-      <path fill="#FFFFFF" d="M0 160h640v160H0z" />
-      <path fill="#128807" d="M0 320h640v160H0z" />
-      <circle cx="320" cy="240" r="50" fill="none" stroke="#000080" strokeWidth="6" />
-      <circle cx="320" cy="240" r="12" fill="#000080" />
-    </svg>
-  ),
-};
-
-// Default popular languages — ready to be updated with client's custom list
-export const WEBSITE_LANGUAGES: WebsiteLanguageOption[] = [
-  { code: 'en', name: 'English', nativeName: 'English', country: 'gb' },
-  { code: 'gu', name: 'Gujarati', nativeName: 'ગુજરાતી', country: 'in' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी', country: 'in' },
-  { code: 'mr', name: 'Marathi', nativeName: 'मराठी', country: 'in' },
-  { code: 'bn', name: 'Bengali', nativeName: 'বাংলা', country: 'in' },
-  { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', country: 'in' },
-  { code: 'te', name: 'Telugu', nativeName: 'తెలుగు', country: 'in' },
-  { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬી', country: 'in' },
-];
+import {
+  ALL_LANGUAGES,
+  INDIAN_LANGUAGES,
+  INTERNATIONAL_LANGUAGES,
+  LanguageItem,
+  findLanguage,
+} from '../utils/languages';
 
 declare global {
   interface Window {
@@ -63,11 +29,12 @@ export default function WebsiteLanguageTranslator({
 }: WebsiteLanguageTranslatorProps) {
   const [selectedLang, setSelectedLang] = useState('en');
   const [isOpen, setIsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize and load the Google Translation script once
+  // Read existing language cookie on load
   useEffect(() => {
-    // Read existing cookie if present
     if (typeof document !== 'undefined') {
       const match = document.cookie.match(/(^|;)\s*googtrans=([^;]+)/);
       if (match && match[2]) {
@@ -90,7 +57,6 @@ export default function WebsiteLanguageTranslator({
         }
       };
 
-      // Add script tag if not already present
       if (!document.getElementById('google-translate-script')) {
         const script = document.createElement('script');
         script.id = 'google-translate-script';
@@ -107,33 +73,53 @@ export default function WebsiteLanguageTranslator({
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setSearchQuery('');
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Change language across full website
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen]);
+
+  // Filtered languages based on search query
+  const filteredLanguages = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return null;
+    return ALL_LANGUAGES.filter(
+      (lang) =>
+        lang.name.toLowerCase().includes(q) ||
+        lang.nativeName.toLowerCase().includes(q) ||
+        lang.code.toLowerCase().includes(q)
+    );
+  }, [searchQuery]);
+
+  // Change website language
   const handleSelectLanguage = (code: string) => {
     setSelectedLang(code);
     setIsOpen(false);
+    setSearchQuery('');
 
     if (typeof document === 'undefined') return;
 
     if (code === 'en') {
-      // Clear cookie for original English
       document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=.${window.location.hostname}; path=/;`;
       window.location.reload();
       return;
     }
 
-    // Set cookie across domains and paths for Google Translate
     const cookieValue = `/en/${code}`;
     document.cookie = `googtrans=${cookieValue}; path=/;`;
     document.cookie = `googtrans=${cookieValue}; domain=.${window.location.hostname}; path=/;`;
 
-    // Trigger select element if already loaded
     const select = document.querySelector<HTMLSelectElement>('.goog-te-combo');
     if (select) {
       select.value = code;
@@ -143,11 +129,121 @@ export default function WebsiteLanguageTranslator({
     }
   };
 
-  const currentOption =
-    WEBSITE_LANGUAGES.find((l) => l.code === selectedLang) || WEBSITE_LANGUAGES[0];
+  const currentOption = findLanguage(selectedLang);
+
+  // Helper render language row
+  const renderLanguageButton = (lang: LanguageItem) => {
+    const isSelected = selectedLang === lang.code;
+    return (
+      <button
+        key={lang.code}
+        onClick={() => handleSelectLanguage(lang.code)}
+        className={`w-full px-3.5 py-2 text-left flex items-center justify-between transition-colors cursor-pointer rounded-xl ${
+          isSelected
+            ? 'bg-[#1F3A2E] text-white font-bold shadow-xs'
+            : 'hover:bg-[#F8F6F0] text-slate-700'
+        }`}
+      >
+        <div className="flex items-center gap-2.5 truncate">
+          <span
+            className={`w-5 h-5 rounded-full text-[9px] font-bold uppercase flex items-center justify-center shrink-0 ${
+              isSelected
+                ? 'bg-[#D4A373] text-[#1F3A2E]'
+                : 'bg-emerald-100 text-emerald-800'
+            }`}
+          >
+            {lang.code.slice(0, 2)}
+          </span>
+          <div className="truncate">
+            <span className="font-semibold block leading-tight text-xs truncate">
+              {lang.nativeName}
+            </span>
+            <span
+              className={`text-[10px] block truncate ${
+                isSelected ? 'text-emerald-200' : 'text-slate-400'
+              }`}
+            >
+              {lang.name}
+            </span>
+          </div>
+        </div>
+        {isSelected && <Check className="w-3.5 h-3.5 text-[#D4A373] shrink-0" />}
+      </button>
+    );
+  };
 
   // =========================================================================
-  // TOPBAR VARIANT: Compact pill for the announcement bar
+  // MOBILE VARIANT: For inside the mobile drawer
+  // =========================================================================
+  if (variant === 'mobile') {
+    return (
+      <div className={`w-full notranslate ${className}`} translate="no">
+        <div className="p-3 rounded-2xl bg-white border border-[#EFE9DD] shadow-xs space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-[#1F3A2E] flex items-center gap-1.5">
+              <Globe className="w-4 h-4 text-[#B58A5A]" />
+              <span>Select Website Language</span>
+            </span>
+            <span className="text-[11px] font-bold text-[#B58A5A] bg-[#F8F6F0] px-2 py-0.5 rounded-lg border border-[#EFE9DD]">
+              {currentOption.nativeName}
+            </span>
+          </div>
+
+          {/* Search box for mobile */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search 100+ languages..."
+              className="w-full pl-8 pr-7 py-2 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+
+          {/* Languages list */}
+          <div
+            className="max-h-56 overflow-y-auto overscroll-contain space-y-1 custom-scrollbar pr-1"
+            data-lenis-prevent="true"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
+            {filteredLanguages ? (
+              filteredLanguages.length > 0 ? (
+                filteredLanguages.map(renderLanguageButton)
+              ) : (
+                <div className="text-center py-4 text-xs text-slate-400">
+                  No language found for &quot;{searchQuery}&quot;
+                </div>
+              )
+            ) : (
+              <>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 pt-1 pb-0.5">
+                  ⭐ Popular &amp; Indian Languages
+                </div>
+                {INDIAN_LANGUAGES.map(renderLanguageButton)}
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 pt-2 pb-0.5">
+                  🌐 All World Languages (100+)
+                </div>
+                {INTERNATIONAL_LANGUAGES.map(renderLanguageButton)}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // TOPBAR VARIANT: Compact pill for announcement bar
   // =========================================================================
   if (variant === 'topbar') {
     return (
@@ -155,9 +251,9 @@ export default function WebsiteLanguageTranslator({
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-[#D4A373] transition-colors cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 hover:bg-white/20 text-[11px] font-semibold text-[#D4A373] transition-colors cursor-pointer border border-[#D4A373]/30"
         >
-          {SVG_FLAGS[currentOption.country] || SVG_FLAGS.in}
+          <Globe className="w-3 h-3 text-[#D4A373]" />
           <span>{currentOption.nativeName}</span>
           <ChevronDown className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </button>
@@ -165,38 +261,60 @@ export default function WebsiteLanguageTranslator({
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 4, scale: 0.95 }}
+              initial={{ opacity: 0, y: 6, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 4, scale: 0.95 }}
+              exit={{ opacity: 0, y: 6, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-0 mt-1.5 w-44 bg-white text-slate-800 rounded-xl shadow-xl border border-[#EFE9DD] py-1.5 z-50 overflow-hidden"
+              className="absolute right-0 mt-2 w-72 bg-white text-slate-800 rounded-2xl shadow-2xl border border-[#EFE9DD] p-2 z-50 overflow-hidden"
             >
+              {/* Search Header */}
+              <div className="relative mb-2">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search 100+ languages..."
+                  className="w-full pl-8 pr-7 py-2 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Scrollable list */}
               <div
-                className="max-h-56 overflow-y-auto overscroll-contain py-1 text-xs custom-scrollbar"
+                className="max-h-64 overflow-y-auto overscroll-contain space-y-1 custom-scrollbar pr-1"
                 data-lenis-prevent="true"
                 onWheel={(e) => e.stopPropagation()}
                 onTouchMove={(e) => e.stopPropagation()}
               >
-                {WEBSITE_LANGUAGES.map((lang) => {
-                  const isSelected = selectedLang === lang.code;
-                  return (
-                    <button
-                      key={lang.code}
-                      onClick={() => handleSelectLanguage(lang.code)}
-                      className={`w-full px-3 py-1.5 text-left flex items-center justify-between transition-colors cursor-pointer ${
-                        isSelected
-                          ? 'bg-[#1F3A2E]/10 text-[#1F3A2E] font-bold'
-                          : 'hover:bg-[#F8F6F0] text-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        {SVG_FLAGS[lang.country] || SVG_FLAGS.in}
-                        <span>{lang.nativeName}</span>
-                      </div>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-[#1F3A2E]" />}
-                    </button>
-                  );
-                })}
+                {filteredLanguages ? (
+                  filteredLanguages.length > 0 ? (
+                    filteredLanguages.map(renderLanguageButton)
+                  ) : (
+                    <div className="text-center py-4 text-xs text-slate-400">
+                      No language found for &quot;{searchQuery}&quot;
+                    </div>
+                  )
+                ) : (
+                  <>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5">
+                      ⭐ Popular Indian Languages
+                    </div>
+                    {INDIAN_LANGUAGES.map(renderLanguageButton)}
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 pt-2 py-0.5">
+                      🌐 All World Languages (100+)
+                    </div>
+                    {INTERNATIONAL_LANGUAGES.map(renderLanguageButton)}
+                  </>
+                )}
               </div>
             </motion.div>
           )}
@@ -206,71 +324,22 @@ export default function WebsiteLanguageTranslator({
   }
 
   // =========================================================================
-  // MOBILE VARIANT: Full width section for Mobile Menu Drawer
-  // =========================================================================
-  if (variant === 'mobile') {
-    return (
-      <div className={`w-full notranslate ${className}`} translate="no">
-        <div className="p-3 rounded-xl bg-white border border-[#EFE9DD] shadow-xs space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#1F3A2E] flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5 text-[#B58A5A]" />
-              <span>Website Language</span>
-            </span>
-            <span className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-              {SVG_FLAGS[currentOption.country] || SVG_FLAGS.in}
-              <span>{currentOption.nativeName}</span>
-            </span>
-          </div>
-
-          <div
-            className="grid grid-cols-2 gap-1.5 pt-1 max-h-52 overflow-y-auto overscroll-contain custom-scrollbar"
-            data-lenis-prevent="true"
-            onWheel={(e) => e.stopPropagation()}
-            onTouchMove={(e) => e.stopPropagation()}
-          >
-            {WEBSITE_LANGUAGES.map((lang) => {
-              const isSelected = selectedLang === lang.code;
-              return (
-                <button
-                  key={lang.code}
-                  onClick={() => handleSelectLanguage(lang.code)}
-                  className={`py-2 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-between transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#1F3A2E] text-white shadow-xs font-bold'
-                      : 'bg-[#F8F6F0] text-slate-700 hover:bg-[#EFE9DD]'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 truncate">
-                    {SVG_FLAGS[lang.country] || SVG_FLAGS.in}
-                    <span className="truncate">{lang.nativeName}</span>
-                  </span>
-                  {isSelected && <Check className="w-3 h-3 text-[#D4A373] shrink-0" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // =========================================================================
-  // HEADER VARIANT (DEFAULT): Elegant pill for desktop navbar
+  // HEADER VARIANT (DEFAULT): Clean, responsive-optimized pill on the side
   // =========================================================================
   return (
     <div className={`relative inline-block notranslate ${className}`} ref={dropdownRef} translate="no">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="px-3 py-2 rounded-2xl bg-white/80 hover:bg-[#EFE9DD] border border-[#EFE9DD] text-[#1A201C] hover:text-[#1F3A2E] text-xs font-bold shadow-xs hover:shadow-sm transition-all flex items-center gap-1.5 cursor-pointer"
-        title="Select Website Language"
+        className="h-[38px] sm:h-[44px] px-2.5 sm:px-3.5 rounded-2xl bg-white/80 hover:bg-[#EFE9DD] border border-[#EFE9DD] text-[#1A201C] hover:text-[#1F3A2E] text-xs font-bold shadow-xs hover:shadow-sm transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer shrink-0"
+        title="Change Website Language"
       >
-        <Globe className="w-3.5 h-3.5 text-[#B58A5A]" />
-        <span className="hidden lg:inline">{SVG_FLAGS[currentOption.country] || SVG_FLAGS.in}</span>
-        <span>{currentOption.nativeName}</span>
+        <Globe className="w-3.5 h-3.5 text-[#B58A5A] shrink-0" />
+        {/* On mobile: show compact code (EN, GU, HI); on desktop: show full native name */}
+        <span className="hidden sm:inline font-semibold">{currentOption.nativeName}</span>
+        <span className="sm:hidden font-bold uppercase text-[11px] text-[#1F3A2E]">{currentOption.code.slice(0, 2)}</span>
         <ChevronDown
-          className={`w-3 h-3 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-3 h-3 text-slate-400 transition-transform shrink-0 ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -281,42 +350,74 @@ export default function WebsiteLanguageTranslator({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-xl border border-[#EFE9DD] py-2 z-50 overflow-hidden"
+            className="absolute right-0 mt-2 w-[calc(100vw-2rem)] max-w-xs sm:w-80 bg-white rounded-2xl shadow-2xl border border-[#EFE9DD] p-2.5 z-50 overflow-hidden"
           >
-            <div className="px-3.5 py-1.5 border-b border-[#EFE9DD]/60 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <span>Select Language</span>
-              <Globe className="w-3 h-3 text-[#B58A5A]" />
+            {/* Header Title */}
+            <div className="px-2 py-1 flex items-center justify-between border-b border-[#EFE9DD] pb-2 mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-[#B58A5A]" />
+                <span>Select Language ({ALL_LANGUAGES.length}+)</span>
+              </span>
+              <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                {currentOption.nativeName}
+              </span>
             </div>
 
+            {/* Live Search Filter Box */}
+            <div className="relative mb-2">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search language / ભાષા શોધો..."
+                className="w-full pl-8 pr-7 py-2 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Scrollable Language List */}
             <div
-              className="max-h-64 overflow-y-auto overscroll-contain py-1 text-xs custom-scrollbar"
+              className="max-h-72 overflow-y-auto overscroll-contain space-y-1 custom-scrollbar pr-1"
               data-lenis-prevent="true"
               onWheel={(e) => e.stopPropagation()}
               onTouchMove={(e) => e.stopPropagation()}
             >
-              {WEBSITE_LANGUAGES.map((lang) => {
-                const isSelected = selectedLang === lang.code;
-                return (
-                  <button
-                    key={lang.code}
-                    onClick={() => handleSelectLanguage(lang.code)}
-                    className={`w-full px-3.5 py-2 text-left flex items-center justify-between transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#1F3A2E]/10 text-[#1F3A2E] font-bold'
-                        : 'hover:bg-[#F8F6F0] text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      {SVG_FLAGS[lang.country] || SVG_FLAGS.in}
-                      <div>
-                        <span className="font-semibold block leading-tight">{lang.nativeName}</span>
-                        <span className="text-[10px] text-slate-400">{lang.name}</span>
-                      </div>
+              {filteredLanguages ? (
+                filteredLanguages.length > 0 ? (
+                  <>
+                    <div className="text-[10px] font-bold uppercase text-slate-400 px-2 py-0.5">
+                      Found {filteredLanguages.length} Results
                     </div>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-[#1F3A2E]" />}
-                  </button>
-                );
-              })}
+                    {filteredLanguages.map(renderLanguageButton)}
+                  </>
+                ) : (
+                  <div className="text-center py-6 text-xs text-slate-400 space-y-1">
+                    <p>No language matches &quot;{searchQuery}&quot;</p>
+                    <p className="text-[10px] text-slate-300">Try searching English, Hindi, Gujarati, etc.</p>
+                  </div>
+                )
+              ) : (
+                <>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 py-0.5">
+                    ⭐ Popular Indian Languages
+                  </div>
+                  {INDIAN_LANGUAGES.map(renderLanguageButton)}
+
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-2 pt-2 py-0.5 border-t border-[#EFE9DD]/60 mt-1">
+                    🌐 All World Languages ({INTERNATIONAL_LANGUAGES.length})
+                  </div>
+                  {INTERNATIONAL_LANGUAGES.map(renderLanguageButton)}
+                </>
+              )}
             </div>
           </motion.div>
         )}
