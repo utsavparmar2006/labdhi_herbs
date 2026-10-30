@@ -161,15 +161,13 @@ export default function BlogClient() {
     <SmoothScroll>
       <div className="min-h-screen bg-[#F8F6F0] text-[#1A201C] selection:bg-[#1F3A2E] selection:text-[#EFE9DD] font-sans">
         
-        {/* Header Navigation (Protected from Google Translate) */}
-        <div className="notranslate" translate="no">
-          <Header
-            cartCount={cartCount}
-            onOpenCart={openCart}
-            onOpenAuth={() => setIsAuthOpen(true)}
-            onOpenSearch={() => setIsSearchOpen(true)}
-          />
-        </div>
+        {/* Header Navigation */}
+        <Header
+          cartCount={cartCount}
+          onOpenCart={openCart}
+          onOpenAuth={() => setIsAuthOpen(true)}
+          onOpenSearch={() => setIsSearchOpen(true)}
+        />
 
         {/* Editorial Hero Banner (Clean Ayurvedic Deep Green Matching Policy Pages) */}
         <section className="relative pt-32 pb-14 md:pt-40 md:pb-20 bg-[#14261E] text-white overflow-hidden">
@@ -488,32 +486,28 @@ export default function BlogClient() {
           )}
         </AnimatePresence>
 
-        {/* Footer (Protected from Google Translate) */}
-        <div className="notranslate" translate="no">
-          <Footer />
-        </div>
+        {/* Footer */}
+        <Footer />
 
-        {/* Modals & Drawers (Protected from Google Translate) */}
-        <div className="notranslate" translate="no">
-          <QuickViewModal
-            product={quickViewProduct}
-            onClose={() => setQuickViewProduct(null)}
-            onAddToCart={handleAddToCart}
-          />
+        {/* Modals & Drawers */}
+        <QuickViewModal
+          product={quickViewProduct}
+          onClose={() => setQuickViewProduct(null)}
+          onAddToCart={handleAddToCart}
+        />
 
-          <CartDrawer />
+        <CartDrawer />
 
-          <AuthModal
-            isOpen={isAuthOpen}
-            onClose={() => setIsAuthOpen(false)}
-          />
+        <AuthModal
+          isOpen={isAuthOpen}
+          onClose={() => setIsAuthOpen(false)}
+        />
 
-          <SearchModal
-            isOpen={isSearchOpen}
-            onClose={() => setIsSearchOpen(false)}
-            onSelectProduct={(p) => setQuickViewProduct(p)}
-          />
-        </div>
+        <SearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          onSelectProduct={(p) => setQuickViewProduct(p)}
+        />
 
       </div>
     </SmoothScroll>

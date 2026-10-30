@@ -200,8 +200,7 @@ export default function Footer() {
 
   return (
     <footer
-      className="notranslate bg-[#F8F6F0] text-[#1A201C] border-t border-[#EFE9DD] pt-12 sm:pt-16 pb-8 sm:pb-12 relative overflow-hidden"
-      translate="no"
+      className="bg-[#F8F6F0] text-[#1A201C] border-t border-[#EFE9DD] pt-12 sm:pt-16 pb-8 sm:pb-12 relative overflow-hidden"
     >
       
       {/* Background Soft Glow Accent */}
