@@ -543,13 +543,25 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-700">Mobile Number</label>
-                <input
-                  type="tel"
-                  value={registerPhone}
-                  onChange={(e) => setRegisterPhone(e.target.value)}
-                  placeholder="+91 98765 43210"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
-                />
+                <div className="relative flex">
+                  <span className="inline-flex items-center px-3 rounded-l-xl border border-r-0 border-[#EFE9DD] bg-slate-50 text-slate-600 text-xs font-semibold">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={registerPhone}
+                    onChange={(e) => {
+                      let clean = e.target.value.replace(/\D/g, '');
+                      if (clean.startsWith('91') && clean.length > 10) clean = clean.slice(2);
+                      else if (clean.startsWith('0') && clean.length > 10) clean = clean.slice(1);
+                      setRegisterPhone(clean.slice(0, 10));
+                    }}
+                    placeholder="9876543210"
+                    className="w-full pl-3 pr-4 py-2.5 rounded-r-xl border border-[#EFE9DD] bg-white text-base sm:text-sm text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
+                  />
+                </div>
               </div>
 
               <div className="space-y-1">

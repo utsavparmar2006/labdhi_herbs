@@ -348,7 +348,7 @@ export function SiteSettingsProvider({ children }: { children: React.ReactNode }
   const fetchSettings = useCallback(async () => {
     try {
       const res = await fetch(`${API}/v1/site-settings`, {
-        cache: 'no-store',
+        next: { revalidate: 120 },
       });
       const data = await res.json();
       if (data.success && data.data) {

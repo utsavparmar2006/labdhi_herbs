@@ -300,10 +300,16 @@ export default function NewsletterSubscribeModal({
                     <input
                       type="tel"
                       required
-                      maxLength={12}
+                      inputMode="numeric"
+                      maxLength={10}
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="98765 43210"
+                      onChange={(e) => {
+                        let clean = e.target.value.replace(/\D/g, '');
+                        if (clean.startsWith('91') && clean.length > 10) clean = clean.slice(2);
+                        else if (clean.startsWith('0') && clean.length > 10) clean = clean.slice(1);
+                        setPhone(clean.slice(0, 10));
+                      }}
+                      placeholder="9876543210"
                       className="w-full px-3.5 py-2.5 bg-transparent text-[#14261E] placeholder-slate-400 text-xs focus:outline-none"
                     />
                   </div>

@@ -154,7 +154,7 @@ export async function checkBackendHealth(): Promise<HealthResponse> {
 export async function getHomePageConfig(): Promise<HomePageConfigData | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/homepage-config`, {
-      cache: 'no-store',
+      next: { revalidate: 120 },
     });
 
     if (!res.ok) {
@@ -224,7 +224,7 @@ export async function getCategories(forceRefresh = false): Promise<MainCategory[
   pendingCategoriesPromise = (async () => {
     try {
       const res = await fetch(`${API_BASE_URL}/v1/categories`, {
-        cache: 'no-store',
+        next: { revalidate: 120 },
       });
 
       if (!res.ok) {
@@ -414,7 +414,7 @@ export async function getAllSubCategories(): Promise<{
 }> {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/categories/subcategories/all`, {
-      cache: 'no-store',
+      next: { revalidate: 120 },
     });
     const data = await res.json();
     return data;
@@ -657,7 +657,7 @@ export async function getProducts(params?: {
     if (params?.limit) query.set('limit', String(params.limit));
 
     const res = await fetch(`${API_BASE_URL}/v1/products?${query.toString()}`, {
-      cache: 'no-store',
+      next: { revalidate: 60 },
     });
 
     const data = await res.json();
@@ -675,7 +675,7 @@ export async function getProductById(
 ): Promise<{ success: boolean; data?: Product; message?: string }> {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/products/${idOrSlug}`, {
-      cache: 'no-store',
+      next: { revalidate: 60 },
     });
     const data = await res.json();
     return data;
@@ -811,7 +811,7 @@ export async function getSuccessStories(
       ? `${API_BASE_URL}/v1/stories?${query}`
       : `${API_BASE_URL}/v1/stories`;
     const res = await fetch(url, {
-      cache: 'no-store',
+      next: { revalidate: 120 },
     });
     if (!res.ok) {
       return { success: false, data: [] };
@@ -1004,7 +1004,7 @@ export async function getBlogPosts(
 
     const queryString = params.toString() ? `?${params.toString()}` : '';
     const res = await fetch(`${API_BASE_URL}/v1/blogs${queryString}`, {
-      cache: 'no-store',
+      next: { revalidate: 120 },
     });
     if (!res.ok) {
       return { success: false, data: [] };
@@ -1029,7 +1029,7 @@ export async function getBlogPostById(
 ): Promise<{ success: boolean; data?: BlogPost; message?: string }> {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/blogs/${id}`, {
-      cache: 'no-store',
+      next: { revalidate: 120 },
     });
     const data = await res.json();
     return data;
@@ -1374,7 +1374,7 @@ export async function getRazorpayKeyId(): Promise<{
 }> {
   try {
     const res = await fetch(`${API_BASE_URL}/v1/payment/razorpay/key`, {
-      cache: 'no-store',
+      next: { revalidate: 300 },
     });
     return await res.json();
   } catch (error: any) {

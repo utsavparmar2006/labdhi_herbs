@@ -324,6 +324,22 @@ export default function CheckoutClient() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    if (name === 'phone') {
+      let cleanDigits = value.replace(/\D/g, '');
+      if (isIndia) {
+        // Automatically handle country code prefix or leading 0 when pasted
+        if (cleanDigits.startsWith('91') && cleanDigits.length > 10) {
+          cleanDigits = cleanDigits.slice(2);
+        } else if (cleanDigits.startsWith('0') && cleanDigits.length > 10) {
+          cleanDigits = cleanDigits.slice(1);
+        }
+        cleanDigits = cleanDigits.slice(0, 10);
+      } else {
+        cleanDigits = cleanDigits.slice(0, 15);
+      }
+      setFormData((prev) => ({ ...prev, phone: cleanDigits }));
+      return;
+    }
     if (name === 'pincode') {
       const cleanPin = value.replace(/\D/g, '').slice(0, 6);
       // Auto-detect Gujarat if pincode starts with 36, 37, 38, 39
@@ -931,10 +947,12 @@ export default function CheckoutClient() {
                         type="tel"
                         name="phone"
                         required
-                        maxLength={isIndia ? 10 : 16}
+                        inputMode="numeric"
+                        autoComplete="tel-national"
+                        maxLength={isIndia ? 10 : 15}
                         value={formData.phone}
                         onChange={handleInputChange}
-                        placeholder={isIndia ? '98765 43210' : 'Mobile phone number'}
+                        placeholder={isIndia ? '9876543210' : 'Mobile phone number'}
                         className="w-full pl-14 pr-4 py-3 rounded-xl border border-[#EFE9DD] text-xs focus:outline-none focus:ring-2 focus:ring-[#1F3A2E]"
                       />
                     </div>

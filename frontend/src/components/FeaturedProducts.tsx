@@ -27,7 +27,7 @@ export default function FeaturedProducts({
     let isMounted = true;
     const loadProducts = async () => {
       try {
-        const res = await getProducts({ limit: 100 });
+        const res = await getProducts({ limit: 20 });
         if (isMounted) {
           if (res.success && Array.isArray(res.data)) {
             setProductList(res.data);

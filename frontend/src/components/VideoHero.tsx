@@ -57,15 +57,11 @@ export default function VideoHero() {
         muted
         loop
         playsInline
-        preload="auto"
+        preload="metadata"
         className="absolute inset-0 w-full h-full object-cover"
       >
         <source
           src={heroConfig.videoUrl || '/videos/Create_a_premium_cinematic_bra.mp4'}
-          type="video/mp4"
-        />
-        <source
-          src="/Create_a_premium_cinematic_bra.mp4"
           type="video/mp4"
         />
       </video>

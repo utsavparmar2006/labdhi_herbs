@@ -115,9 +115,16 @@ export default function EditUserModal({ user, isOpen, onClose, onSave }: EditUse
             <label className="font-bold text-slate-700 uppercase tracking-wider">Phone Number</label>
             <input
               type="tel"
+              inputMode="numeric"
+              maxLength={15}
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+91 98765 43210"
+              onChange={(e) => {
+                let clean = e.target.value.replace(/\D/g, '');
+                if (clean.startsWith('91') && clean.length > 10) clean = clean.slice(2);
+                else if (clean.startsWith('0') && clean.length > 10) clean = clean.slice(1);
+                setPhone(clean.slice(0, 10));
+              }}
+              placeholder="9876543210"
               className="w-full px-3.5 py-2.5 rounded-xl border border-[#EFE9DD] bg-[#F8F6F0]/50 text-slate-800 focus:outline-none focus:border-[#1F3A2E]"
             />
           </div>
