@@ -2,14 +2,8 @@ import path from 'path';
 import fs from 'fs';
 import { spawn } from 'child_process';
 
-// Dynamic import or require sharp with safety fallback
+// Lazy-loaded sharp instance to prevent top-level await ESM issues
 let sharpModule: any = null;
-try {
-  // @ts-ignore
-  sharpModule = await import('sharp').then((m) => m.default || m).catch(() => null);
-} catch {
-  // Sharp not yet available or failed to load
-}
 
 export interface ImageOptimizationOptions {
   maxWidth?: number; // e.g. 1920px max for banners/heroes, 1200px for products
