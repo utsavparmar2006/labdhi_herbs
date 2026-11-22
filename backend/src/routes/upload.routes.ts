@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { verifyJWT, verifyAdmin } from '../middlewares/auth.middleware.js';
 import { isS3Configured, uploadToS3, listS3Files } from '../config/s3.js';
+import { optimizeImageFile, optimizeVideoFile } from '../utils/mediaOptimizer.js';
 
 const router = Router();
 
@@ -120,6 +121,18 @@ router.post(
         return;
       }
 
+      // Professional lossless-feel compression without cropping (Aspect ratio 100% preserved)
+      const optimized = await optimizeImageFile(req.file.path, {
+        maxWidth: 1920,
+        maxHeight: 1920,
+        quality: 84,
+      });
+
+      const finalPath = optimized.optimizedPath;
+      const finalFilename = optimized.filename;
+      const finalMimetype = optimized.mimetype;
+      const finalSize = optimized.size;
+
       let fileUrl = '';
       let storageProvider: 's3' | 'local' = 'local';
 
@@ -127,9 +140,9 @@ router.post(
       if (isS3Configured()) {
         try {
           const s3Result = await uploadToS3({
-            filePath: req.file.path,
-            filename: req.file.filename,
-            mimetype: req.file.mimetype,
+            filePath: finalPath,
+            filename: finalFilename,
+            mimetype: finalMimetype,
             folder: 'uploads',
           });
           fileUrl = s3Result.url;
@@ -137,8 +150,8 @@ router.post(
 
           // Clean up local temp file after successful S3 upload
           try {
-            if (fs.existsSync(req.file.path)) {
-              fs.unlinkSync(req.file.path);
+            if (fs.existsSync(finalPath)) {
+              fs.unlinkSync(finalPath);
             }
           } catch (unlinkErr) {
             // Non-blocking
@@ -152,18 +165,21 @@ router.post(
       if (!fileUrl) {
         const protocol = req.protocol;
         const host = req.get('host') || 'localhost:5000';
-        fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+        fileUrl = `${protocol}://${host}/uploads/${finalFilename}`;
       }
 
       res.status(200).json({
         success: true,
-        message: 'Image uploaded successfully',
+        message: 'Image uploaded and professionally compressed successfully',
         url: fileUrl,
-        filename: req.file.filename,
+        filename: finalFilename,
         originalName: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype,
+        size: finalSize,
+        originalSize: optimized.originalSize,
+        mimetype: finalMimetype,
         storage: storageProvider,
+        savedBytes: optimized.savedBytes,
+        compressionRatio: optimized.compressionRatio,
       });
     } catch (error: any) {
       res.status(500).json({
@@ -211,6 +227,14 @@ router.post(
         return;
       }
 
+      // Professional fast-start video compression (without cropping, MOOV at file head for instant streaming)
+      const optimized = await optimizeVideoFile(req.file.path);
+
+      const finalPath = optimized.optimizedPath;
+      const finalFilename = optimized.filename;
+      const finalMimetype = optimized.mimetype;
+      const finalSize = optimized.size;
+
       let fileUrl = '';
       let storageProvider: 's3' | 'local' = 'local';
 
@@ -218,17 +242,17 @@ router.post(
       if (isS3Configured()) {
         try {
           const s3Result = await uploadToS3({
-            filePath: req.file.path,
-            filename: req.file.filename,
-            mimetype: req.file.mimetype,
+            filePath: finalPath,
+            filename: finalFilename,
+            mimetype: finalMimetype,
             folder: 'uploads/videos',
           });
           fileUrl = s3Result.url;
           storageProvider = 's3';
 
           try {
-            if (fs.existsSync(req.file.path)) {
-              fs.unlinkSync(req.file.path);
+            if (fs.existsSync(finalPath)) {
+              fs.unlinkSync(finalPath);
             }
           } catch (unlinkErr) {
             // Non-blocking
@@ -242,18 +266,20 @@ router.post(
       if (!fileUrl) {
         const protocol = req.protocol;
         const host = req.get('host') || 'localhost:5000';
-        fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+        fileUrl = `${protocol}://${host}/uploads/${finalFilename}`;
       }
 
       res.status(200).json({
         success: true,
-        message: 'Video uploaded successfully',
+        message: 'Video uploaded and optimized successfully',
         url: fileUrl,
-        filename: req.file.filename,
+        filename: finalFilename,
         originalName: req.file.originalname,
-        size: req.file.size,
-        mimetype: req.file.mimetype,
+        size: finalSize,
+        originalSize: optimized.originalSize,
+        mimetype: finalMimetype,
         storage: storageProvider,
+        compressed: optimized.compressed,
       });
     } catch (error: any) {
       res.status(500).json({

@@ -82,14 +82,31 @@ app.use(
   })
 );
 
-// Static uploads folder for serving uploaded images with 7-day browser caching
+// Static uploads folder for serving uploaded images with 30-day immutable browser caching
 const UPLOAD_DIR = path.join(process.cwd(), 'uploads');
+
+// Transparent WebP negotiation: If client or database requests legacy .png/.jpg but .webp exists, serve the .webp version automatically
+app.use('/uploads', (req, _res, next) => {
+  if (/\.(png|jpe?g)$/i.test(req.path)) {
+    const webpRelPath = req.path.replace(/\.(png|jpe?g)$/i, '.webp');
+    const webpFullPath = path.join(UPLOAD_DIR, webpRelPath);
+    if (fs.existsSync(webpFullPath)) {
+      req.url = webpRelPath;
+    }
+  }
+  next();
+});
+
 app.use(
   '/uploads',
   express.static(UPLOAD_DIR, {
-    maxAge: '7d',
+    maxAge: '30d',
     etag: true,
     lastModified: true,
+    setHeaders: (res, _filePath) => {
+      // Long-term immutable caching for optimized WebP and media assets
+      res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    },
   })
 );
 

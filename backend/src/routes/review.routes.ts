@@ -2,6 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { optimizeImageFile } from '../utils/mediaOptimizer.js';
 import {
   getProductReviews,
   createReview,
@@ -63,15 +64,25 @@ const uploadReviewPhotos = multer({
   fileFilter,
 });
 
-// Middleware to serve /uploads/reviews URL correctly
-const fixReviewPhotosUrl = (req: any, _res: any, next: any) => {
+// Middleware to optimize review photos and serve /uploads/reviews URL correctly
+const fixReviewPhotosUrl = async (req: any, _res: any, next: any) => {
   if (req.files && Array.isArray(req.files)) {
-    const protocol = req.protocol;
-    const host = req.get('host') || 'localhost:5000';
-    req.files.forEach((file: any) => {
-      // Overwrite filename path to include reviews folder
-      file.filename = `reviews/${file.filename}`;
-    });
+    try {
+      for (const file of req.files) {
+        // Compress review photo without cropping (1200px max, quality 82)
+        const opt = await optimizeImageFile(file.path, {
+          maxWidth: 1200,
+          maxHeight: 1200,
+          quality: 82,
+        });
+        file.path = opt.optimizedPath;
+        file.filename = `reviews/${opt.filename}`;
+        file.mimetype = opt.mimetype;
+        file.size = opt.size;
+      }
+    } catch {
+      // Non-blocking fallback
+    }
   }
   next();
 };

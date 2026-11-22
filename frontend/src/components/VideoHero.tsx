@@ -50,7 +50,7 @@ export default function VideoHero() {
 
   return (
     <section className="relative w-full h-[60vh] sm:h-[75vh] md:h-[85vh] lg:h-screen min-h-[420px] sm:min-h-[520px] flex items-center justify-center overflow-hidden bg-[#14261E]">
-      {/* HTML5 Cinematic Video Element */}
+      {/* HTML5 Cinematic Video Element with Poster Fallback */}
       <video
         key={heroConfig.videoUrl || 'default-hero'}
         autoPlay
@@ -58,6 +58,7 @@ export default function VideoHero() {
         loop
         playsInline
         preload="metadata"
+        poster={heroConfig.posterUrl || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1920'}
         className="absolute inset-0 w-full h-full object-cover"
       >
         <source

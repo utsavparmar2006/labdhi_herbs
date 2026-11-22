@@ -40,9 +40,11 @@ function Invoke-SSH {
 Write-Host "[1/5] Pulling latest code from GitHub..." -ForegroundColor Yellow
 Invoke-SSH "cd $APP_DIR && git pull origin main"
 
-# ── Step 2: Backend - Install dependencies ───────────────
-Write-Host "[2/5] Installing Backend dependencies..." -ForegroundColor Yellow
+# ── Step 2: Backend - Install dependencies & media tools ───
+Write-Host "[2/5] Installing Backend dependencies & media tools (ffmpeg, sharp)..." -ForegroundColor Yellow
+Invoke-SSH "which ffmpeg >/dev/null 2>&1 || (sudo apt-get update -y && sudo apt-get install -y ffmpeg)"
 Invoke-SSH "cd $APP_DIR/backend && npm install"
+Invoke-SSH "cd $APP_DIR/backend && npm run media:compress || true"
 
 # ── Step 3: Backend - Build TypeScript ──────────────────
 Write-Host "[3/5] Building Backend (TypeScript)..." -ForegroundColor Yellow
