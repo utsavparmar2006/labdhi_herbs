@@ -1,4 +1,4 @@
-# ==========================================================
+﻿# ==========================================================
 #  Labdhi Herbs - AWS EC2 Deployment Script (PowerShell)
 #  Usage: .\deploy.ps1
 # ==========================================================
@@ -38,7 +38,7 @@ function Invoke-SSH {
 
 # ── Step 1: Pull latest code ─────────────────────────────
 Write-Host "[1/5] Pulling latest code from GitHub..." -ForegroundColor Yellow
-Invoke-SSH "cd $APP_DIR && git pull origin main"
+Invoke-SSH "cd $APP_DIR && git fetch origin main && git reset --hard origin/main"
 
 # ── Step 2: Backend - Install dependencies & media tools ───
 Write-Host "[2/5] Installing Backend dependencies & media tools (ffmpeg, sharp)..." -ForegroundColor Yellow
